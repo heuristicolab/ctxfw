@@ -1,0 +1,8 @@
+# Sovereign Clean Environment
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.swp
+*.db
+.env
