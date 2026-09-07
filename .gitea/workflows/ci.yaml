@@ -9,21 +9,25 @@ jobs:
   tdd-attestation:
     runs-on: ubuntu-latest
     container:
-      image: python:3.12-slim
+      image: nikolaik/python-nodejs:python3.12-nodejs22-slim
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
+
+      - name: Verify Python 3.12 Runtime
+        run: |
+          python3 --version
+          node --version
 
       - name: Install Pure Dependencies
         run: |
           pip install --no-cache-dir "pydantic>=2.0" pytest
 
-      - name: Verify Syntactic Integrity & SQL Schema
+      - name: Compile AST & Validate SQL
         run: |
-          python3 --version
           python3 -m py_compile contracts.py test_contracts.py
           python3 -c "import sqlite3; con = sqlite3.connect(':memory:'); con.executescript(open('schema.sql').read()); print('SQL DDL Verified.')"
 
-      - name: Execute Pytest TDD Matrix (Python 3.12 Runtime)
+      - name: Execute Pytest TDD Matrix (Python 3.12 Environment)
         run: |
           pytest test_contracts.py -v --tb=short
