@@ -9,6 +9,9 @@ from typing import Optional, Tuple
 from pydantic import BaseModel, ConfigDict, Field
 
 
+from polyglot_pruner import SupportedLanguage
+
+
 class PruningDepth(str, Enum):
     """Niveles de profundidad de poda topológica."""
     FULL = "full"             # D0: 100% código íntegro sin poda
@@ -21,7 +24,7 @@ class OptimizationRequestDTO(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid", str_strip_whitespace=True)
 
     source_code: str = Field(..., min_length=1, description="Código fuente a podar")
-    language: str = Field(default="python", description="Lenguaje de programación")
+    language: SupportedLanguage = Field(default=SupportedLanguage.PYTHON, description="Lenguaje de programación")
     strip_docs: bool = Field(default=False, description="Purga total de docstrings si es True")
     depth: PruningDepth = Field(default=PruningDepth.INTERFACE, description="Profundidad de podado")
     sanitize_raises: bool = Field(default=True, description="Sanitizar argumentos de sentencias raise")
@@ -152,8 +155,16 @@ class DeterministicContextPruner:
     @classmethod
     def prune(cls, request: OptimizationRequestDTO) -> Tuple[str, int, int, int, float, float]:
         start = time.perf_counter()
-        if request.language.lower() != "python":
-            raise ValueError(f"Lenguaje no soportado: {request.language}")
+        lang_str = request.language.value.lower() if isinstance(request.language, SupportedLanguage) else str(request.language).lower()
+
+        if lang_str != "python":
+            from polyglot_pruner import TreeSitterContextPruner
+            lang_enum = SupportedLanguage(lang_str)
+            return TreeSitterContextPruner.prune(
+                source_code=request.source_code,
+                language=lang_enum,
+                depth=request.depth.value,
+            )
 
         orig_chars = len(request.source_code)
         orig_tokens = cls.estimate_tokens(orig_chars)
@@ -222,8 +233,15 @@ class LocalSemanticCache:
             """)
 
     @staticmethod
-    def generate_key(source_code: str, rules_version: str, strip_docs: bool, depth: str = "interface") -> str:
-        payload = f"{source_code}|{rules_version}|{strip_docs}|{depth}"
+    def generate_key(
+        source_code: str,
+        rules_version: str,
+        strip_docs: bool,
+        depth: str = "interface",
+        language: str = "python",
+    ) -> str:
+        lang_str = language.value.lower() if hasattr(language, "value") else str(language).lower()
+        payload = f"{source_code}|{rules_version}|{strip_docs}|{depth}|{lang_str}"
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     def get(self, cache_key: str) -> Optional[OptimizationResultDTO]:
