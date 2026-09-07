@@ -14,10 +14,10 @@ jobs:
 
       - name: Setup Hermetic Python Environment
         run: |
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update -qq && apt-get install -y -qq python3-venv python3-pip sqlite3
-          python3 -m venv .venv
+          python3 -m venv --without-pip .venv
           . .venv/bin/activate
+          python3 -c "import urllib.request; urllib.request.urlretrieve('https://bootstrap.pypa.io/get-pip.py', 'get-pip.py')"
+          python3 get-pip.py --quiet
           pip install --no-cache-dir "pydantic>=2.0" pytest
 
       - name: Compile AST & Validate SQL
