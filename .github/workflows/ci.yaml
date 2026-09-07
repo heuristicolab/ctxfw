@@ -9,16 +9,14 @@ on:
 jobs:
   tdd-attestation:
     runs-on: ubuntu-latest
-    container:
-      image: nikolaik/python-nodejs:python3.12-nodejs22-slim
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
 
-      - name: Verify Python 3.12 Runtime
-        run: |
-          python3 --version
-          node --version
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Install Pure Dependencies & Package
         run: |
