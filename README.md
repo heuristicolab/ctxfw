@@ -78,3 +78,53 @@ pytest tests/ -v --tb=short
 # Verify database schema syntax
 sqlite3 :memory: < schema.sql
 ```
+
+---
+
+## 💻 Programmatic Usage (Python SDK)
+
+```python
+from contracts import (
+    DeterministicContextPruner,
+    LocalSemanticCache,
+    OptimizationRequestDTO,
+    OptimizationResultDTO,
+)
+
+# Initialize transactional cache
+cache = LocalSemanticCache("tokens_cache.db")
+request = OptimizationRequestDTO(source_code=raw_python_code, strip_docs=False)
+
+# Resolve deterministic SHA-256 key
+cache_key = LocalSemanticCache.generate_key(
+    request.source_code, DeterministicContextPruner.RULES_VERSION, request.strip_docs
+)
+
+# Fetch from warm WAL cache or prune in cold pass
+result = cache.get(cache_key)
+if not result:
+    pruned, orig_c, pruned_c, saved, pct, ms = DeterministicContextPruner.prune(request)
+    result = OptimizationResultDTO(
+        pruned_code=pruned,
+        original_chars=orig_c,
+        pruned_chars=pruned_c,
+        estimated_tokens_saved=saved,
+        savings_percentage=pct,
+        cache_hit=False,
+        execution_ms=ms,
+    )
+    cache.set(cache_key, result)
+
+# Forward pure contracts to the LLM prompt context
+prompt_context = result.pruned_code
+```
+
+---
+
+## 🎯 Scope, Operational Boundaries & Roadmap
+
+- **Runtime Target (v1.0):** Native Python 3.12+ abstract syntax trees (`ast`). Zero external parser dependencies.
+- **Optimal Usage:** Context compaction for LLM code generation, architectural audits, and interface reasoning.
+- **Excluded Operations:** Direct debugging of method algorithms (function bodies are strictly pruned to `pass`).
+- **Roadmap (v2.0):** Migration of the visitor pattern to Tree-sitter bindings for language-agnostic pruning (TypeScript, Go, Rust) using the existing SQLite WAL persistence layer.
+
