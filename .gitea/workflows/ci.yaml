@@ -14,9 +14,10 @@ jobs:
 
       - name: Setup Hermetic Python Environment
         run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq && apt-get install -y -qq python3-venv python3-pip sqlite3
           python3 -m venv .venv
           . .venv/bin/activate
-          pip install --upgrade pip
           pip install --no-cache-dir "pydantic>=2.0" pytest
 
       - name: Compile AST & Validate SQL
