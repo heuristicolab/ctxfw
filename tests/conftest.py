@@ -1,6 +1,14 @@
-import json, time
+"""
+tests/conftest.py — Deterministic Telemetry Capture Hook
+Emits tests/test_report.json following test execution for cryptographic audit.
+"""
+from __future__ import annotations
+
+import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
+
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     passed = len(terminalreporter.stats.get("passed", []))

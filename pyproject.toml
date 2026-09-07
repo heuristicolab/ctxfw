@@ -1,7 +1,7 @@
 [project]
 name = "heuristico-core-optimizer"
 version = "1.0.0"
-description = "Deterministic AST-based Token and Context Pruning Engine with SQLite WAL Cache"
+description = "Deterministic AST-based Token and Context Optimization Engine with SQLite WAL Cache"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
