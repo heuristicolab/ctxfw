@@ -25,11 +25,7 @@
       --sans: 'Space Grotesk', sans-serif;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background-color: var(--bg);
@@ -37,13 +33,9 @@
       font-family: var(--sans);
       line-height: 1.6;
       overflow-x: hidden;
-      selection-background-color: var(--amber);
     }
 
-    ::selection {
-      background: var(--amber);
-      color: #000;
-    }
+    ::selection { background: var(--amber); color: #000; }
 
     /* Scanline effect */
     body::before {
@@ -57,11 +49,7 @@
       opacity: 0.35;
     }
 
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
     /* HEADER */
     header {
@@ -100,11 +88,7 @@
       text-transform: uppercase;
     }
 
-    .header-controls {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
+    .header-controls { display: flex; align-items: center; gap: 16px; }
 
     .lang-switcher {
       display: flex;
@@ -126,16 +110,12 @@
       transition: all 0.2s ease;
     }
 
-    .lang-btn.active {
-      background: var(--amber);
-      color: #000;
-    }
+    .lang-btn.active { background: var(--amber); color: #000; }
 
     /* HERO */
     .hero {
-      padding: 80px 0 60px;
+      padding: 70px 0 50px;
       border-bottom: 1px solid var(--surface-border);
-      position: relative;
     }
 
     .hero-tag {
@@ -148,7 +128,7 @@
       background: var(--emerald-dim);
       border: 1px solid rgba(16, 185, 129, 0.3);
       padding: 4px 12px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .hero-tag::before {
@@ -161,23 +141,21 @@
     }
 
     .hero-title {
-      font-size: 3.2rem;
+      font-size: 3rem;
       font-weight: 800;
       letter-spacing: -1.5px;
       line-height: 1.1;
-      margin-bottom: 20px;
-      max-width: 950px;
+      margin-bottom: 18px;
+      max-width: 980px;
     }
 
-    .hero-title span {
-      color: var(--amber);
-    }
+    .hero-title span { color: var(--amber); }
 
     .hero-desc {
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       color: var(--text-muted);
-      max-width: 800px;
-      margin-bottom: 40px;
+      max-width: 840px;
+      margin-bottom: 35px;
       line-height: 1.7;
     }
 
@@ -186,19 +164,19 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 16px;
-      margin-top: 40px;
+      margin-top: 30px;
     }
 
     .metric-card {
       background: var(--surface);
       border: 1px solid var(--surface-border);
-      padding: 24px;
+      padding: 22px;
       border-left: 3px solid var(--amber);
     }
 
     .metric-val {
       font-family: var(--mono);
-      font-size: 2.2rem;
+      font-size: 2.1rem;
       font-weight: 800;
       color: var(--text);
       line-height: 1;
@@ -211,21 +189,19 @@
 
     .metric-label {
       font-family: var(--mono);
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
-    /* ARCHITECTURE MATRIX */
+    /* SECTION BASICS */
     .section {
-      padding: 80px 0;
+      padding: 70px 0;
       border-bottom: 1px solid var(--surface-border);
     }
 
-    .section-head {
-      margin-bottom: 40px;
-    }
+    .section-head { margin-bottom: 35px; }
 
     .section-label {
       font-family: var(--mono);
@@ -238,7 +214,7 @@
     }
 
     .section-title {
-      font-size: 2.2rem;
+      font-size: 2.1rem;
       font-weight: 700;
       letter-spacing: -1px;
     }
@@ -247,45 +223,44 @@
     .strat-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
+      gap: 20px;
     }
 
     @media (max-width: 900px) {
       .strat-grid { grid-template-columns: 1fr; }
-      .hero-title { font-size: 2.4rem; }
+      .hero-title { font-size: 2.3rem; }
     }
 
     .strat-card {
       background: var(--surface);
       border: 1px solid var(--surface-border);
-      padding: 30px;
+      padding: 26px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      position: relative;
     }
 
     .strat-badge {
       font-family: var(--mono);
       font-weight: 700;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       padding: 4px 8px;
       background: var(--surface-hover);
       border: 1px solid var(--surface-border);
       align-self: flex-start;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     .strat-card h3 {
-      font-size: 1.4rem;
-      margin-bottom: 12px;
+      font-size: 1.3rem;
+      margin-bottom: 10px;
       font-family: var(--mono);
     }
 
     .strat-card p {
       color: var(--text-muted);
-      font-size: 0.95rem;
-      margin-bottom: 24px;
+      font-size: 0.92rem;
+      margin-bottom: 18px;
     }
 
     .strat-code {
@@ -293,7 +268,7 @@
       border: 1px solid var(--surface-border);
       padding: 12px;
       font-family: var(--mono);
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: #e5e7eb;
       border-radius: 4px;
       white-space: pre;
@@ -303,9 +278,9 @@
     /* TABS WORKFLOW */
     .tabs-nav {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       border-bottom: 1px solid var(--surface-border);
-      margin-bottom: 30px;
+      margin-bottom: 25px;
       overflow-x: auto;
     }
 
@@ -315,20 +290,18 @@
       border-bottom: none;
       color: var(--text-muted);
       font-family: var(--mono);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 600;
-      padding: 12px 20px;
+      padding: 10px 16px;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 8px;
       transition: all 0.2s;
+      white-space: nowrap;
     }
 
-    .tab-btn:hover {
-      color: var(--text);
-      background: var(--surface);
-    }
+    .tab-btn:hover { color: var(--text); background: var(--surface); }
 
     .tab-btn.active {
       background: var(--surface);
@@ -337,19 +310,14 @@
       border-top: 2px solid var(--amber);
     }
 
-    .tab-pane {
-      display: none;
-    }
-
-    .tab-pane.active {
-      display: block;
-    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
 
     /* CODE BOXES */
     .code-box {
       background: #000;
       border: 1px solid var(--surface-border);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       border-radius: 4px;
       overflow: hidden;
     }
@@ -358,11 +326,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 16px;
+      padding: 8px 14px;
       background: #0c0d14;
       border-bottom: 1px solid var(--surface-border);
       font-family: var(--mono);
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: var(--text-muted);
     }
 
@@ -371,23 +339,20 @@
       border: 1px solid var(--surface-border);
       color: var(--text);
       font-family: var(--mono);
-      font-size: 0.75rem;
-      padding: 4px 10px;
+      font-size: 0.72rem;
+      padding: 3px 8px;
       border-radius: 3px;
       cursor: pointer;
       transition: all 0.2s;
     }
 
-    .copy-btn:hover {
-      background: var(--amber);
-      color: #000;
-    }
+    .copy-btn:hover { background: var(--amber); color: #000; }
 
     pre {
-      padding: 18px;
+      padding: 16px;
       overflow-x: auto;
       font-family: var(--mono);
-      font-size: 0.88rem;
+      font-size: 0.84rem;
       line-height: 1.5;
       color: #f3f4f6;
     }
@@ -395,18 +360,17 @@
     .kw { color: #f43f5e; }
     .fn { color: #38bdf8; }
     .str { color: #34d399; }
-    .comm { color: #6b7280; font-style: italic; }
 
     /* RUNBOOK STEPS */
     .run-step {
       display: flex;
-      gap: 20px;
-      margin-bottom: 30px;
+      gap: 18px;
+      margin-bottom: 25px;
     }
 
     .step-num {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       background: var(--surface);
       border: 1px solid var(--surface-border);
       display: flex;
@@ -418,24 +382,16 @@
       flex-shrink: 0;
     }
 
-    .step-body h4 {
-      font-size: 1.15rem;
-      margin-bottom: 8px;
-      font-weight: 600;
-    }
-
-    .step-body p {
-      color: var(--text-muted);
-      font-size: 0.95rem;
-      margin-bottom: 12px;
-    }
+    .step-body { flex-grow: 1; }
+    .step-body h4 { font-size: 1.1rem; margin-bottom: 6px; font-weight: 600; }
+    .step-body p { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 10px; }
 
     /* FOOTER */
     footer {
-      padding: 60px 0;
+      padding: 45px 0;
       border-top: 1px solid var(--surface-border);
       font-family: var(--mono);
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       color: var(--text-muted);
     }
 
@@ -443,10 +399,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: gap;
+      flex-wrap: wrap;
+      gap: 12px;
     }
 
-    /* HIDE / SHOW LANG */
+    /* LANG CONTROL */
     [data-lang="en"] { display: none; }
     body.lang-en [data-lang="es"] { display: none; }
     body.lang-en [data-lang="en"] { display: block; }
@@ -461,7 +418,7 @@
     <div class="container header-inner">
       <div class="brand">
         <span class="brand-badge">Sovereign Core</span>
-        <span>CONTEXT_FIREWALL // V3.0</span>
+        <span>CONTEXT_FIREWALL // V3.0 SEALED</span>
       </div>
       <div class="header-controls">
         <div class="lang-switcher">
@@ -483,15 +440,14 @@
         <span data-lang="es">Cortafuegos Determinista de Contexto</span>
         <span data-lang="en">Deterministic Context Firewall</span>
         <br>
-        <span data-lang="es">& Token Optimization Engine</span>
-        <span data-lang="en">& Token Optimization Engine</span>
+        <span>& Token Optimization Engine</span>
       </h1>
       <p class="hero-desc">
         <span data-lang="es">
-          Infraestructura perimetral para flujos agénticos (Cursor, Claude Code) y monorepos. Compacta dependencias mediante AST/CST, retiene invariantes semánticas con stubs canónicos tipados (PEP 484) y bloquea la fuga de propiedad intelectual con SQLite WAL sub-milisegundo.
+          Infraestructura perimetral para flujos agénticos (Antigravity, Cursor, Claude Code) y monorepos políglotas. Compacta dependencias mediante AST nativo y Tree-sitter CST (Python, TypeScript, Go, Java), preserva invariantes con stubs canónicos tipados y neutraliza fuga de secretos en submilisegundos vía SQLite WAL.
         </span>
         <span data-lang="en">
-          Perimeter infrastructure for agentic workflows (Cursor, Claude Code) and monorepos. Compacts dependencies via AST/CST, preserves semantic invariants with typed canonical stubs (PEP 484), and blocks IP leakage with sub-millisecond SQLite WAL.
+          Perimeter infrastructure for agentic workflows (Antigravity, Cursor, Claude Code) and polyglot monorepos. Compacts dependencies via native AST & Tree-sitter CST (Python, TypeScript, Go, Java), preserves invariant interfaces with typed stubs, and blocks secret leakage in sub-milliseconds via SQLite WAL.
         </span>
       </p>
 
@@ -503,8 +459,8 @@
         </div>
         <div class="metric-card">
           <div class="metric-val emerald">0.0%</div>
-          <div class="metric-label" data-lang="es">Impacto en Tasa pass@1 (Zero Degr.)</div>
-          <div class="metric-label" data-lang="en">pass@1 Impact (Zero Degr.)</div>
+          <div class="metric-label" data-lang="es">Degradación pass@1 (Zero Degr.)</div>
+          <div class="metric-label" data-lang="en">pass@1 Degradation (Zero Degr.)</div>
         </div>
         <div class="metric-card">
           <div class="metric-val cyan">&lt;1.5 ms</div>
@@ -512,9 +468,9 @@
           <div class="metric-label" data-lang="en">SQLite WAL Cache Latency</div>
         </div>
         <div class="metric-card">
-          <div class="metric-val">46 / 46</div>
-          <div class="metric-label" data-lang="es">Tests TDD Certificados</div>
-          <div class="metric-label" data-lang="en">Certified TDD Tests</div>
+          <div class="metric-val emerald">51 / 51</div>
+          <div class="metric-label" data-lang="es">Tests TDD Certificados (100% Green)</div>
+          <div class="metric-label" data-lang="en">Certified TDD Tests (100% Green)</div>
         </div>
       </div>
     </div>
@@ -537,8 +493,8 @@
           <span class="strat-badge">D0 // TARGET</span>
           <h3 data-lang="es">Distancia 0 (Archivo Activo)</h3>
           <h3 data-lang="en">Distance 0 (Active Target)</h3>
-          <p data-lang="es">100% retención del código fuente. La implementación en edición activa permanece intacta para garantizar edición fidedigna.</p>
-          <p data-lang="en">100% full implementation retained. The active target being modified is never stripped or touched.</p>
+          <p data-lang="es">100% retención del código fuente. La implementación en edición activa permanece intacta para garantizar razonamiento fidedigno.</p>
+          <p data-lang="en">100% full implementation retained. The active target file being edited is preserved unmodified.</p>
           <div class="strat-code"><span class="kw">def</span> <span class="fn">process_order</span>(x):
     y = calculate(x)
     <span class="kw">if not</span> y:
@@ -548,10 +504,10 @@
 
         <div class="strat-card" style="border-top: 2px solid var(--amber);">
           <span class="strat-badge" style="color: var(--amber);">D1 // INTERFACE</span>
-          <h3 data-lang="es">Distancia 1 (Dependencias Directas)</h3>
-          <h3 data-lang="en">Distance 1 (Direct Dependencies)</h3>
-          <p data-lang="es">Slicing sintáctico con stubs canónicos tipados (`...`). Docstrings, decoradores, tipos y sentencias `raise` sanitizadas.</p>
-          <p data-lang="en">Syntactic slicing with typed canonical stubs (`...`). Preserves docstrings, decorators, types and sanitized `raise` statements.</p>
+          <h3 data-lang="es">Distancia 1 (Import Directo)</h3>
+          <h3 data-lang="en">Distance 1 (Direct Import)</h3>
+          <p data-lang="es">Slicing sintáctico con stubs tipados (`...`). Docstrings, firmas, tipos y excepciones `raise` sanitizadas contra fugas de credenciales.</p>
+          <p data-lang="en">Syntactic slicing with typed stubs (`...`). Preserves docstrings, signatures, types, and sanitized `raise` exception declarations.</p>
           <div class="strat-code"><span class="kw">def</span> <span class="fn">calculate</span>(x: int) -> int:
     <span class="str">"""Compute order taxes."""</span>
     <span class="kw">raise</span> ValueError(...)
@@ -560,10 +516,10 @@
 
         <div class="strat-card" style="border-top: 2px solid var(--cyan);">
           <span class="strat-badge" style="color: var(--cyan);">D2+ // NOMINAL</span>
-          <h3 data-lang="es">Distancia 2+ (Infraestructura / Transitiva)</h3>
-          <h3 data-lang="en">Distance 2+ (Transitive & Infra)</h3>
-          <p data-lang="es">Esquemas nominales compactos. Purgado de métodos; retención exclusiva de clases, campos y tipos de datos (DTOs).</p>
-          <p data-lang="en">Nominal compact schemas. Method bodies purged; exclusive retention of class definitions, fields, and DTO types.</p>
+          <h3 data-lang="es">Distancia 2+ (Transitiva)</h3>
+          <h3 data-lang="en">Distance 2+ (Transitive)</h3>
+          <p data-lang="es">Esquemas nominales compactos. Purgado absoluto de métodos internos; retención exclusiva de definiciones de clase, campos y DTOs.</p>
+          <p data-lang="en">Nominal compact schemas. Full purge of internal methods; exclusive retention of class definitions, fields, and DTO types.</p>
           <div class="strat-code"><span class="kw">class</span> <span class="fn">DatabaseConfig</span>:
     host: str
     port: int
@@ -573,37 +529,135 @@
     </div>
   </section>
 
-  <!-- OPERATIONAL RUNBOOK (HOW TO USE) -->
+  <!-- OPERATIONAL RUNBOOK -->
   <section class="section">
     <div class="container">
       <div class="section-head">
-        <span class="section-label" data-lang="es">Guía de Operación</span>
+        <span class="section-label" data-lang="es">Runbook Operativo</span>
         <span class="section-label" data-lang="en">Operational Runbook</span>
         <h2 class="section-title">
-          <span data-lang="es">4 Formas de Usarlo en tu Flujo de Trabajo</span>
-          <span data-lang="en">4 Ways to Integrate with Your Workflow</span>
+          <span data-lang="es">Flujos de Integración y Uso</span>
+          <span data-lang="en">Integration Workflows & Usage</span>
         </h2>
       </div>
 
       <div class="tabs-nav">
-        <button class="tab-btn active" onclick="switchTab('tab-mcp')">01. Servidor MCP (Cursor / Claude)</button>
-        <button class="tab-btn" onclick="switchTab('tab-cli')">02. CLI Clipboard (Terminal)</button>
-        <button class="tab-btn" onclick="switchTab('tab-proxy')">03. Reverse Proxy (Gateway)</button>
-        <button class="tab-btn" onclick="switchTab('tab-ci')">04. CI Gatekeeper (PR Review)</button>
+        <button class="tab-btn active" onclick="switchTab('tab-bootstrap')">
+          <span data-lang="es">00. Instalación (1-Click)</span>
+          <span data-lang="en">00. 1-Click Bootstrap</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('tab-cli')">
+          <span data-lang="es">01. CLI Clipboard</span>
+          <span data-lang="en">01. Clipboard CLI</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('tab-mcp')">
+          <span data-lang="es">02. Servidor MCP</span>
+          <span data-lang="en">02. MCP Server</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('tab-proxy')">
+          <span data-lang="es">03. Reverse Proxy</span>
+          <span data-lang="en">03. Reverse Proxy</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('tab-ci')">
+          <span data-lang="es">04. CI Gatekeeper</span>
+          <span data-lang="en">04. CI Gatekeeper</span>
+        </button>
       </div>
 
-      <!-- TAB 1: MCP -->
-      <div id="tab-mcp" class="tab-pane active">
+      <!-- TAB 0: 1-CLICK BOOTSTRAP -->
+      <div id="tab-bootstrap" class="tab-pane active">
         <div class="run-step">
           <div class="step-num">1</div>
           <div class="step-body">
-            <h4 data-lang="es">Registrar el Servidor en Cursor o Claude Desktop</h4>
-            <h4 data-lang="en">Register Server in Cursor or Claude Desktop</h4>
-            <p data-lang="es">Agrega la definición en tu archivo <code>.cursor/mcp.json</code> o <code>claude_desktop_config.json</code>. Se comunica por <code>stdio</code> hermético en submilisegundos.</p>
-            <p data-lang="en">Add this configuration to your <code>.cursor/mcp.json</code> or <code>claude_desktop_config.json</code>. Operates over hermetic <code>stdio</code> in sub-milliseconds.</p>
+            <h4 data-lang="es">Clonado y Aprovisionamiento Automático</h4>
+            <h4 data-lang="en">Clone & Automatic Provisioning</h4>
+            <p data-lang="es">Baja el repositorio canónico de Gitea y ejecuta el instalador. Genera el entorno virtual `.venv`, instala dependencias y certifica los 51 tests:</p>
+            <p data-lang="en">Clone the canonical Gitea repository and run the zero-friction installer. Configures `.venv`, dependencies, and validates all 51 tests:</p>
             <div class="code-box">
               <div class="code-head">
-                <span>claude_desktop_config.json / .cursor/mcp.json</span>
+                <span>PowerShell (Windows)</span>
+                <button class="copy-btn" onclick="copyCode('code-install-win')">Copiar</button>
+              </div>
+              <pre id="code-install-win">git clone https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b.git
+cd arch-ord-2026-4f003b
+.\setup.ps1</pre>
+            </div>
+            <div class="code-box">
+              <div class="code-head">
+                <span>Bash (Linux / macOS)</span>
+                <button class="copy-btn" onclick="copyCode('code-install-posix')">Copiar</button>
+              </div>
+              <pre id="code-install-posix">git clone https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b.git
+cd arch-ord-2026-4f003b
+chmod +x setup.sh && ./setup.sh</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 1: CLI -->
+      <div id="tab-cli" class="tab-pane">
+        <div class="run-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4 data-lang="es">Ejecución Directa con Inyección al Portapapeles (Ctrl + V)</h4>
+            <h4 data-lang="en">Direct Execution with Instant Clipboard Copy</h4>
+            <p data-lang="es">Ejecuta el wrapper <code>firewall</code> apuntando al archivo objetivo. Analiza el grafo, poda dependencias y deposita el prompt listo en tu portapapeles en menos de 2 ms:</p>
+            <p data-lang="en">Execute the <code>firewall</code> wrapper targeting your active module. Resolves dependencies and deposits the prompt into the OS clipboard in &lt; 2 ms:</p>
+            <div class="code-box">
+              <div class="code-head">
+                <span>PowerShell / Terminal</span>
+                <button class="copy-btn" onclick="copyCode('code-cli-run')">Copiar</button>
+              </div>
+              <pre id="code-cli-run">.\firewall contracts.py</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="run-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4 data-lang="es">Salida Real del Dashboard en Terminal</h4>
+            <h4 data-lang="en">Live Terminal Telemetry Output</h4>
+            <div class="code-box">
+              <div class="code-head">
+                <span>Terminal Output</span>
+              </div>
+              <pre>========================================================================
+  CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v3.3.0)
+========================================================================
+Target Module:  contracts.py
+Project Root:   C:\sandbox\arch-ord-2026-4f003b
+
+DIST   | MODULE                           | DEPTH      | ORIG TOK  | PRUNED   | SAVINGS 
+------------------------------------------------------------------------------------
+D0     | contracts.py                     | FULL       | 2,995     | 2,995    | 0.0%    
+D1     | polyglot_pruner.py               | INTERFACE  | 1,739     | 426      | 75.5%   
+------------------------------------------------------------------------------------
+TOTAL  | 2 Modules                        |            | 4,734     | 3,421    | 27.7%   
+
+[*] Net Context Tokens Saved:  1,313 tokens (27.7% reduction)
+[*] Projected FinOps Savings:  $0.0039 USD (@ $3.00/1M tokens)
+[*] Pipeline Latency:          1.85 ms
+[*] Clipboard Status:          COPIED TO SYSTEM CLIPBOARD
+========================================================================</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: MCP -->
+      <div id="tab-mcp" class="tab-pane">
+        <div class="run-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4 data-lang="es">Manifiesto MCP Nativo (.mcp.json)</h4>
+            <h4 data-lang="en">Native MCP Manifest (.mcp.json)</h4>
+            <p data-lang="es">Configuración ya incluida en la raíz del repositorio para descubrimiento automático en Antigravity, Cursor o Claude Desktop:</p>
+            <p data-lang="en">Configuration pre-bundled in the repository root for auto-discovery across Antigravity, Cursor, and Claude Desktop:</p>
+            <div class="code-box">
+              <div class="code-head">
+                <span>.mcp.json / claude_desktop_config.json</span>
                 <button class="copy-btn" onclick="copyCode('code-mcp-cfg')">Copiar</button>
               </div>
               <pre id="code-mcp-cfg">{
@@ -621,58 +675,17 @@
         <div class="run-step">
           <div class="step-num">2</div>
           <div class="step-body">
-            <h4 data-lang="es">Invocar la Herramienta en el Chat del Agente</h4>
-            <h4 data-lang="en">Invoke the Tool in Agent Chat</h4>
-            <p data-lang="es">Pídele a Cursor o Claude Code que resuelva dependencias antes de generar código:</p>
-            <p data-lang="en">Instruct Cursor or Claude Code to resolve dependencies before reasoning:</p>
+            <h4 data-lang="es">Invocación Autónoma en el Chat del Agente</h4>
+            <h4 data-lang="en">Autonomous Invocation in Agent Chat</h4>
+            <p data-lang="es">Pídele al asistente que use el cortafuegos antes de generar código:</p>
+            <p data-lang="en">Instruct the AI agent to prune context before reasoning:</p>
             <div class="code-box">
               <div class="code-head">
                 <span>Prompt</span>
-                <button class="copy-btn" onclick="copyCode('code-mcp-prompt')">Copiar</button>
+                <button class="copy-btn" onclick="copyPrompt()">Copiar</button>
               </div>
-              <pre id="code-mcp-prompt" data-lang="es">"Usa la herramienta resolve_context_bundle sobre 'backend/orders/service.py' y con base en ese contexto optimizado genera la función de reintento de pagos."</pre>
-              <pre id="code-mcp-prompt-en" data-lang="en">"Use the resolve_context_bundle tool on 'backend/orders/service.py' and based on that optimized context, generate the payment retry mechanism."</pre>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 2: CLI -->
-      <div id="tab-cli" class="tab-pane">
-        <div class="run-step">
-          <div class="step-num">1</div>
-          <div class="step-body">
-            <h4 data-lang="es">Ejecución Rápida con Inyección a Portapapeles</h4>
-            <h4 data-lang="en">Fast Execution with Direct Clipboard Injection</h4>
-            <p data-lang="es">Ejecuta el script apuntando al archivo objetivo. Analiza el grafo, compacta dependencias y copia el prompt directamente al portapapeles de Windows/macOS/Linux.</p>
-            <p data-lang="en">Run the command targeting your file. Analyzes the graph, compacts dependencies, and copies the ready prompt directly into your clipboard.</p>
-            <div class="code-box">
-              <div class="code-head">
-                <span>PowerShell / Terminal</span>
-                <button class="copy-btn" onclick="copyCode('code-cli-run')">Copiar</button>
-              </div>
-              <pre id="code-cli-run">python firewall_cli.py backend/orders/service.py</pre>
-            </div>
-          </div>
-        </div>
-
-        <div class="run-step">
-          <div class="step-num">2</div>
-          <div class="step-body">
-            <h4 data-lang="es">Salida en Consola y Pegado Directo (Ctrl + V)</h4>
-            <h4 data-lang="en">Console Telemetry & Direct Paste (Ctrl + V)</h4>
-            <p data-lang="es">La terminal reporta las métricas de reducción y ahorro en USD. Ve a ChatGPT o Claude Web y pega el contenido:</p>
-            <p data-lang="en">Terminal prints reduction metrics and USD savings. Go to ChatGPT or Claude Web and paste:</p>
-            <div class="code-box">
-              <div class="code-head">
-                <span>Terminal Output</span>
-              </div>
-              <pre>[*] Escaneando topología desde: service.py
-[✓] Contexto copiado al portapapeles (6 módulos procesados)
-[-] Tokens evaluados:  38,400
-[-] Tokens podados:     18,250 (-47.5%)
-[-] Ahorro proyectado: $0.0547 USD
-[-] Latencia pipeline: 3.2 ms</pre>
+              <pre id="prompt-es" data-lang="es">"Usa la herramienta resolve_context_bundle sobre 'contracts.py' y con base en ese contexto optimizado genera la extensión requerida."</pre>
+              <pre id="prompt-en" data-lang="en">"Use the resolve_context_bundle tool on 'contracts.py' and based on that optimized context, generate the requested extension."</pre>
             </div>
           </div>
         </div>
@@ -683,10 +696,10 @@
         <div class="run-step">
           <div class="step-num">1</div>
           <div class="step-body">
-            <h4 data-lang="es">Levantar el Gateway Perimetral Local</h4>
-            <h4 data-lang="en">Spin Up Local Perimeter Gateway</h4>
-            <p data-lang="es">Proxy inverso drop-in compatible con OpenAI y Anthropic. Escucha peticiones y compacta bloques de código con política estricta de <em>Fail-Open</em>.</p>
-            <p data-lang="en">Drop-in reverse proxy compatible with OpenAI and Anthropic. Inspects prompts and compacts code blocks with strict <em>Fail-Open</em> guarantee.</p>
+            <h4 data-lang="es">Levantar Gateway Transparente (Fail-Open)</h4>
+            <h4 data-lang="en">Spin Up Transparent Gateway (Fail-Open)</h4>
+            <p data-lang="es">Proxy inverso HTTP con sobrecosto menor a 5 ms. Si el código tiene sintaxis inválida o envías el header de bypass, pasa íntegro sin romper la petición:</p>
+            <p data-lang="en">HTTP reverse proxy with &lt; 5 ms overhead. In case of syntax errors or bypass header, it gracefully passes raw code without crashing:</p>
             <div class="code-box">
               <div class="code-head">
                 <span>Terminal</span>
@@ -694,26 +707,16 @@
               </div>
               <pre id="code-proxy-start">python proxy_gateway.py --port 8080 --upstream https://api.openai.com</pre>
             </div>
-          </div>
-        </div>
-
-        <div class="run-step">
-          <div class="step-num">2</div>
-          <div class="step-body">
-            <h4 data-lang="es">Redirigir tus Clientes SDK</h4>
-            <h4 data-lang="en">Redirect Your Client SDKs</h4>
-            <p data-lang="es">Solo cambia el <code>base_url</code> en tu cliente habitual. La intercepción es completamente invisible:</p>
-            <p data-lang="en">Simply alter the <code>base_url</code> in your standard client. Compaction is entirely transparent:</p>
             <div class="code-box">
               <div class="code-head">
-                <span>Python / OpenAI SDK</span>
+                <span>OpenAI SDK (Python)</span>
                 <button class="copy-btn" onclick="copyCode('code-proxy-client')">Copiar</button>
               </div>
               <pre id="code-proxy-client"><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
 
 client = OpenAI(
     base_url=<span class="str">"http://localhost:8080/v1"</span>,
-    api_key=<span class="str">"sk-upstream-secret-key"</span>
+    api_key=<span class="str">"sk-your-actual-key"</span>
 )</pre>
             </div>
           </div>
@@ -725,13 +728,13 @@ client = OpenAI(
         <div class="run-step">
           <div class="step-num">1</div>
           <div class="step-body">
-            <h4 data-lang="es">Auditar PRs y Prevenir Sobrecostos en CI</h4>
-            <h4 data-lang="en">Audit PRs & Prevent CI Token Spikes</h4>
-            <p data-lang="es">Inspecciona el changeset de un Pull Request, clasifica el impacto topológico ($D_0, D_1, D_{2+}$) y genera una tabla Markdown con el ahorro FinOps para GitHub Actions o Gitea:</p>
-            <p data-lang="en">Inspects PR changesets, categorizes topological distance ($D_0, D_1, D_{2+}$), and generates a FinOps Markdown summary for GitHub Actions or Gitea:</p>
+            <h4 data-lang="es">Auditoría de PRs y Control FinOps en CI/CD</h4>
+            <h4 data-lang="en">PR Audit & FinOps Accounting in CI/CD</h4>
+            <p data-lang="es">Inspecciona el diff de Git, clasifica el impacto por distancias ($D_0, D_1, D_{2+}$) y genera el resumen Markdown para GitHub Actions o Gitea:</p>
+            <p data-lang="en">Inspects Git diffs, categorizes impact by topological distance ($D_0, D_1, D_{2+}$), and emits Markdown summary tables for CI/CD runners:</p>
             <div class="code-box">
               <div class="code-head">
-                <span>GitHub Actions / CI Script</span>
+                <span>CI Action / Workflow Step</span>
                 <button class="copy-btn" onclick="copyCode('code-ci-run')">Copiar</button>
               </div>
               <pre id="code-ci-run">python ci_gatekeeper.py --base origin/main --head HEAD --output $GITHUB_STEP_SUMMARY</pre>
@@ -742,35 +745,35 @@ client = OpenAI(
     </div>
   </section>
 
-  <!-- SOVEREIGNTY & FINOPS GUARANTEE -->
+  <!-- SOVEREIGNTY GUARANTEE -->
   <section class="section">
     <div class="container">
       <div class="section-head">
-        <span class="section-label" data-lang="es">Aislamiento y Soberanía</span>
-        <span class="section-label" data-lang="en">Isolation & Sovereignty</span>
+        <span class="section-label" data-lang="es">Aislamiento Perimetral</span>
+        <span class="section-label" data-lang="en">Perimetric Isolation</span>
         <h2 class="section-title">
-          <span data-lang="es">Data Plane vs. Control Plane</span>
-          <span data-lang="en">Data Plane vs. Control Plane</span>
+          <span data-lang="es">Data Plane Soberano vs. Control Plane</span>
+          <span data-lang="en">Sovereign Data Plane vs. Control Plane</span>
         </h2>
       </div>
 
-      <div style="background: var(--surface); border: 1px solid var(--surface-border); padding: 36px; border-left: 4px solid var(--emerald);">
-        <h3 style="font-size: 1.3rem; margin-bottom: 12px; font-family: var(--mono);" data-lang="es">
-          ¿Por qué el código nunca sale de tu procesador?
+      <div style="background: var(--surface); border: 1px solid var(--surface-border); padding: 32px; border-left: 4px solid var(--emerald);">
+        <h3 style="font-size: 1.25rem; margin-bottom: 12px; font-family: var(--mono);" data-lang="es">
+          ¿Por qué tu código fuente nunca sale del host local?
         </h3>
-        <h3 style="font-size: 1.3rem; margin-bottom: 12px; font-family: var(--mono);" data-lang="en">
-          Why your code never leaves your local CPU
+        <h3 style="font-size: 1.25rem; margin-bottom: 12px; font-family: var(--mono);" data-lang="en">
+          Why your raw source code never leaves the local machine
         </h3>
-        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 1rem;" data-lang="es">
-          A diferencia de los proxies en la nube convencionales que exigen enviar el código fuente a servidores de terceros, <strong>Context Firewall opera 100% en local</strong>. El parseo de sintaxis (AST/Tree-sitter), la sanitización de precondiciones y la persistencia en caché SQLite WAL ocurren dentro de tu computadora en menos de 5 milisegundos.
+        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 0.98rem;" data-lang="es">
+          A diferencia de intermediarios en la nube que almacenan tu código en servidores de terceros, <strong>Context Firewall ejecuta el 100% de la lógica sintáctica en la memoria y CPU de tu equipo</strong>. Las firmas se extraen, las sentencias <code>raise</code> se limpian de cadenas privadas y los stubs tipados se generan localmente en milisegundos antes de cualquier llamada al proveedor LLM.
         </p>
-        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 1rem;" data-lang="en">
-          Unlike traditional cloud proxies requiring code transmission to third-party servers, <strong>Context Firewall executes 100% locally</strong>. AST/Tree-sitter parsing, precondition sanitization, and SQLite WAL caching execute directly inside your host machine in under 5 milliseconds.
+        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 0.98rem;" data-lang="en">
+          Unlike third-party cloud proxies storing your source on unknown servers, <strong>Context Firewall executes 100% locally on your machine's CPU and RAM</strong>. Interfaces are extracted, <code>raise</code> statements are purged of sensitive variables, and typed stubs are computed locally in milliseconds before prompting downstream models.
         </p>
-        <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-family: var(--mono); font-size: 0.9rem;">
-          <li style="color: var(--emerald);">[✓] Zero-Cloud Invariant: Cero telemetría externa del código fuente.</li>
-          <li style="color: var(--emerald);">[✓] Secret Shielding: Neutralización de variables en excepciones `raise`.</li>
-          <li style="color: var(--emerald);">[✓] Air-Gapped Certified: Funciona sin conexión a internet.</li>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-family: var(--mono); font-size: 0.88rem;">
+          <li style="color: var(--emerald);">[✓] Zero Cloud Network Dependency: Funciona sin conexión a internet (Air-Gapped).</li>
+          <li style="color: var(--emerald);">[✓] Secret Shielding: Neutralización forzosa de strings en excepciones `raise`.</li>
+          <li style="color: var(--emerald);">[✓] Polyglot Syntax Trees: Soporte CST para Python, TypeScript, Go y Java.</li>
         </ul>
       </div>
     </div>
@@ -783,7 +786,7 @@ client = OpenAI(
         <strong>HEURÍSTICO LAB</strong> // Autonomous Cognitive Architectures
       </div>
       <div>
-        <span>ORDER ID: ord-2026-4f003b // V3.0 SEALED</span>
+        <span>ORDER ID: ord-2026-4f003b // V3.0 SEALED (51/51 PASSED)</span>
       </div>
     </div>
   </footer>
@@ -806,6 +809,19 @@ client = OpenAI(
 
     function copyCode(elementId) {
       const el = document.getElementById(elementId);
+      const text = el.innerText || el.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = event.currentTarget;
+        const originalText = btn.innerText;
+        btn.innerText = '✓ Copiado';
+        setTimeout(() => { btn.innerText = originalText; }, 1800);
+      });
+    }
+
+    function copyPrompt() {
+      const isEn = document.body.classList.contains('lang-en');
+      const targetId = isEn ? 'prompt-en' : 'prompt-es';
+      const el = document.getElementById(targetId);
       const text = el.innerText || el.textContent;
       navigator.clipboard.writeText(text).then(() => {
         const btn = event.currentTarget;
