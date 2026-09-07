@@ -1,0 +1,10 @@
+{
+  "total_tasks": 10,
+  "group_a_pass_rate": 100.0,
+  "group_b_pass_rate": 100.0,
+  "delta_pass_rate": 0.0,
+  "avg_token_reduction_pct": 43.27,
+  "estimated_usd_savings": 0.001176,
+  "air_gapped_certified": true,
+  "timestamp": "2026-09-07T02:03:19.604056+00:00"
+}
