@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "context-firewall": {
+      "command": "python",
+      "args": ["C:/sandbox/arch-ord-2026-4f003b/mcp_server.py"]
+    }
+  }
+}
