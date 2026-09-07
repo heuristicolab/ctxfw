@@ -1,6 +1,6 @@
 [project]
 name = "ctxfw"
-version = "3.4.0"
+version = "3.5.0"
 description = "Deterministic AST-based Token and Context Optimization Engine with SQLite WAL Cache & XDG Storage"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -33,3 +33,8 @@ jobs:
       - name: Execute Pytest TDD Matrix (Python 3.12 Environment)
         run: |
           python3 -m pytest tests/ -v --tb=short
+
+      - name: Standalone Single-Binary Zero-Python Generation & Verification (HU-03)
+        run: |
+          pip install --no-cache-dir pyinstaller
+          python3 scripts/build_standalone.py

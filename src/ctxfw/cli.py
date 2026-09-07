@@ -185,6 +185,35 @@ def run_firewall_cli(
         sys.stdout.write(f"[*] Saved to File:             {output_path_str}\n")
     sys.stdout.write("========================================================================\n")
 
+    # HU-02: Telemetría perimetral anónima y despacho de heartbeat
+    try:
+        from datetime import datetime, timezone
+        from ctxfw.core.contracts import TelemetryRecordDTO
+        from ctxfw.storage.telemetry import (
+            TelemetryLedger,
+            get_or_create_dev_uuid,
+            push_telemetry_heartbeat_sync,
+        )
+
+        dev_uuid = get_or_create_dev_uuid()
+        ledger = TelemetryLedger()
+        record = TelemetryRecordDTO(
+            dev_uuid=dev_uuid,
+            timestamp_utc=datetime.now(timezone.utc).isoformat(),
+            model_target="cli-optimizer",
+            tokens_orig=max(total_orig_tokens, total_saved_tokens),
+            tokens_pruned=total_saved_tokens,
+            usd_avoided=round(usd_savings, 6),
+            team=os.environ.get("CTXFW_TEAM", "Engineering"),
+        )
+        ledger.record_event(record, synced=0)
+
+        endpoint = os.environ.get("CTXFW_TELEMETRY_ENDPOINT")
+        if endpoint:
+            push_telemetry_heartbeat_sync(endpoint, ledger)
+    except Exception:
+        pass
+
     return 0
 
 
@@ -266,7 +295,7 @@ def init_entrypoint() -> None:
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init"}:
+    if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "service"}:
         subcmd = sys.argv[1]
         sys.argv.pop(1)
         if subcmd == "init":
@@ -278,6 +307,9 @@ def main():
             handle_init_command(target)
             return
         elif subcmd == "mcp":
+            if len(sys.argv) > 1 and sys.argv[1] in {"-h", "--help"}:
+                print("usage: ctxfw mcp\n\nStart stdio Model Context Protocol (MCP) server.")
+                return
             from ctxfw.mcp import main as mcp_main
             mcp_main()
         elif subcmd == "proxy":
@@ -289,16 +321,20 @@ def main():
         elif subcmd == "audit":
             from ctxfw.auditor import main as auditor_main
             auditor_main()
+        elif subcmd == "service":
+            from ctxfw.service import handle_service_command
+            sys.exit(handle_service_command(sys.argv[1:]))
         return
 
     # Default delegation to Clipboard CLI (HU-12)
     parser = argparse.ArgumentParser(
         prog="ctxfw",
-        description="ctxfw — Sovereign Context Firewall & Token Optimization Engine (v3.4.0)\n\n"
+        description="ctxfw — Sovereign Context Firewall & Token Optimization Engine (v3.5.0)\n\n"
                     "Subcommands:\n"
                     "  init                 Initialize sovereign agentic perimeter and skills\n"
                     "  mcp                  Start stdio Model Context Protocol server\n"
                     "  proxy                Launch local perimeter reverse proxy gateway\n"
+                    "  service              Manage background service (Windows sc.exe & systemd)\n"
                     "  ci                   Run CI/CD PR topological gatekeeper\n"
                     "  audit                Audit FinOps token savings and telemetry ledger",
         formatter_class=argparse.RawDescriptionHelpFormatter,

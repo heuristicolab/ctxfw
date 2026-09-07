@@ -16,6 +16,11 @@ from ctxfw.core.contracts import (
     OptimizationResultDTO,
     PruningDepth,
     SupportedLanguage,
+    TelemetryRecordDTO,
+    TelemetryBatchPushDTO,
+    TeamSavingsDTO,
+    ModelSavingsDTO,
+    TelemetryStatsDTO,
 )
 from ctxfw.core.pruner import DeterministicContextPruner, _MethodBodyStripper
 from ctxfw.storage.cache import LocalSemanticCache
@@ -28,4 +33,9 @@ __all__ = [
     "DeterministicContextPruner",
     "_MethodBodyStripper",
     "LocalSemanticCache",
+    "TelemetryRecordDTO",
+    "TelemetryBatchPushDTO",
+    "TeamSavingsDTO",
+    "ModelSavingsDTO",
+    "TelemetryStatsDTO",
 ]

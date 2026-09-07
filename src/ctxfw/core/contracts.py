@@ -48,3 +48,58 @@ class OptimizationResultDTO(BaseModel):
     cache_hit: bool
     execution_ms: float = Field(..., ge=0.0)
     depth: PruningDepth = Field(default=PruningDepth.INTERFACE, description="Nivel de profundidad aplicado")
+
+
+class TelemetryRecordDTO(BaseModel):
+    """Contrato inmutable de telemetría anónima perimetral (inviolabilidad perimetral)."""
+    model_config = ConfigDict(frozen=True, extra="forbid", str_strip_whitespace=True)
+
+    dev_uuid: str = Field(..., min_length=8, description="Identificador anónimo único del desarrollador")
+    timestamp_utc: str = Field(..., description="Marca temporal UTC en formato ISO 8601")
+    model_target: str = Field(..., min_length=1, description="Nombre del modelo LLM objetivo")
+    tokens_orig: int = Field(..., ge=0, description="Tokens originales evaluados")
+    tokens_pruned: int = Field(..., ge=0, description="Tokens eludidos/podados")
+    usd_avoided: float = Field(..., ge=0.0, description="Ahorro financiero estimado en USD")
+    team: str = Field(default="Engineering", description="Equipo organizativo")
+
+
+class TelemetryBatchPushDTO(BaseModel):
+    """Lote de registros de telemetría anónima para sincronización perimetral."""
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    records: list[TelemetryRecordDTO] = Field(..., description="Lista de eventos de telemetría anónima")
+
+
+class TeamSavingsDTO(BaseModel):
+    """Métricas agregadas por equipo organizativo."""
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    team: str
+    tokens_pruned: int = Field(..., ge=0)
+    usd_avoided: float = Field(..., ge=0.0)
+    request_count: int = Field(..., ge=0)
+
+
+class ModelSavingsDTO(BaseModel):
+    """Métricas agregadas por modelo de lenguaje."""
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    model_target: str
+    tokens_pruned: int = Field(..., ge=0)
+    usd_avoided: float = Field(..., ge=0.0)
+    request_count: int = Field(..., ge=0)
+
+
+class TelemetryStatsDTO(BaseModel):
+    """Estadísticas globales agregadas para el plano de control y dashboard FinOps."""
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    total_tokens_orig: int = Field(..., ge=0)
+    total_tokens_pruned: int = Field(..., ge=0)
+    total_usd_avoided: float = Field(..., ge=0.0)
+    global_reduction_pct: float = Field(..., ge=0.0, le=100.0)
+    active_dev_count: int = Field(..., ge=0)
+    total_cycles: int = Field(..., ge=0)
+    teams: list[TeamSavingsDTO]
+    models: list[ModelSavingsDTO]
+    timeseries: list[dict]
