@@ -72,6 +72,8 @@ arch-ord-2026-4f003b/
 ├── mcp_server.py                      # Model Context Protocol server over stdio (MCP v2024-11-05)
 ├── proxy_gateway.py                   # Transparent HTTP reverse proxy (/v1/chat/completions, /v1/messages)
 ├── ci_gatekeeper.py                   # PR changeset topological analyzer and FinOps job summary generator
+├── firewall_cli.py                    # Instant clipboard ergonomics & terminal context compaction CLI
+├── USER_MANUAL.md                     # Canonical operational manual, runbook, and troubleshooting matrix
 ├── schema.sql                         # Canonical SQLite WAL schema and indexes
 ├── pyproject.toml                     # Python packaging and pytest configuration
 ├── checkpoint.ps1                     # Verification and cryptographic attestation runner (PowerShell)
@@ -99,6 +101,7 @@ arch-ord-2026-4f003b/
     ├── test_mcp_server.py             # stdio MCP handshake, tool calling, and framing tests
     ├── test_proxy_gateway.py          # Reverse proxy fail-open, bypass, and latency tests
     ├── test_ci_gatekeeper.py          # PR changeset classification and Markdown summary tests
+    ├── test_firewall_cli.py           # Clipboard ergonomics and CLI telemetry tests
     └── test_run_evals.py              # Sandboxed evaluation runner unit tests
 ```
 
@@ -177,14 +180,27 @@ python scripts/run_evals.py --provider openai --model gpt-4o
 
 ---
 
+### 5. Developer Terminal CLI & Clipboard Ergonomics
+Compact code and copy directly to operating system clipboard in $< 2\text{ ms}$:
+
+```bash
+# Compact target file and copy directly to OS clipboard
+python firewall_cli.py contracts.py
+
+# Write prompt to disk and print raw markdown to stdout
+python firewall_cli.py contracts.py --no-clip --output prompt.md
+```
+
+---
+
 ## ⚡ Full Test Suite & Verification Matrix
 
 ```bash
-# Run all 46 automated unit and integration tests
+# Run all 51 automated unit and integration tests
 pytest tests/ -v --tb=short
 
 # Compile all source modules
-python -m py_compile contracts.py topological_resolver.py finops_auditor.py polyglot_pruner.py mcp_server.py proxy_gateway.py ci_gatekeeper.py
+python -m py_compile contracts.py topological_resolver.py finops_auditor.py polyglot_pruner.py mcp_server.py proxy_gateway.py ci_gatekeeper.py firewall_cli.py
 
 # Execute satellite checkpoint protocol
 powershell -ExecutionPolicy Bypass -File .\checkpoint.ps1

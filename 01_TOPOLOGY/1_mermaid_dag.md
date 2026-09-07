@@ -4,6 +4,7 @@ graph TD
         IDE["Agentic IDEs (Cursor / Claude Code / Windsurf)"] -->|JSON-RPC 2.0 over stdio| MCPServer["MCPServer: mcp_server.py (v2024-11-05)"]
         AppClient["HTTP API Clients (OpenAI / Anthropic SDK)"] -->|POST /v1/chat/completions\nPOST /v1/messages| ProxyGateway["Reverse Proxy Gateway: proxy_gateway.py\nFail-Open Policy"]
         CIPipeline["Git PR & CI/CD Pipeline"] -->|git diff / pre-commit| CIGatekeeper["CI Gatekeeper: ci_gatekeeper.py\nPR Summary & FinOps Impact"]
+        DevCLI["Developer Terminal / Web Chat Ops"] -->|python firewall_cli.py <target>| ClipboardCLI["Clipboard & Telemetry CLI:\nfirewall_cli.py"]
     end
 
     subgraph TopoScan ["Static AST Import & Topological Distance Resolver"]
@@ -36,6 +37,8 @@ graph TD
         ColdStore --> Bundler
         Bundler --> ProxyGateway
         Bundler --> MCPServer
+        Bundler --> ClipboardCLI
+        ClipboardCLI -->|Atomic System Copy| OSClip["OS Clipboard (Windows clip / macOS pbcopy / Linux wl-copy)"]
         Bundler --> FinOps["FinOpsAuditor & EvalHarness (pass@1 sandbox)"]
         FinOps --> EvalReport["tests/eval_report.json & test_report.json"]
         ProxyGateway -->|Upstream Forward with X-Headers| LLMUpstream["Upstream LLM Provider (OpenAI / Anthropic)"]
@@ -47,9 +50,9 @@ graph TD
     classDef cacheNode fill:#050505,stroke:#00ff66,stroke-width:2px,color:#00ff66
     classDef outboundNode fill:#1f1605,stroke:#fbbf24,stroke-width:2px,color:#fbbf24
 
-    class IDE,AppClient,CIPipeline,MCPServer,ProxyGateway,CIGatekeeper ingressNode
+    class IDE,AppClient,CIPipeline,DevCLI,MCPServer,ProxyGateway,CIGatekeeper,ClipboardCLI ingressNode
     class TargetFile,GraphBuilder,D0,D1,D2 topoNode
     class DispatchFull,DispatchInterface,DispatchNominal,DualRouter,ASTPruner,PolyglotPruner engineNode
     class KeyGen,CacheCheck,WarmHit,ColdStore cacheNode
-    class Bundler,FinOps,EvalReport,LLMUpstream outboundNode
+    class Bundler,OSClip,FinOps,EvalReport,LLMUpstream outboundNode
 ```
