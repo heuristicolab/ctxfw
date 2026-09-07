@@ -1,0 +1,15 @@
+[project]
+name = "heuristico-core-optimizer"
+version = "1.0.0"
+description = "Deterministic AST-based Token and Context Pruning Engine with SQLite WAL Cache"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.0.0",
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"

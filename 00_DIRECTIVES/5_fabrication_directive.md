@@ -1,19 +1,18 @@
-# Directiva de Fabricación Agéntica Zero-Drift ($4,500 USD Caliber)
+# DIRECTIVA DE FABRICACIÓN AGÉNTICA — ord-2026-4f003b Context & Token Optimization Engine
 
-## 1. Contexto de Misión y Arquitectura
-Implementar la arquitectura de grado enterprise según el brief técnico: `# ORDEN TÉCNICA SOBERANA: ord-2026-4f003b
+## 1. CONTEXTO DE MISIÓN
+Implementar un motor determinista, hermético y de costo operativo cero para la optimización de contexto y poda de tokens en Heurístico Lab. El sistema realiza slicing sintáctico de código Python mediante el módulo nativo AST, eliminando cuerpos de funciones y métodos mientras preserva firmas, tipos, jerarquías de clases y contratos inmutables (Pydantic v2). La persistencia opera de forma local sobre SQLite en modo WAL, garantizando cache hits sub-milisegundo (<2ms) y 100% de ahorro de tokens en análisis repetidos.
 
-## DESCRIPCIÓN DEL REQUERIM`.
+## 2. INVARIANTES NO NEGOCIABLES
+1. Cero Dependencias de Nube: Operación 100% local sobre la librería estándar de Python + Pydantic v2.
+2. Preservación Contractual AST: Prohibido mutilar firmas, parámetros, decoradores o jerarquías de herencia. Únicamente vaciar cuerpos reemplazándolos por `pass`.
+3. Invariante de Caché: La clave SHA-256 debe calcularse estrictamente sobre `(source_code + rules_version + strip_docs)`.
+4. Persistencia SQLite WAL: Conexión con `PRAGMA journal_mode=WAL;` y `PRAGMA synchronous=NORMAL;`.
+5. Eficiencia Garantizada: Reducción mínima de tokens de contexto >= 35% en la primera pasada y latencia de respuesta en caché < 5 ms.
 
-## 2. Stack Tecnológico Aprobado
-- FastAPI, Pydantic v2, SQLite WAL, Pytest
-
-## 3. Bounded Contexts y Componentes
-- Perimeter, Contracts, Persistence, Governance, API
-
-## 4. Reglas Inmutables de Fabricación (Veto Arquitectónico)
-1. **Confinamiento Canónico**: Todo el código debe residir estrictamente bajo `src/heuristico/domains/`.
-2. **Contratos Inmutables**: Modelos Pydantic v2 con `model_config = ConfigDict(frozen=True, extra='forbid')` y tuplas inmutables `tuple[...]`.
-3. **Aduana Perimetral O(1)**: Validación determinista con latencia perimetral garantizada <= 2.0 ms.
-4. **Persistencia Relacional WAL**: SQLite WAL / PostgreSQL con integridad referencial completa y cero drift en esquemas.
-5. **Cobertura TDD 100%**: Suite Pytest validando invariantes, inmutabilidad y excepciones `ValidationError`.
+## 3. COMANDOS DE VERIFICACIÓN
+```bash
+python -m py_compile contracts.py tests/test_contracts.py
+python -m pytest tests/ -v --tb=short
+sqlite3 :memory: < schema.sql
+```

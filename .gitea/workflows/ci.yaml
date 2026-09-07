@@ -25,9 +25,9 @@ jobs:
 
       - name: Compile AST & Validate SQL
         run: |
-          python3 -m py_compile contracts.py test_contracts.py
-          python3 -c "import sqlite3; con = sqlite3.connect(':memory:'); con.executescript(open('schema.sql').read()); print('SQL DDL Verified.')"
+          python3 -m py_compile contracts.py tests/test_contracts.py
+          sqlite3 :memory: < schema.sql
 
       - name: Execute Pytest TDD Matrix (Python 3.12 Environment)
         run: |
-          pytest test_contracts.py -v --tb=short
+          pytest tests/ -v --tb=short
