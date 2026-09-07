@@ -8,27 +8,22 @@ on:
 jobs:
   tdd-attestation:
     runs-on: ubuntu-latest
+    container:
+      image: python:3.12-slim
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
 
-      - name: Setup Hermetic Python Environment
+      - name: Install Pure Dependencies
         run: |
-          python3 -m venv --without-pip .venv
-          . .venv/bin/activate
-          python3 -c "import urllib.request; urllib.request.urlretrieve('https://bootstrap.pypa.io/get-pip.py', 'get-pip.py')"
-          python3 get-pip.py --quiet
           pip install --no-cache-dir "pydantic>=2.0" pytest
 
-      - name: Compile AST & Validate SQL
+      - name: Verify Syntactic Integrity & SQL Schema
         run: |
-          . .venv/bin/activate
+          python3 --version
           python3 -m py_compile contracts.py test_contracts.py
-          if [ -f "schema.sql" ]; then
-            python3 -c "import sqlite3; con = sqlite3.connect(':memory:'); con.executescript(open('schema.sql').read()); print('SQL DDL Verified.')"
-          fi
+          python3 -c "import sqlite3; con = sqlite3.connect(':memory:'); con.executescript(open('schema.sql').read()); print('SQL DDL Verified.')"
 
-      - name: Execute Pytest TDD Matrix
+      - name: Execute Pytest TDD Matrix (Python 3.12 Runtime)
         run: |
-          . .venv/bin/activate
           pytest test_contracts.py -v --tb=short
