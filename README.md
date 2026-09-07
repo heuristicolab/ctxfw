@@ -48,7 +48,8 @@ arch-ord-2026-4f003b/
 ├── .cursorrules                       # Inviolable agent rules (frozen=True, extra="forbid")
 ├── contracts.py                       # Pure Pydantic v2 models, AST pruner, and SQLite cache
 ├── schema.sql                         # Relational SQLite WAL schema and index specifications
-├── checkpoint.ps1                     # Satellite local attestation and QA script
+├── checkpoint.ps1                     # Satellite local attestation and QA script (PowerShell)
+├── checkpoint.sh                      # Satellite POSIX attestation and QA script (Bash)
 ├── pyproject.toml                     # Python packaging and hermetic pytest configuration
 ├── 00_DIRECTIVES/
 │   └── 5_fabrication_directive.md     # Agentic system prompt and implementation directives
@@ -59,6 +60,8 @@ arch-ord-2026-4f003b/
 │   └── 3_schema_ddl.sql               # Database indexes and tables mirror
 ├── 03_TEST_MATRIX/
 │   └── 4_pytest_tdd_matrix.py         # Full TDD validation suite mirror
+├── scripts/
+│   └── demo_token_optimizer.py        # Interactive CLI showcase & latency benchmark
 └── tests/
     ├── conftest.py                    # Telemetry reporting hook (generates test_report.json)
     └── test_contracts.py              # Active Pytest contract suite
