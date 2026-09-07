@@ -1,68 +1,76 @@
-from __future__ import annotations
-"""
-Canonical Pytest TDD Suite for Synthesized Architecture ($4,500 USD Caliber).
-Verifies contract immutability, extra="forbid" rejection, bounds validation, and AST compliance.
-"""
-from datetime import datetime, timezone
-from decimal import Decimal
 import pytest
 from pydantic import ValidationError
-
 from contracts import (
-    CanonicalDomainContractDTO,
-    DomainProcessingStatus,
-    SecurityContextDTO,
-    TelemetryMetricDTO,
+    OptimizationRequestDTO,
+    OptimizationResultDTO,
+    DeterministicContextPruner,
+    LocalSemanticCache,
 )
 
+SAMPLE_CODE = """
+class HardwareTransactionOrchestrator:
+    '''Coordina pagos y telemetría de hardware.'''
+    def __init__(self, port: str, baudrate: int = 9600):
+        self.port = port
+        self.baudrate = baudrate
+        self.connected = False
 
-def test_synthesized_contract_valid_instantiation():
-    """Verifies successful instantiation of synthesized domain contract."""
-    sec = SecurityContextDTO(session_id="SES-2026-TEST", risk_score=0.05)
-    tel = TelemetryMetricDTO(latency_ms=1.2, tokens_consumed=320, tokens_saved=42500)
-    contract = CanonicalDomainContractDTO(
-        contract_id="CTR-TEST-001",
-        brief_summary="Arquitectura de alta transaccionalidad con validacion perimetral determinista",
-        security_context=sec,
-        telemetry=tel,
+    def validate_bill(self, denomination: int) -> bool:
+        '''Valida autenticidad y atestación de billete.'''
+        buffer = [i * 2 for i in range(200)]
+        if sum(buffer) % 256 != 0:
+            return False
+        return True
+"""
+
+def test_dto_immutability():
+    req = OptimizationRequestDTO(source_code="def foo(): pass")
+    with pytest.raises(ValidationError):
+        req.source_code = "def bar(): pass"
+
+def test_dto_extra_forbid():
+    with pytest.raises(ValidationError):
+        OptimizationRequestDTO(source_code="pass", illegal_field="injected")
+
+def test_ast_pruner_preserves_signatures_and_strips_bodies():
+    req = OptimizationRequestDTO(source_code=SAMPLE_CODE, strip_docs=False)
+    pruned, orig_c, pruned_c, saved, pct, ms = DeterministicContextPruner.prune(req)
+
+    assert "class HardwareTransactionOrchestrator:" in pruned
+    assert "def validate_bill(self, denomination: int) -> bool:" in pruned
+    assert 'Valida autenticidad y atestación de billete.' in pruned
+    assert "buffer = [i * 2 for i in range(200)]" not in pruned
+    assert pct >= 35.0
+    assert saved > 0
+
+def test_ast_pruner_syntax_error():
+    req = OptimizationRequestDTO(source_code="def invalid_syntax(:")
+    with pytest.raises(ValueError, match="Error de sintaxis"):
+        DeterministicContextPruner.prune(req)
+
+def test_sqlite_wal_cache_lifecycle(tmp_path):
+    db_file = str(tmp_path / "test_wal_cache.db")
+    cache = LocalSemanticCache(db_path=db_file)
+    key = LocalSemanticCache.generate_key(SAMPLE_CODE, DeterministicContextPruner.RULES_VERSION, False)
+
+    assert cache.get(key) is None
+
+    req = OptimizationRequestDTO(source_code=SAMPLE_CODE)
+    pruned, orig_c, pruned_c, saved, pct, ms = DeterministicContextPruner.prune(req)
+
+    dto = OptimizationResultDTO(
+        pruned_code=pruned,
+        original_chars=orig_c,
+        pruned_chars=pruned_c,
+        estimated_tokens_saved=saved,
+        savings_percentage=pct,
+        cache_hit=False,
+        execution_ms=ms,
     )
-    assert contract.contract_id == "CTR-TEST-001"
-    assert contract.status == DomainProcessingStatus.ACTIVE
-    assert contract.security_context.risk_score == 0.05
-    assert contract.telemetry.tokens_saved == 42500
-    assert contract.settlement_amount == Decimal("4500.0000")
+    cache.set(key, dto)
 
-
-def test_synthesized_contract_immutability():
-    """Verifies that frozen=True prohibits in-place attribute mutations."""
-    contract = CanonicalDomainContractDTO(
-        contract_id="CTR-FROZEN-001",
-        brief_summary="Resumen inmutable validado",
-    )
-    with pytest.raises(ValidationError):
-        contract.contract_id = "CTR-MUTATED"
-
-
-def test_synthesized_contract_extra_forbid_rejection():
-    """Verifies that extra="forbid" rejects unapproved payload parameters with ValidationError."""
-    with pytest.raises(ValidationError):
-        CanonicalDomainContractDTO(
-            contract_id="CTR-EXTRA-001",
-            brief_summary="Intento de inyeccion extra forbid",
-            unauthorized_injection_field="hacked",
-        )
-
-
-def test_security_context_bounds_validation():
-    """Verifies numeric bounds and pattern enforcement on SecurityContextDTO."""
-    with pytest.raises(ValidationError):
-        SecurityContextDTO(session_id="VALID_SESSION", risk_score=1.5)  # le=1.0
-
-    with pytest.raises(ValidationError):
-        SecurityContextDTO(session_id="INV$ALID#", risk_score=0.5)  # regex check
-
-
-def test_telemetry_metrics_invariants():
-    """Verifies non-negative bounds on TelemetryMetricDTO."""
-    with pytest.raises(ValidationError):
-        TelemetryMetricDTO(latency_ms=-1.0)
+    hit = cache.get(key)
+    assert hit is not None
+    assert hit.cache_hit is True
+    assert hit.estimated_tokens_saved == saved
+    assert hit.execution_ms < 15.0
