@@ -193,6 +193,19 @@ python firewall_cli.py contracts.py --no-clip --output prompt.md
 
 ---
 
+### 6. Workspace Self-Seeding (`ctxfw init`)
+One-shot atomic initialization deploying agent perimeter rules, governance laws, stdio MCP server manifest, and native discoverable skill:
+
+```bash
+# Initialize sovereign perimeter in current project root
+ctxfw init
+
+# Or target an arbitrary folder
+ctxfw init C:\sandbox\nuevo-proyecto
+```
+
+---
+
 ## ⚡ Full Test Suite & Verification Matrix
 
 ```bash

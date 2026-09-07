@@ -19,13 +19,15 @@ jobs:
           python3 --version
           node --version
 
-      - name: Install Pure Dependencies
+      - name: Install Pure Dependencies & Package
         run: |
           pip install --no-cache-dir "pydantic>=2.0" pytest "fastapi>=0.100.0" "httpx>=0.24.0" "uvicorn>=0.20.0" tree-sitter tree-sitter-typescript tree-sitter-go tree-sitter-java
+          pip install -e .
 
       - name: Compile AST & Validate SQL
         run: |
           python3 -m py_compile contracts.py topological_resolver.py finops_auditor.py polyglot_pruner.py mcp_server.py proxy_gateway.py ci_gatekeeper.py firewall_cli.py tests/test_contracts.py
+          python3 -m compileall src/
           python3 -c "import sqlite3; con = sqlite3.connect(':memory:'); con.executescript(open('schema.sql').read()); print('SQL DDL Verified.')"
 
       - name: Execute Pytest TDD Matrix (Python 3.12 Environment)

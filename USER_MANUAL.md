@@ -168,6 +168,23 @@ python firewall_cli.py contracts.py --no-clip --output prompt.md
 python firewall_cli.py contracts.py --stdout | other-tool
 ```
 
+### Workspace Self-Seeding (`ctxfw init`)
+Transform any repository or directory into an active sovereign workspace in $< 1\text{ ms}$:
+
+```bash
+# Initialize sovereign perimeter in current project root
+ctxfw init
+
+# Or target an arbitrary folder
+ctxfw init C:\sandbox\nuevo-proyecto
+```
+
+**Atomically Deployed Sovereign Artifacts:**
+1. `.mcp.json` — Universal stdio MCP server manifest (`{"command": "python", "args": ["-m", "ctxfw.mcp"]}`).
+2. `.agent/rules.yaml` — Sovereign architect perimeter directives (`FIREWALL_LAW_01`, `FIREWALL_LAW_02`, `FINOPS_AUDIT_03`).
+3. `.agents/rules/firewall_laws.md` — Topological firewall governance laws.
+4. `.agents/skills/context-firewall/SKILL.md` — Native discoverable agent skill for Antigravity, Cursor, and Claude.
+
 ### Terminal Telemetry Output
 ```text
 ========================================================================

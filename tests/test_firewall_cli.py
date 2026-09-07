@@ -9,7 +9,8 @@ import io
 from pathlib import Path
 import pytest
 
-from firewall_cli import copy_to_clipboard, run_firewall_cli
+from firewall_cli import copy_to_clipboard, handle_init_command, main, run_firewall_cli
+import json
 
 
 @pytest.fixture
@@ -116,3 +117,96 @@ def test_run_firewall_cli_missing_target(tmp_path: Path, monkeypatch):
     )
     assert exit_code == 1
     assert "Target file not found" in mock_stderr.getvalue()
+
+
+def test_handle_init_command_creates_expected_artifacts(tmp_path: Path, monkeypatch):
+    """Asserts that handle_init_command atomically deploys all 4 sovereign artifacts."""
+    mock_stdout = io.StringIO()
+    monkeypatch.setattr("sys.stdout", mock_stdout)
+
+    target_dir = tmp_path / "sovereign_repo"
+    res_dir = handle_init_command(target_dir)
+
+    assert res_dir == target_dir.resolve()
+
+    # 1. Manifiesto MCP Agnóstico Universal
+    mcp_file = target_dir / ".mcp.json"
+    assert mcp_file.is_file()
+    mcp_data = json.loads(mcp_file.read_text(encoding="utf-8"))
+    assert "mcpServers" in mcp_data
+    assert "ctxfw" in mcp_data["mcpServers"]
+    assert mcp_data["mcpServers"]["ctxfw"]["command"] == "python"
+    assert mcp_data["mcpServers"]["ctxfw"]["args"] == ["-m", "ctxfw.mcp"]
+
+    # 2. Directivas del Agente (Rules)
+    rules_file = target_dir / ".agent" / "rules.yaml"
+    assert rules_file.is_file()
+    rules_content = rules_file.read_text(encoding="utf-8")
+    assert "Arquitecto Perimetral Soberano" in rules_content
+    assert "FIREWALL_LAW_01" in rules_content
+    assert "FIREWALL_LAW_02" in rules_content
+    assert "FINOPS_AUDIT_03" in rules_content
+
+    # 3. Gobernanza y Leyes del Cortafuegos
+    laws_file = target_dir / ".agents" / "rules" / "firewall_laws.md"
+    assert laws_file.is_file()
+    laws_content = laws_file.read_text(encoding="utf-8")
+    assert "# Leyes Perimetrales del Cortafuegos (ctxfw)" in laws_content
+    assert "Cero Lecturas en Bruto" in laws_content
+    assert "Soberanía Local" in laws_content
+
+    # 4. Skill Descubrible para Antigravity y Cursor
+    skill_file = target_dir / ".agents" / "skills" / "context-firewall" / "SKILL.md"
+    assert skill_file.is_file()
+    skill_content = skill_file.read_text(encoding="utf-8")
+    assert "name: context-firewall" in skill_content
+    assert "# Context Firewall (ctxfw) Skill" in skill_content
+    assert "resolve_context_bundle" in skill_content
+
+    # Stdout feedback
+    out = mock_stdout.getvalue()
+    assert "[*] Workspace soberano inicializado exitosamente en:" in out
+    assert ".mcp.json (Servidor MCP stdio)" in out
+    assert ".agent/rules.yaml (Leyes del Arquitecto Perimetral)" in out
+    assert ".agents/rules/firewall_laws.md (Gobernanza)" in out
+    assert ".agents/skills/context-firewall/SKILL.md (Skill nativa)" in out
+
+
+def test_handle_init_command_default_cwd(tmp_path: Path, monkeypatch):
+    """Asserts that handle_init_command defaults to current working directory."""
+    monkeypatch.chdir(tmp_path)
+    mock_stdout = io.StringIO()
+    monkeypatch.setattr("sys.stdout", mock_stdout)
+
+    res_dir = handle_init_command()
+    assert res_dir == tmp_path.resolve()
+    assert (tmp_path / ".mcp.json").is_file()
+    assert (tmp_path / ".agent" / "rules.yaml").is_file()
+    assert (tmp_path / ".agents" / "rules" / "firewall_laws.md").is_file()
+    assert (tmp_path / ".agents" / "skills" / "context-firewall" / "SKILL.md").is_file()
+
+
+def test_cli_main_subcommand_init(tmp_path: Path, monkeypatch):
+    """Asserts that `ctxfw init <dir>` executes handle_init_command via CLI entrypoint."""
+    target_repo = tmp_path / "cli_init_repo"
+    mock_stdout = io.StringIO()
+    monkeypatch.setattr("sys.stdout", mock_stdout)
+    monkeypatch.setattr("sys.argv", ["ctxfw", "init", str(target_repo)])
+
+    main()
+
+    assert (target_repo / ".mcp.json").is_file()
+    assert (target_repo / ".agent" / "rules.yaml").is_file()
+    assert (target_repo / ".agents" / "rules" / "firewall_laws.md").is_file()
+    assert (target_repo / ".agents" / "skills" / "context-firewall" / "SKILL.md").is_file()
+
+
+def test_cli_main_subcommand_init_help(monkeypatch):
+    """Asserts that `ctxfw init --help` prints usage instructions."""
+    mock_stdout = io.StringIO()
+    monkeypatch.setattr("sys.stdout", mock_stdout)
+    monkeypatch.setattr("sys.argv", ["ctxfw", "init", "--help"])
+
+    main()
+    assert "usage: ctxfw init [target_dir]" in mock_stdout.getvalue()
+

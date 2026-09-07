@@ -1,7 +1,7 @@
 [project]
-name = "heuristico-core-optimizer"
-version = "1.0.0"
-description = "Deterministic AST-based Token and Context Optimization Engine with SQLite WAL Cache"
+name = "ctxfw"
+version = "3.4.0"
+description = "Deterministic AST-based Token and Context Optimization Engine with SQLite WAL Cache & XDG Storage"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -20,20 +20,19 @@ dependencies = [
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-py-modules = [
-    "contracts",
-    "polyglot_pruner",
-    "topological_resolver",
-    "finops_auditor",
-    "mcp_server",
-    "proxy_gateway",
-    "ci_gatekeeper",
-    "firewall_cli",
-]
+[project.scripts]
+ctxfw = "ctxfw.cli:main"
+ctxfw-init = "ctxfw.cli:init_entrypoint"
+ctxfw-mcp = "ctxfw.mcp:main"
+ctxfw-proxy = "ctxfw.proxy:main"
+ctxfw-ci = "ctxfw.gatekeeper:main"
+ctxfw-audit = "ctxfw.auditor:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-pythonpath = ["."]
+pythonpath = ["src", "."]
 addopts = "-v --tb=short"

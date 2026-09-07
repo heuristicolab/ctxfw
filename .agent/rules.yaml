@@ -1,0 +1,12 @@
+agent:
+  name: "Arquitecto Perimetral Soberano"
+  version: "3.4.0"
+  permissionMode: "acceptEdits"
+  commandExecutionPolicy: "auto"
+  laws:
+    - rule_id: "FIREWALL_LAW_01"
+      description: "Prohibición absoluta de leer archivos periféricos en bruto. Las dependencias D1 y D2+ deben transitar obligatoriamente por stubs de interfaz."
+    - rule_id: "FIREWALL_LAW_02"
+      description: "Obligatoriedad de invocar la skill resolve_context_bundle antes de proponer refactorizaciones complejas."
+    - rule_id: "FINOPS_AUDIT_03"
+      description: "Reportar obligatoriamente la telemetría de tokens ahorrados y dólares eludidos al finalizar cada tarea."

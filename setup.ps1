@@ -1,8 +1,8 @@
-# setup.ps1 — 1-Click Bootstrap Installer for Windows
+# setup.ps1 — 1-Click Bootstrap Installer for Windows (Hermetic Toolchain v3.4.0)
 $ErrorActionPreference = "Stop"
 
 Write-Host "======================================================" -ForegroundColor Cyan
-Write-Host "   CONTEXT FIREWALL -- ZERO-FRICTION BOOTSTRAP        " -ForegroundColor Cyan
+Write-Host "   CTXFW HERMETIC TOOLCHAIN -- 1-CLICK BOOTSTRAP      " -ForegroundColor Cyan
 Write-Host "======================================================" -ForegroundColor Cyan
 
 # 1. Virtual Environment Setup
@@ -17,8 +17,8 @@ if (!(Test-Path $VenvPython)) {
     Write-Host "`n[1/4] Virtual environment (.venv) already exists." -ForegroundColor Green
 }
 
-# 2. Dependencies Installation
-Write-Host "`n[2/4] Installing dependencies from pyproject.toml..." -ForegroundColor Yellow
+# 2. Dependencies & Editable Package Installation
+Write-Host "`n[2/4] Installing dependencies & registering ctxfw in .venv..." -ForegroundColor Yellow
 & $VenvPython -m pip install --upgrade pip --quiet
 & $VenvPython -m pip install -e . --quiet
 
@@ -30,17 +30,21 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# 4. Generate Root firewall.cmd
-Write-Host "`n[4/4] Generating root CLI wrapper (firewall.cmd)..." -ForegroundColor Yellow
-$CmdContent = @"
+# 4. Generate Root Executable Wrappers (ctxfw.cmd & firewall.cmd)
+Write-Host "`n[4/4] Generating root CLI wrappers (ctxfw.cmd & firewall.cmd)..." -ForegroundColor Yellow
+$CtxfwCmdContent = @"
 @echo off
-"%~dp0.venv\Scripts\python.exe" "%~dp0firewall_cli.py" %*
+"%~dp0.venv\Scripts\python.exe" -m ctxfw %*
 "@
 
-Set-Content -Path "firewall.cmd" -Value $CmdContent -Encoding ASCII
+Set-Content -Path "ctxfw.cmd" -Value $CtxfwCmdContent -Encoding ASCII
+Set-Content -Path "firewall.cmd" -Value $CtxfwCmdContent -Encoding ASCII
 
 Write-Host "`n======================================================" -ForegroundColor Green
 Write-Host "   BOOTSTRAP COMPLETE & CERTIFIED (51/51 PASSED)      " -ForegroundColor Green
 Write-Host "======================================================" -ForegroundColor Green
 Write-Host "You can now execute directly from anywhere in the repo:" -ForegroundColor White
-Write-Host "  .\firewall contracts.py`n" -ForegroundColor Yellow
+Write-Host "  .\ctxfw contracts.py" -ForegroundColor Yellow
+Write-Host "  .\ctxfw mcp           (Stdio JSON-RPC daemon)" -ForegroundColor Yellow
+Write-Host "  .\ctxfw proxy         (Reverse proxy perimetral)" -ForegroundColor Yellow
+Write-Host "  .\ctxfw ci            (Gatekeeper & PR Impact)`n" -ForegroundColor Yellow

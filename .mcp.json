@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "context-firewall": {
+    "ctxfw": {
       "command": "python",
-      "args": ["C:/sandbox/arch-ord-2026-4f003b/mcp_server.py"]
+      "args": ["-m", "ctxfw.mcp"]
     }
   }
 }
