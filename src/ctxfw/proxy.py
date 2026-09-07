@@ -465,6 +465,52 @@ def health_check():
     }
 
 
+@app.get("/")
+def root_index():
+    """Root gateway status and quick-start links."""
+    return {
+        "service": "context-firewall-proxy",
+        "status": "ready",
+        "message": "Context Firewall Reverse Proxy Gateway is active.",
+        "dashboard": "/dashboard",
+        "openai_base_url": "http://localhost:8080/v1",
+        "anthropic_base_url": "http://localhost:8080",
+        "health": "/health",
+    }
+
+
+@app.get("/v1")
+@app.get("/v1/")
+def v1_discovery():
+    """Root v1 discovery endpoint confirming gateway availability for IDE integrations."""
+    return {
+        "service": "context-firewall-proxy",
+        "version": "3.5.0",
+        "status": "ready",
+        "endpoints": {
+            "chat_completions": "/v1/chat/completions",
+            "messages": "/v1/messages",
+            "models": "/v1/models",
+            "dashboard": "/dashboard",
+            "health": "/health",
+        },
+    }
+
+
+@app.get("/v1/models")
+def list_models():
+    """OpenAI-compatible models listing for IDE discovery (Cursor, Continue, Copilot)."""
+    return {
+        "object": "list",
+        "data": [
+            {"id": "gpt-4o", "object": "model", "owned_by": "context-firewall"},
+            {"id": "gpt-4o-mini", "object": "model", "owned_by": "context-firewall"},
+            {"id": "claude-3-5-sonnet-20241022", "object": "model", "owned_by": "context-firewall"},
+            {"id": "claude-3-haiku-20240307", "object": "model", "owned_by": "context-firewall"},
+        ],
+    }
+
+
 @app.post("/v1/chat/completions")
 async def chat_completions(
     request: Request,
