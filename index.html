@@ -1,401 +1,720 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CONTEXT FIREWALL // Heurístico LAB</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CTXFW // Context Firewall & Axiomatic Gatekeeper — Heuristico LAB Skunk Works</title>
+  <meta name="description" content="Aduana matemática determinista y Model Context Protocol (MCP) gatekeeper para flujos agénticos de IA. Grado defensa, rechazo en pre-commit <80ms y cero complacencia probabilística.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #090a0f;
-      --surface: #11131c;
-      --surface-border: #212638;
-      --surface-hover: #191c2b;
-      --amber: #f59e0b;
-      --amber-dim: rgba(245, 158, 11, 0.12);
-      --emerald: #10b981;
-      --emerald-dim: rgba(16, 185, 129, 0.12);
-      --cyan: #06b6d4;
-      --text: #f3f4f6;
-      --text-muted: #9ca3af;
-      --text-dark: #6b7280;
-      --mono: 'JetBrains Mono', monospace;
-      --sans: 'Space Grotesk', sans-serif;
+      --bg: #06080d;
+      --bg-card: #0c1119;
+      --bg-card-hover: #121824;
+      --border: #1a2332;
+      --border-highlight: #28374f;
+      --terminal-bg: #040609;
+      --cyan: #00f3ff;
+      --cyan-dim: rgba(0, 243, 255, 0.12);
+      --cyan-glow: rgba(0, 243, 255, 0.35);
+      --emerald: #00ff88;
+      --emerald-dim: rgba(0, 255, 136, 0.12);
+      --emerald-glow: rgba(0, 255, 136, 0.35);
+      --crimson: #ff3366;
+      --crimson-dim: rgba(255, 51, 102, 0.12);
+      --crimson-glow: rgba(255, 51, 102, 0.35);
+      --amber: #ffaa00;
+      --amber-dim: rgba(255, 170, 0, 0.12);
+      --graphite: #4d5c70;
+      --text: #cbd7e6;
+      --text-muted: #6f8099;
+      --text-bright: #ffffff;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       background-color: var(--bg);
       color: var(--text);
-      font-family: var(--sans);
+      font-family: var(--font-sans);
       line-height: 1.6;
       overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(0, 243, 255, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 85% 35%, rgba(0, 255, 136, 0.04) 0%, transparent 50%),
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px;
     }
 
-    ::selection { background: var(--amber); color: #000; }
-
-    /* Scanline effect */
-    body::before {
-      content: "";
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
-      background-size: 100% 4px;
-      z-index: 999;
-      pointer-events: none;
-      opacity: 0.35;
+    ::selection {
+      background: var(--cyan);
+      color: #000;
     }
 
-    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
 
-    /* HEADER */
+    /* HEADER & NAVIGATION */
     header {
-      border-bottom: 1px solid var(--surface-border);
-      background: rgba(9, 10, 15, 0.85);
-      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      background: rgba(6, 8, 13, 0.88);
+      backdrop-filter: blur(14px);
       position: sticky;
       top: 0;
       z-index: 100;
+      transition: border-color 0.2s;
     }
 
-    .header-inner {
+    .nav {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 18px 0;
+      padding: 16px 0;
     }
 
-    .brand {
+    .brand-wrap {
       display: flex;
       align-items: center;
       gap: 14px;
-      font-family: var(--mono);
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      font-size: 1.05rem;
+      text-decoration: none;
     }
 
-    .brand-badge {
-      background: var(--amber);
-      color: #000;
-      font-size: 0.65rem;
-      padding: 3px 7px;
-      border-radius: 2px;
-      font-weight: 800;
+    .brand-pill {
+      background: var(--cyan-dim);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 9px;
+      letter-spacing: 0.1em;
+      border-radius: 3px;
       text-transform: uppercase;
+      box-shadow: 0 0 12px var(--cyan-dim);
     }
 
-    .header-controls { display: flex; align-items: center; gap: 16px; }
-
-    .lang-switcher {
+    .brand-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      letter-spacing: -0.01em;
       display: flex;
-      background: var(--surface);
-      border: 1px solid var(--surface-border);
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--cyan);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .lang-toggle {
+      display: flex;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 4px;
-      overflow: hidden;
+      padding: 2px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
     }
 
     .lang-btn {
       background: transparent;
       border: none;
       color: var(--text-muted);
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      font-weight: 700;
-      padding: 6px 14px;
+      padding: 5px 10px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      border-radius: 2px;
+      transition: all 0.2s;
     }
 
-    .lang-btn.active { background: var(--amber); color: #000; }
-
-    /* HERO */
-    .hero {
-      padding: 70px 0 50px;
-      border-bottom: 1px solid var(--surface-border);
+    .lang-btn.active {
+      background: var(--cyan);
+      color: #000;
+      box-shadow: 0 0 10px var(--cyan-glow);
     }
 
-    .hero-tag {
+    .btn-repo {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      color: var(--emerald);
-      background: var(--emerald-dim);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      padding: 4px 12px;
-      margin-bottom: 20px;
-    }
-
-    .hero-tag::before {
-      content: "";
-      width: 6px;
-      height: 6px;
-      background: var(--emerald);
-      border-radius: 50%;
-      box-shadow: 0 0 8px var(--emerald);
-    }
-
-    .hero-title {
-      font-size: 3rem;
-      font-weight: 800;
-      letter-spacing: -1.5px;
-      line-height: 1.1;
-      margin-bottom: 18px;
-      max-width: 980px;
-    }
-
-    .hero-title span { color: var(--amber); }
-
-    .hero-desc {
-      font-size: 1.15rem;
-      color: var(--text-muted);
-      max-width: 840px;
-      margin-bottom: 35px;
-      line-height: 1.7;
-    }
-
-    /* METRICS STRIP */
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-top: 30px;
-    }
-
-    .metric-card {
-      background: var(--surface);
-      border: 1px solid var(--surface-border);
-      padding: 22px;
-      border-left: 3px solid var(--amber);
-    }
-
-    .metric-val {
-      font-family: var(--mono);
-      font-size: 2.1rem;
-      font-weight: 800;
-      color: var(--text);
-      line-height: 1;
-      margin-bottom: 8px;
-    }
-
-    .metric-val.emerald { color: var(--emerald); }
-    .metric-val.amber { color: var(--amber); }
-    .metric-val.cyan { color: var(--cyan); }
-
-    .metric-label {
-      font-family: var(--mono);
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    /* SECTION BASICS */
-    .section {
-      padding: 70px 0;
-      border-bottom: 1px solid var(--surface-border);
-    }
-
-    .section-head { margin-bottom: 35px; }
-
-    .section-label {
-      font-family: var(--mono);
-      color: var(--amber);
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin-bottom: 8px;
-      display: block;
-    }
-
-    .section-title {
-      font-size: 2.1rem;
-      font-weight: 700;
-      letter-spacing: -1px;
-    }
-
-    /* DISTANCE CARDS */
-    .strat-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-
-    @media (max-width: 900px) {
-      .strat-grid { grid-template-columns: 1fr; }
-      .hero-title { font-size: 2.3rem; }
-    }
-
-    .strat-card {
-      background: var(--surface);
-      border: 1px solid var(--surface-border);
-      padding: 26px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .strat-badge {
-      font-family: var(--mono);
-      font-weight: 700;
-      font-size: 0.78rem;
-      padding: 4px 8px;
-      background: var(--surface-hover);
-      border: 1px solid var(--surface-border);
-      align-self: flex-start;
-      margin-bottom: 16px;
-    }
-
-    .strat-card h3 {
-      font-size: 1.3rem;
-      margin-bottom: 10px;
-      font-family: var(--mono);
-    }
-
-    .strat-card p {
-      color: var(--text-muted);
-      font-size: 0.92rem;
-      margin-bottom: 18px;
-    }
-
-    .strat-code {
-      background: #000;
-      border: 1px solid var(--surface-border);
-      padding: 12px;
-      font-family: var(--mono);
-      font-size: 0.78rem;
-      color: #e5e7eb;
+      background: var(--bg-card);
+      border: 1px solid var(--border-highlight);
+      color: var(--text-bright);
+      padding: 7px 14px;
       border-radius: 4px;
-      white-space: pre;
-      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
     }
 
-    /* TABS WORKFLOW */
-    .tabs-nav {
-      display: flex;
-      gap: 6px;
-      border-bottom: 1px solid var(--surface-border);
-      margin-bottom: 25px;
-      overflow-x: auto;
+    .btn-repo:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 14px var(--cyan-dim);
     }
 
-    .tab-btn {
-      background: transparent;
-      border: 1px solid transparent;
-      border-bottom: none;
+    /* HERO SECTION */
+    .hero {
+      padding: 76px 0 54px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      margin-bottom: 22px;
+      text-transform: uppercase;
+      background: var(--cyan-dim);
+      padding: 6px 14px;
+      border-radius: 30px;
+      border: 1px solid rgba(0, 243, 255, 0.25);
+    }
+
+    .hero-eyebrow .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.35); opacity: 0.5; }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 5.5vw, 4.4rem);
+      font-weight: 700;
+      color: var(--text-bright);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      margin-bottom: 22px;
+      max-width: 980px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero h1 .highlight-cyan {
+      color: var(--cyan);
+      text-shadow: 0 0 25px var(--cyan-glow);
+    }
+
+    .hero p.lead {
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      max-width: 840px;
+      margin: 0 auto 38px;
       color: var(--text-muted);
-      font-family: var(--mono);
-      font-size: 0.85rem;
+      font-weight: 400;
+    }
+
+    /* INSTALL TABS COMPONENT */
+    .install-box {
+      max-width: 720px;
+      margin: 0 auto 40px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      transition: border-color 0.2s;
+    }
+
+    .install-box:hover {
+      border-color: var(--border-highlight);
+    }
+
+    .install-nav {
+      display: flex;
+      background: #090d14;
+      border-bottom: 1px solid var(--border);
+      padding: 0 8px;
+    }
+
+    .install-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 12px;
       font-weight: 600;
       padding: 10px 16px;
       cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .install-tab-btn.active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan);
+      background: rgba(0, 243, 255, 0.04);
+    }
+
+    .install-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: space-between;
+      padding: 14px 18px;
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      color: var(--text-bright);
+      background: #070a10;
+    }
+
+    .install-row span.cmd-symbol {
+      color: var(--cyan);
+      margin-right: 10px;
+      user-select: none;
+    }
+
+    .copy-button {
+      background: #151d2a;
+      color: var(--cyan);
+      border: 1px solid var(--border-highlight);
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
       transition: all 0.2s;
       white-space: nowrap;
     }
 
-    .tab-btn:hover { color: var(--text); background: var(--surface); }
-
-    .tab-btn.active {
-      background: var(--surface);
-      border-color: var(--surface-border);
-      color: var(--amber);
-      border-top: 2px solid var(--amber);
+    .copy-button:hover {
+      background: var(--cyan);
+      color: #000;
+      box-shadow: 0 0 14px var(--cyan-glow);
     }
 
-    .tab-pane { display: none; }
-    .tab-pane.active { display: block; }
+    .copy-button.copied {
+      background: var(--emerald) !important;
+      color: #000 !important;
+      border-color: var(--emerald) !important;
+      box-shadow: 0 0 16px var(--emerald-glow) !important;
+    }
 
-    /* CODE BOXES */
-    .code-box {
-      background: #000;
-      border: 1px solid var(--surface-border);
-      margin-bottom: 20px;
+    /* BADGES STRIP */
+    .metrics-strip {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .metric-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(12, 17, 25, 0.7);
+      border: 1px solid var(--border);
+      padding: 7px 14px;
       border-radius: 4px;
-      overflow: hidden;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text);
     }
 
-    .code-head {
+    .metric-badge strong {
+      color: var(--text-bright);
+    }
+
+    .badge-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 6px var(--emerald);
+    }
+
+    /* TERMINAL WINDOW COMPONENT */
+    .terminal-container {
+      margin: 44px 0 70px;
+    }
+
+    .terminal-window {
+      background: var(--terminal-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+      overflow: hidden;
+      border-top: 1px solid var(--border-highlight);
+    }
+
+    .terminal-header {
+      background: #0a0e16;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 18px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 14px;
-      background: #0c0d14;
-      border-bottom: 1px solid var(--surface-border);
-      font-family: var(--mono);
-      font-size: 0.78rem;
-      color: var(--text-muted);
     }
 
-    .copy-btn {
-      background: var(--surface);
-      border: 1px solid var(--surface-border);
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      padding: 3px 8px;
+    .window-dots {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .w-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .w-dot.red { background: #ff5f56; }
+    .w-dot.yellow { background: #ffbd2e; }
+    .w-dot.green { background: #27c93f; }
+
+    .terminal-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .terminal-tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .term-tab-btn {
+      background: #111722;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
       border-radius: 3px;
       cursor: pointer;
       transition: all 0.2s;
     }
 
-    .copy-btn:hover { background: var(--amber); color: #000; }
+    .term-tab-btn.active {
+      background: var(--cyan-dim);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
 
-    pre {
-      padding: 16px;
+    .terminal-body {
+      padding: 24px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.48;
       overflow-x: auto;
-      font-family: var(--mono);
-      font-size: 0.84rem;
-      line-height: 1.5;
-      color: #f3f4f6;
+      white-space: pre;
+      color: #aebfd5;
+      max-height: 520px;
     }
 
-    .kw { color: #f43f5e; }
-    .fn { color: #38bdf8; }
-    .str { color: #34d399; }
+    /* ANSI Colors in Terminal */
+    .c-cyan { color: var(--cyan); }
+    .c-emerald { color: var(--emerald); font-weight: bold; }
+    .c-crimson { color: var(--crimson); font-weight: bold; }
+    .c-amber { color: var(--amber); }
+    .c-graphite { color: var(--graphite); }
+    .c-white { color: #ffffff; font-weight: bold; }
+    .c-dim { color: #52637a; }
 
-    /* RUNBOOK STEPS */
-    .run-step {
-      display: flex;
-      gap: 18px;
-      margin-bottom: 25px;
+    /* SECTIONS COMMON */
+    section {
+      padding: 40px 0;
     }
 
-    .step-num {
-      width: 32px;
-      height: 32px;
-      background: var(--surface);
-      border: 1px solid var(--surface-border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--mono);
+    .section-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .section-header .section-tag {
+      font-family: var(--font-mono);
+      font-size: 12px;
       font-weight: 700;
-      color: var(--amber);
-      flex-shrink: 0;
+      color: var(--cyan);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      display: block;
     }
 
-    .step-body { flex-grow: 1; }
-    .step-body h4 { font-size: 1.1rem; margin-bottom: 6px; font-weight: 600; }
-    .step-body p { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 10px; }
+    .section-header h2 {
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      color: var(--text-bright);
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
 
-    /* FOOTER */
-    footer {
-      padding: 45px 0;
-      border-top: 1px solid var(--surface-border);
-      font-family: var(--mono);
-      font-size: 0.82rem;
+    .section-header p {
       color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto;
+      font-size: 1.05rem;
     }
 
-    .footer-content {
+    /* CAPABILITIES GRID (3 CARDS) */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 32px 28px;
+      position: relative;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-highlight);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-icon-pill {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+      margin-bottom: 18px;
+      display: inline-block;
+      letter-spacing: 0.08em;
+    }
+
+    .card h3 {
+      font-size: 1.35rem;
+      color: var(--text-bright);
+      margin-bottom: 14px;
+      line-height: 1.25;
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.96rem;
+      line-height: 1.6;
+      flex-grow: 1;
+    }
+
+    .card-footer-metric {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--cyan);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* PROBLEM VS SOLUTION COMPARISON */
+    .compare-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin: 30px 0;
+    }
+
+    @media (max-width: 860px) {
+      .compare-wrap {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .compare-col {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .compare-col.fail-side {
+      border-top: 3px solid var(--crimson);
+    }
+
+    .compare-col.pass-side {
+      border-top: 3px solid var(--emerald);
+    }
+
+    .compare-header {
+      padding: 16px 22px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #090d14;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .compare-list {
+      padding: 24px;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .compare-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      font-size: 0.95rem;
+    }
+
+    .compare-icon {
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .compare-icon.icon-fail { color: var(--crimson); }
+    .compare-icon.icon-pass { color: var(--emerald); }
+
+    /* THE 2-MINUTE LITMUS TEST COMPONENT */
+    .litmus-box {
+      margin: 30px 0;
+    }
+
+    .litmus-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 920px) {
+      .litmus-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .litmus-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .verdict-banner {
+      padding: 14px 20px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .verdict-banner.v-fail {
+      background: var(--crimson-dim);
+      border-bottom: 1px solid var(--crimson);
+      color: var(--crimson);
+    }
+
+    .verdict-banner.v-pass {
+      background: var(--emerald-dim);
+      border-bottom: 1px solid var(--emerald);
+      color: var(--emerald);
+    }
+
+    .litmus-content {
+      padding: 20px;
+      flex-grow: 1;
+    }
+
+    .code-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .mini-terminal {
+      background: var(--terminal-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre;
+      margin-bottom: 16px;
+    }
+
+    /* LIVE INTERACTIVE SIEVE SIMULATOR */
+    .simulator-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 32px 0;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .sim-header {
+      background: #090e16;
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -403,437 +722,1450 @@
       gap: 12px;
     }
 
-    /* LANG CONTROL */
-    [data-lang="en"] { display: none; }
-    body.lang-en [data-lang="es"] { display: none; }
-    body.lang-en [data-lang="en"] { display: block; }
-    body.lang-en span[data-lang="en"], 
-    body.lang-en strong[data-lang="en"] { display: inline; }
+    .sim-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-sim-preset {
+      background: #141b26;
+      border: 1px solid var(--border-highlight);
+      color: var(--text-bright);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-sim-preset:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .sim-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+
+    @media (max-width: 860px) {
+      .sim-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .sim-editor-pane {
+      padding: 20px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sim-textarea {
+      width: 100%;
+      height: 280px;
+      background: #030508;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: #d1dfed;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .sim-textarea:focus {
+      border-color: var(--cyan);
+    }
+
+    .sim-results-pane {
+      padding: 24px;
+      background: #05070a;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .score-meter {
+      margin-bottom: 24px;
+    }
+
+    .score-meter-header {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .meter-bar-bg {
+      height: 10px;
+      background: #141a24;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .meter-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--crimson);
+      transition: width 0.4s ease, background-color 0.4s ease;
+    }
+
+    .meter-bar-fill.pass {
+      background: var(--emerald);
+      box-shadow: 0 0 10px var(--emerald);
+    }
+
+    .sim-checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      margin-bottom: 24px;
+    }
+
+    .sim-check-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+    }
+
+    .sim-check-item.valid {
+      color: var(--emerald);
+    }
+
+    .sim-check-item.invalid {
+      color: var(--crimson);
+    }
+
+    .sim-final-box {
+      padding: 14px 18px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .sim-final-box.box-fail {
+      background: var(--crimson-dim);
+      border: 1px solid var(--crimson);
+      color: var(--crimson);
+    }
+
+    .sim-final-box.box-pass {
+      background: var(--emerald-dim);
+      border: 1px solid var(--emerald);
+      color: var(--emerald);
+    }
+
+    /* PLAYBOOK ZERO-TOUCH (3 STEPS) */
+    .playbook-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin: 32px 0;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .step-num-pill {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--cyan);
+      background: var(--cyan-dim);
+      padding: 4px 10px;
+      border-radius: 4px;
+      width: fit-content;
+      margin-bottom: 16px;
+    }
+
+    .step-card h3 {
+      font-size: 1.25rem;
+      color: var(--text-bright);
+      margin-bottom: 10px;
+    }
+
+    .step-card p {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      margin-bottom: 20px;
+      flex-grow: 1;
+    }
+
+    .cmd-badge-box {
+      background: #070a10;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--cyan);
+    }
+
+    .btn-step-copy {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      transition: color 0.2s;
+    }
+
+    .btn-step-copy:hover {
+      color: var(--cyan);
+    }
+
+    /* FINOPS CALCULATOR */
+    .finops-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 36px;
+      margin: 32px 0;
+    }
+
+    .finops-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 36px;
+      align-items: center;
+    }
+
+    @media (max-width: 860px) {
+      .finops-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .range-slider {
+      width: 100%;
+      height: 8px;
+      background: #141a24;
+      border-radius: 4px;
+      outline: none;
+      accent-color: var(--cyan);
+      margin: 18px 0;
+    }
+
+    .model-selector {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .model-chip {
+      background: #0f1521;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .model-chip.active {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      background: var(--cyan-dim);
+    }
+
+    .savings-display {
+      background: #070a10;
+      border: 1px solid var(--border-highlight);
+      border-radius: 6px;
+      padding: 28px;
+      text-align: center;
+    }
+
+    .savings-val {
+      font-family: var(--font-mono);
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--emerald);
+      line-height: 1;
+      margin: 12px 0 6px;
+      text-shadow: 0 0 20px var(--emerald-glow);
+    }
+
+    .savings-sub {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* COMPLIANCE TABLE */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 32px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: #090d14;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    td {
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    td strong {
+      color: var(--text-bright);
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 60px 0 40px;
+      background: #030508;
+      margin-top: 80px;
+      text-align: center;
+    }
+
+    footer p.footer-tagline {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.12em;
+      margin-bottom: 8px;
+    }
+
+    footer p.footer-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #3e4b5e;
+    }
+
+    /* TOAST NOTIFICATION */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--emerald);
+      color: #000;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 12px 20px;
+      border-radius: 4px;
+      box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4);
+      transform: translateY(120%);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast.visible {
+      transform: translateY(0);
+    }
   </style>
 </head>
 <body>
 
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="toast">
+    <span>✓</span>
+    <span id="toastMessage">COMMAND COPIED TO CLIPBOARD</span>
+  </div>
+
   <!-- HEADER -->
   <header>
-    <div class="container header-inner">
-      <div class="brand">
-        <span class="brand-badge">Sovereign Core</span>
-        <span>CONTEXT_FIREWALL // V3.0 SEALED</span>
-      </div>
-      <div class="header-controls">
-        <div class="lang-switcher">
-          <button class="lang-btn active" id="btn-es" onclick="setLang('es')">ES</button>
-          <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <div class="container nav">
+      <a href="#" class="brand-wrap">
+        <span class="brand-pill">CTXFW // v3.5.0</span>
+        <span class="brand-name">CONTEXT FIREWALL</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#litmus" data-i18n="nav.litmus">Litmus Test</a></li>
+        <li><a href="#simulator" data-i18n="nav.simulator">Simulador Sieve</a></li>
+        <li><a href="#playbook" data-i18n="nav.playbook">Zero-Touch</a></li>
+        <li><a href="#finops" data-i18n="nav.finops">FinOps Finanzas</a></li>
+        <li><a href="#compliance" data-i18n="nav.compliance">Cumplimiento</a></li>
+      </ul>
+
+      <div class="header-actions">
+        <!-- Language Switcher -->
+        <div class="lang-toggle">
+          <button id="btnLangEs" class="lang-btn active" onclick="switchLanguage('es')">ES</button>
+          <button id="btnLangEn" class="lang-btn" onclick="switchLanguage('en')">EN</button>
         </div>
+
+        <a href="https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b" target="_blank" rel="noopener noreferrer" class="btn-repo">
+          <span style="color: var(--cyan);">●</span> <span data-i18n="nav.repository">Sovereign Git</span>
+        </a>
       </div>
     </div>
   </header>
 
-  <!-- HERO -->
-  <section class="hero">
-    <div class="container">
-      <div class="hero-tag">
-        <span data-lang="es">GARANTÍA AIR-GAPPED // EJECUCIÓN 100% LOCAL</span>
-        <span data-lang="en">AIR-GAPPED GUARANTEE // 100% LOCAL EXECUTION</span>
+  <main class="container">
+    <!-- HERO SECTION -->
+    <section class="hero">
+      <div class="hero-eyebrow">
+        <span class="pulse-dot"></span>
+        <span data-i18n="hero.eyebrow">HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE</span>
       </div>
-      <h1 class="hero-title">
-        <span data-lang="es">Cortafuegos Determinista de Contexto</span>
-        <span data-lang="en">Deterministic Context Firewall</span>
-        <br>
-        <span>& Token Optimization Engine</span>
-      </h1>
-      <p class="hero-desc">
-        <span data-lang="es">
-          Infraestructura perimetral para flujos agénticos (Antigravity, Cursor, Claude Code) y monorepos políglotas. Compacta dependencias mediante AST nativo y Tree-sitter CST (Python, TypeScript, Go, Java), preserva invariantes con stubs canónicos tipados y neutraliza fuga de secretos en submilisegundos vía SQLite WAL.
-        </span>
-        <span data-lang="en">
-          Perimeter infrastructure for agentic workflows (Antigravity, Cursor, Claude Code) and polyglot monorepos. Compacts dependencies via native AST & Tree-sitter CST (Python, TypeScript, Go, Java), preserves invariant interfaces with typed stubs, and blocks secret leakage in sub-milliseconds via SQLite WAL.
-        </span>
+
+      <h1 data-i18n="hero.title">Aduana Matemática Determinista para <span class="highlight-cyan">Código Sintético</span></h1>
+      
+      <p class="lead" data-i18n="hero.lead">
+        Tu agente de IA miente con confianza. CTXFW lo contiene con pruebas matemáticas deterministas, poda topológica de dependencias en árbol AST y un centinela pre-commit en Git que intercepta requerimientos ambiguos en menos de 80ms.
       </p>
 
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-val amber">-43.3%</div>
-          <div class="metric-label" data-lang="es">Reducción Media de Tokens</div>
-          <div class="metric-label" data-lang="en">Average Token Reduction</div>
+      <!-- INSTALL COMMAND BOX (3 TABS) -->
+      <div class="install-box">
+        <div class="install-nav">
+          <button class="install-tab-btn active" onclick="selectInstallTab(0)">Standalone Wheel</button>
+          <button class="install-tab-btn" onclick="selectInstallTab(1)">pipx Global CLI</button>
+          <button class="install-tab-btn" onclick="selectInstallTab(2)">Editable Git Source</button>
         </div>
-        <div class="metric-card">
-          <div class="metric-val emerald">0.0%</div>
-          <div class="metric-label" data-lang="es">Degradación pass@1 (Zero Degr.)</div>
-          <div class="metric-label" data-lang="en">pass@1 Degradation (Zero Degr.)</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-val cyan">&lt;1.5 ms</div>
-          <div class="metric-label" data-lang="es">Latencia Caché SQLite WAL</div>
-          <div class="metric-label" data-lang="en">SQLite WAL Cache Latency</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-val emerald">51 / 51</div>
-          <div class="metric-label" data-lang="es">Tests TDD Certificados (100% Green)</div>
-          <div class="metric-label" data-lang="en">Certified TDD Tests (100% Green)</div>
+        <div class="install-row">
+          <div>
+            <span class="cmd-symbol">$</span>
+            <span id="installCmdText">pip install ctxfw-3.5.0-py3-none-any.whl</span>
+          </div>
+          <button id="btnCopyInstall" class="copy-button" onclick="copyCurrentInstallCmd()">COPY</button>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- ARCHITECTURE: STRATIFIED PRUNING -->
-  <section class="section">
-    <div class="container">
-      <div class="section-head">
-        <span class="section-label" data-lang="es">Ley de Poda Topológica</span>
-        <span class="section-label" data-lang="en">Topological Pruning Law</span>
-        <h2 class="section-title">
-          <span data-lang="es">Estratificación por Distancia Semántica</span>
-          <span data-lang="en">Semantic Distance Stratification</span>
-        </h2>
-      </div>
-
-      <div class="strat-grid">
-        <div class="strat-card">
-          <span class="strat-badge">D0 // TARGET</span>
-          <h3 data-lang="es">Distancia 0 (Archivo Activo)</h3>
-          <h3 data-lang="en">Distance 0 (Active Target)</h3>
-          <p data-lang="es">100% retención del código fuente. La implementación en edición activa permanece intacta para garantizar razonamiento fidedigno.</p>
-          <p data-lang="en">100% full implementation retained. The active target file being edited is preserved unmodified.</p>
-          <div class="strat-code"><span class="kw">def</span> <span class="fn">process_order</span>(x):
-    y = calculate(x)
-    <span class="kw">if not</span> y:
-        <span class="kw">raise</span> ValueError(<span class="str">"err"</span>)
-    <span class="kw">return</span> save_db(y)</div>
+      <!-- METRICS BADGES -->
+      <div class="metrics-strip">
+        <div class="metric-badge">
+          <span class="badge-status-dot"></span>
+          <span data-i18n="badge.aci">ACI Threshold: <strong>≥ 0.9000</strong></span>
         </div>
-
-        <div class="strat-card" style="border-top: 2px solid var(--amber);">
-          <span class="strat-badge" style="color: var(--amber);">D1 // INTERFACE</span>
-          <h3 data-lang="es">Distancia 1 (Import Directo)</h3>
-          <h3 data-lang="en">Distance 1 (Direct Import)</h3>
-          <p data-lang="es">Slicing sintáctico con stubs tipados (`...`). Docstrings, firmas, tipos y excepciones `raise` sanitizadas contra fugas de credenciales.</p>
-          <p data-lang="en">Syntactic slicing with typed stubs (`...`). Preserves docstrings, signatures, types, and sanitized `raise` exception declarations.</p>
-          <div class="strat-code"><span class="kw">def</span> <span class="fn">calculate</span>(x: int) -> int:
-    <span class="str">"""Compute order taxes."""</span>
-    <span class="kw">raise</span> ValueError(...)
-    ...</div>
+        <div class="metric-badge">
+          <span class="badge-status-dot"></span>
+          <span data-i18n="badge.invariants">Negative Floor: <strong>5 Cláusulas 'Never'</strong></span>
         </div>
-
-        <div class="strat-card" style="border-top: 2px solid var(--cyan);">
-          <span class="strat-badge" style="color: var(--cyan);">D2+ // NOMINAL</span>
-          <h3 data-lang="es">Distancia 2+ (Transitiva)</h3>
-          <h3 data-lang="en">Distance 2+ (Transitive)</h3>
-          <p data-lang="es">Esquemas nominales compactos. Purgado absoluto de métodos internos; retención exclusiva de definiciones de clase, campos y DTOs.</p>
-          <p data-lang="en">Nominal compact schemas. Full purge of internal methods; exclusive retention of class definitions, fields, and DTO types.</p>
-          <div class="strat-code"><span class="kw">class</span> <span class="fn">DatabaseConfig</span>:
-    host: str
-    port: int
-    timeout: float</div>
+        <div class="metric-badge">
+          <span class="badge-status-dot"></span>
+          <span data-i18n="badge.latency">Pre-Commit Sentry: <strong>&lt; 80 ms</strong></span>
+        </div>
+        <div class="metric-badge">
+          <span class="badge-status-dot"></span>
+          <span data-i18n="badge.isolation">stdio Isolation: <strong>100% Pure JSON-RPC</strong></span>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- OPERATIONAL RUNBOOK -->
-  <section class="section">
-    <div class="container">
-      <div class="section-head">
-        <span class="section-label" data-lang="es">Runbook Operativo</span>
-        <span class="section-label" data-lang="en">Operational Runbook</span>
-        <h2 class="section-title">
-          <span data-lang="es">Flujos de Integración y Uso</span>
-          <span data-lang="en">Integration Workflows & Usage</span>
-        </h2>
+    <!-- REAL TERMINAL DIAGNOSTIC DISPLAY -->
+    <section class="terminal-container">
+      <div class="terminal-window">
+        <div class="terminal-header">
+          <div class="window-dots">
+            <span class="w-dot red"></span>
+            <span class="w-dot yellow"></span>
+            <span class="w-dot green"></span>
+            <span id="terminalWindowSubtitle" class="terminal-title">PowerShell &mdash; ctxfw doctor (High-Assurance Diagnostic)</span>
+          </div>
+          <div class="terminal-tabs">
+            <button class="term-tab-btn active" onclick="switchTerminalOutput(0)">ctxfw doctor</button>
+            <button class="term-tab-btn" onclick="switchTerminalOutput(1)">ctxfw init --global</button>
+            <button class="term-tab-btn" onclick="switchTerminalOutput(2)">ctxfw spec verify</button>
+            <button class="term-tab-btn" onclick="switchTerminalOutput(3)">ctxfw --help</button>
+          </div>
+        </div>
+        <div id="terminalBodyOutput" class="terminal-body"></div>
+      </div>
+    </section>
+
+    <!-- CORE ARCHITECTURE & CAPABILITIES (3 CARDS) -->
+    <section id="capabilities">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="cap.tag">// ARQUITECTURA DE CONTENCIÓN</span>
+        <h2 data-i18n="cap.title">Tres Líneas de Fuego Deterministas</h2>
+        <p data-i18n="cap.desc">A diferencia de los linters sintácticos o prompts pasivos, CTXFW opera a nivel de protocolo y sistema de archivos antes de que la IA sintetice código en disco.</p>
       </div>
 
-      <div class="tabs-nav">
-        <button class="tab-btn active" onclick="switchTab('tab-bootstrap')">
-          <span data-lang="es">00. Instalación (1-Click)</span>
-          <span data-lang="en">00. 1-Click Bootstrap</span>
-        </button>
-        <button class="tab-btn" onclick="switchTab('tab-cli')">
-          <span data-lang="es">01. CLI Clipboard</span>
-          <span data-lang="en">01. Clipboard CLI</span>
-        </button>
-        <button class="tab-btn" onclick="switchTab('tab-mcp')">
-          <span data-lang="es">02. Servidor MCP</span>
-          <span data-lang="en">02. MCP Server</span>
-        </button>
-        <button class="tab-btn" onclick="switchTab('tab-proxy')">
-          <span data-lang="es">03. Reverse Proxy</span>
-          <span data-lang="en">03. Reverse Proxy</span>
-        </button>
-        <button class="tab-btn" onclick="switchTab('tab-ci')">
-          <span data-lang="es">04. CI Gatekeeper</span>
-          <span data-lang="en">04. CI Gatekeeper</span>
-        </button>
+      <div class="grid-3">
+        <div class="card">
+          <span class="card-tag">// 01 DETERMINISMO MATEMÁTICO</span>
+          <h3 data-i18n="cap.c1_title">Axiom Completeness Index (ACI)</h3>
+          <p data-i18n="cap.c1_desc">Evalúa formalmente cualquier brief de diseño contra una Máquina de Estados Finita (FSM), variables de dominio acotadas numéricamente y una taxonomía estricta de fallos. Requiere un índice ACI ≥ 0.9000 para desbloquear la síntesis.</p>
+          <div class="card-footer-metric">
+            <span>Score Mínimo Requerido</span>
+            <strong>0.9000 / 1.0000</strong>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="card-tag">// 02 PISO DE SEGURIDAD NEGATIVA</span>
+          <h3 data-i18n="cap.c2_title">Piso de Invariantes Negativas</h3>
+          <p data-i18n="cap.c2_desc">Exige un mínimo no negociable de 5 cláusulas prohibitivas formales (usando cláusulas explícitas 'never' o 'shall never'). Si el pliego carece de prohibiciones tajantes sobre secretos, estados o memoria, es enviado a cuarentena.</p>
+          <div class="card-footer-metric">
+            <span>Invariantes Negativas</span>
+            <strong>N ≥ 5 Cláusulas</strong>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="card-tag">// 03 INTERCEPTOR GIT LOCAL</span>
+          <h3 data-i18n="cap.c3_title">Sentry Pre-Commit Infranqueable</h3>
+          <p data-i18n="cap.c3_desc">Hook local desplegado en .git/hooks/pre-commit que se dispara en menos de 80ms en cada git commit. Aborta la transacción en frío con código de salida 1 si la especificación activa no porta un manifest_hash válido.</p>
+          <div class="card-footer-metric">
+            <span>Latencia de Bloqueo</span>
+            <strong>&lt; 80 ms (Zero-Lag)</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROBLEM VS SOLUTION (FOR HUMANS) -->
+    <section>
+      <div class="section-header">
+        <span class="section-tag" data-i18n="compare.tag">// EL PROBLEMA HUMANO</span>
+        <h2 data-i18n="compare.title">¿Por Qué los Flujos Agénticos Tradicionales Fallan?</h2>
+        <p data-i18n="compare.desc">Las IAs actuales sufren de complacencia probabilística: prefieren adivinar supuestos antes que admitir que un requerimiento carece de límites matemáticos.</p>
       </div>
 
-      <!-- TAB 0: 1-CLICK BOOTSTRAP -->
-      <div id="tab-bootstrap" class="tab-pane active">
-        <div class="run-step">
-          <div class="step-num">1</div>
-          <div class="step-body">
-            <h4 data-lang="es">Clonado y Aprovisionamiento Automático</h4>
-            <h4 data-lang="en">Clone & Automatic Provisioning</h4>
-            <p data-lang="es">Baja el repositorio canónico de Gitea y ejecuta el instalador. Genera el entorno virtual `.venv`, instala dependencias y certifica los 51 tests:</p>
-            <p data-lang="en">Clone the canonical Gitea repository and run the zero-friction installer. Configures `.venv`, dependencies, and validates all 51 tests:</p>
-            <div class="code-box">
-              <div class="code-head">
-                <span>PowerShell (Windows)</span>
-                <button class="copy-btn" onclick="copyCode('code-install-win')">Copiar</button>
+      <div class="compare-wrap">
+        <div class="compare-col fail-side">
+          <div class="compare-header" style="color: var(--crimson);">
+            <span data-i18n="compare.bad_title">DESARROLLO TRADICIONAL CON IA (NO CONFIABLE)</span>
+            <span>[VULNERABLE]</span>
+          </div>
+          <ul class="compare-list">
+            <li class="compare-item">
+              <span class="compare-icon icon-fail">✕</span>
+              <div>
+                <strong data-i18n="compare.b1_h">Prompts ambiguos sin cotas</strong>
+                <p style="color: var(--text-muted); font-size: 0.9rem;" data-i18n="compare.b1_p">"Haz un endpoint de transferencias seguro y escalable". La IA inventa timeouts y políticas arbitrarias.</p>
               </div>
-              <pre id="code-install-win">git clone https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b.git
-cd arch-ord-2026-4f003b
-.\setup.ps1</pre>
+            </li>
+            <li class="compare-item">
+              <span class="compare-icon icon-fail">✕</span>
+              <div>
+                <strong data-i18n="compare.b2_h">Complacencia probabilística</strong>
+                <p style="color: var(--text-muted); font-size: 0.9rem;" data-i18n="compare.b2_p">La IA asume tipos de datos infinitos, omite límites de retención y genera código con potenciales fugas de memoria.</p>
+              </div>
+            </li>
+            <li class="compare-item">
+              <span class="compare-icon icon-fail">✕</span>
+              <div>
+                <strong data-i18n="compare.b3_h">Commits ciegos al repositorio</strong>
+                <p style="color: var(--text-muted); font-size: 0.9rem;" data-i18n="compare.b3_p">El código sintético llega a la rama principal sin ninguna firma o prueba formal de que satisfizo las especificaciones.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="compare-col pass-side">
+          <div class="compare-header" style="color: var(--emerald);">
+            <span data-i18n="compare.good_title">CON PERÍMETRO SOBERANO CTXFW (GRADO DEFENSA)</span>
+            <span>[SEALED & SAFE]</span>
+          </div>
+          <ul class="compare-list">
+            <li class="compare-item">
+              <span class="compare-icon icon-pass">✓</span>
+              <div>
+                <strong data-i18n="compare.g1_h">Evaluación axiomática previa obligatoria</strong>
+                <p style="color: var(--text-muted); font-size: 0.9rem;" data-i18n="compare.g1_p">El agente tiene prohibido escribir código hasta que ctxfw.evaluate_spec_axioms emita status: VERIFIED.</p>
+              </div>
+            </li>
+            <li class="compare-item">
+              <span class="compare-icon icon-pass">✓</span>
+              <div>
+                <strong data-i18n="compare.g2_h">Invariantes prohibitivas 'never' no negociables</strong>
+                <p style="color: var(--text-muted); font-size: 0.9rem;" data-i18n="compare.g2_p">5 barreras negativas explícitas aseguran que ninguna credencial, clave o token sea emitido en texto plano ni alterado en caliente.</p>
+              </div>
+            </li>
+            <li class="compare-item">
+              <span class="compare-icon icon-pass">✓</span>
+              <div>
+                <strong data-i18n="compare.g3_h">Atestación criptográfica SHA-256 sellada en Git</strong>
+                <p style="color: var(--text-muted); font-size: 0.9rem;" data-i18n="compare.g3_p">Cada commit queda sellado con un manifest_hash inmutable. Auditoría no repudiable y trazabilidad completa de cada línea.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- THE 2-MINUTE LITMUS TEST -->
+    <section id="litmus">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="litmus.tag">// PROTOCOLO DE CERTIFICACIÓN RÁPIDA</span>
+        <h2>The 2-Minute Litmus Test</h2>
+        <p data-i18n="litmus.desc">El test de fuego de dos minutos extraído directamente de ONBOARDING.md: de la cuarentena instantánea por ambigüedad al desbloqueo formal por pliego verificado.</p>
+      </div>
+
+      <div class="litmus-grid">
+        <!-- Stage 1 -->
+        <div class="litmus-panel">
+          <div class="verdict-banner v-fail">
+            <span data-i18n="litmus.s1_title">ETAPA 1: PROVOCACIÓN DE CUARENTENA</span>
+            <span>[BLOCKED] &lt;80ms</span>
+          </div>
+          <div class="litmus-content">
+            <span class="code-label" data-i18n="litmus.s1_file">1. Requerimiento Ambiguo (TEST_BRIEF.axioms.md)</span>
+            <div class="mini-terminal"># Intake Brief: Payment Processor
+- We need a fast and secure payment system.
+- Configurable timeout.
+- Auto-retry on failure.
+- System should never leak credentials.</div>
+
+            <span class="code-label" data-i18n="litmus.s1_cmd">2. Evaluación y Bloqueo en Git</span>
+            <div class="mini-terminal"><span class="c-dim">$ ctxfw spec verify TEST_BRIEF.axioms.md</span>
+<span class="c-graphite">========================================================================</span>
+<span class="c-white">ACI Score:</span>                  <span class="c-crimson">0.0000</span> (Requerido: >= 0.9000)
+<span class="c-white">Negative Invariants Count:</span>  <span class="c-crimson">1</span> (Piso mínimo requerido: 5)
+<span class="c-graphite">------------------------------------------------------------------------</span>
+<span class="c-white">Final Verdict:</span>              <span class="c-crimson">[FAIL] SPECIFICATION QUARANTINED</span>
+<span class="c-graphite">========================================================================</span>
+
+<span class="c-dim">$ git commit -m "feat: draft payment system"</span>
+<span class="c-crimson">[ctxfw] [BLOCKED] Specification is QUARANTINED. Commit aborted.</span></div>
+          </div>
+        </div>
+
+        <!-- Stage 2 -->
+        <div class="litmus-panel">
+          <div class="verdict-banner v-pass">
+            <span data-i18n="litmus.s2_title">ETAPA 2: DESBLOQUEO AXIOMÁTICO</span>
+            <span>[PASS] READY FOR FORGE</span>
+          </div>
+          <div class="litmus-content">
+            <span class="code-label" data-i18n="litmus.s2_file">1. Pliego Axiomático Formal (Cotas + FSM + 5 'Never')</span>
+            <div class="mini-terminal"># Architectural Specification Brief: Payment Processor
+- Variable `max_amount_cents`: int bounded >= 1 and <= 100000000.
+- Variable `gateway_timeout_ms`: int bounded >= 100 and <= 5000.
+- Transition delta(DRAFT, EVALUATE_COMPLIANT) -> VERIFIED
+- System shall never process unauthenticated transactions.
+- System shall never double-charge identical idempotency key.
+- System shall never log raw card numbers or CVV codes.
+- System shall never bypass quarantine sink during failure.
+- System shall never transfer without pre-allocating balances.</div>
+
+            <span class="code-label" data-i18n="litmus.s2_cmd">2. Verificación y Sello Inmutable</span>
+            <div class="mini-terminal"><span class="c-dim">$ ctxfw spec verify TEST_BRIEF.axioms.md</span>
+<span class="c-graphite">========================================================================</span>
+<span class="c-white">ACI Score:</span>                  <span class="c-emerald">1.0000</span> [100% COVERAGE]
+<span class="c-white">Negative Invariants Count:</span>  <span class="c-emerald">5</span> [VERIFIED]
+<span class="c-white">Manifest Hash (SHA-256):</span>    <span class="c-white">2ff805b3dec69e93b3c50680e6...</span>
+<span class="c-graphite">------------------------------------------------------------------------</span>
+<span class="c-white">Final Verdict:</span>              <span class="c-emerald">[PASS] READY FOR FORGE</span>
+<span class="c-graphite">========================================================================</span>
+
+<span class="c-dim">$ git commit -m "feat: verified payment processor"</span>
+<span class="c-emerald">[main 8e95075] feat: verified payment processor</span>
+ 2 files changed, 48 insertions(+)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIVE AXIOM SIEVE SIMULATOR -->
+    <section id="simulator">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="sim.tag">// LABORATORIO INTERACTIVO</span>
+        <h2 data-i18n="sim.title">Simulador en Vivo de la Criba Axiomática</h2>
+        <p data-i18n="sim.desc">Comprueba en tiempo real cómo reacciona el motor de CTXFW ante cualquier requerimiento. Modifica el texto y observa cómo fluctúa el ACI Score y el veredicto de cuarentena.</p>
+      </div>
+
+      <div class="simulator-wrap">
+        <div class="sim-header">
+          <span style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--text-bright);">
+            INTERACTIVE SIEVE ENGINE // V3.5.0
+          </span>
+          <div class="sim-controls">
+            <button class="btn-sim-preset" onclick="loadSimPreset('deficient')" data-i18n="sim.btn_def">Cargar Ambiguo</button>
+            <button class="btn-sim-preset" onclick="loadSimPreset('compliant')" data-i18n="sim.btn_comp">Cargar Canónico</button>
+          </div>
+        </div>
+
+        <div class="sim-body">
+          <div class="sim-editor-pane">
+            <span class="code-label" data-i18n="sim.edit_label">Editor de Especificación Markdown:</span>
+            <textarea id="simTextarea" class="sim-textarea" oninput="recomputeSieveSimulation()" placeholder="Escribe o pega aquí tu especificación de requerimiento..."></textarea>
+          </div>
+
+          <div class="sim-results-pane">
+            <div>
+              <div class="score-meter">
+                <div class="score-meter-header">
+                  <span>Axiom Completeness Index (ACI)</span>
+                  <strong id="simAciScoreText">0.0000</strong>
+                </div>
+                <div class="meter-bar-bg">
+                  <div id="simMeterFill" class="meter-bar-fill"></div>
+                </div>
+              </div>
+
+              <ul class="sim-checklist">
+                <li id="chkInvariants" class="sim-check-item">
+                  <span id="icoInvariants">✕</span>
+                  <span id="lblInvariants">Invariantes Negativas ('never'): 0 / 5</span>
+                </li>
+                <li id="chkBounds" class="sim-check-item">
+                  <span id="icoBounds">✕</span>
+                  <span id="lblBounds">Cotas Explícitas de Dominio (Min/Max): No detectadas</span>
+                </li>
+                <li id="chkFsm" class="sim-check-item">
+                  <span id="icoFsm">✕</span>
+                  <span id="lblFsm">Máquina de Estados Finita (FSM): No detectada</span>
+                </li>
+                <li id="chkTaxonomy" class="sim-check-item">
+                  <span id="icoTaxonomy">✕</span>
+                  <span id="lblTaxonomy">Taxonomía de Errores (4 clases): No detectada</span>
+                </li>
+              </ul>
             </div>
-            <div class="code-box">
-              <div class="code-head">
-                <span>Bash (Linux / macOS)</span>
-                <button class="copy-btn" onclick="copyCode('code-install-posix')">Copiar</button>
+
+            <div>
+              <div id="simVerdictBox" class="sim-final-box box-fail">
+                [FAIL] SPECIFICATION QUARANTINED
               </div>
-              <pre id="code-install-posix">git clone https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b.git
-cd arch-ord-2026-4f003b
-chmod +x setup.sh && ./setup.sh</pre>
+              <p id="simHashPreview" style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-top: 8px; word-break: break-all; text-align: center;">
+                Manifest Hash: None (Awaiting compliance)
+              </p>
             </div>
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- TAB 1: CLI -->
-      <div id="tab-cli" class="tab-pane">
-        <div class="run-step">
-          <div class="step-num">1</div>
-          <div class="step-body">
-            <h4 data-lang="es">Ejecución Directa con Inyección al Portapapeles (Ctrl + V)</h4>
-            <h4 data-lang="en">Direct Execution with Instant Clipboard Copy</h4>
-            <p data-lang="es">Ejecuta el wrapper <code>firewall</code> apuntando al archivo objetivo. Analiza el grafo, poda dependencias y deposita el prompt listo en tu portapapeles en menos de 2 ms:</p>
-            <p data-lang="en">Execute the <code>firewall</code> wrapper targeting your active module. Resolves dependencies and deposits the prompt into the OS clipboard in &lt; 2 ms:</p>
-            <div class="code-box">
-              <div class="code-head">
-                <span>PowerShell / Terminal</span>
-                <button class="copy-btn" onclick="copyCode('code-cli-run')">Copiar</button>
-              </div>
-              <pre id="code-cli-run">.\firewall contracts.py</pre>
-            </div>
+    <!-- 30-SECOND ZERO-TOUCH PLAYBOOK -->
+    <section id="playbook">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="playbook.tag">// GUÍA RÁPIDA DE CAMPO</span>
+        <h2 data-i18n="playbook.title">Despliegue Zero-Touch en 30 Segundos</h2>
+        <p data-i18n="playbook.desc">Tres comandos para blindar tu entorno de desarrollo, enlazar tus IDEs de IA y armar el repositorio.</p>
+      </div>
+
+      <div class="playbook-steps">
+        <!-- Step 1 -->
+        <div class="step-card">
+          <span class="step-num-pill">PASO 01 // AUDITORÍA</span>
+          <h3 data-i18n="step1.title">Diagnóstico de Salud y Pureza stdio</h3>
+          <p data-i18n="step1.desc">Ejecuta el auto-test integral para certificar el motor SQLite WAL, las gramáticas Tree-Sitter y garantizar que ningún log manche el canal stdout de MCP.</p>
+          <div class="cmd-badge-box">
+            <code>ctxfw doctor</code>
+            <button class="btn-step-copy" onclick="copyText('ctxfw doctor')">COPY</button>
           </div>
         </div>
 
-        <div class="run-step">
-          <div class="step-num">2</div>
-          <div class="step-body">
-            <h4 data-lang="es">Salida Real del Dashboard en Terminal</h4>
-            <h4 data-lang="en">Live Terminal Telemetry Output</h4>
-            <div class="code-box">
-              <div class="code-head">
-                <span>Terminal Output</span>
-              </div>
-              <pre>========================================================================
-  CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v3.3.0)
-========================================================================
-Target Module:  contracts.py
-Project Root:   C:\sandbox\arch-ord-2026-4f003b
-
-DIST   | MODULE                           | DEPTH      | ORIG TOK  | PRUNED   | SAVINGS 
-------------------------------------------------------------------------------------
-D0     | contracts.py                     | FULL       | 2,995     | 2,995    | 0.0%    
-D1     | polyglot_pruner.py               | INTERFACE  | 1,739     | 426      | 75.5%   
-------------------------------------------------------------------------------------
-TOTAL  | 2 Modules                        |            | 4,734     | 3,421    | 27.7%   
-
-[*] Net Context Tokens Saved:  1,313 tokens (27.7% reduction)
-[*] Projected FinOps Savings:  $0.0039 USD (@ $3.00/1M tokens)
-[*] Pipeline Latency:          1.85 ms
-[*] Clipboard Status:          COPIED TO SYSTEM CLIPBOARD
-========================================================================</pre>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 2: MCP -->
-      <div id="tab-mcp" class="tab-pane">
-        <div class="run-step">
-          <div class="step-num">1</div>
-          <div class="step-body">
-            <h4 data-lang="es">Manifiesto MCP Nativo (.mcp.json)</h4>
-            <h4 data-lang="en">Native MCP Manifest (.mcp.json)</h4>
-            <p data-lang="es">Configuración ya incluida en la raíz del repositorio para descubrimiento automático en Antigravity, Cursor o Claude Desktop:</p>
-            <p data-lang="en">Configuration pre-bundled in the repository root for auto-discovery across Antigravity, Cursor, and Claude Desktop:</p>
-            <div class="code-box">
-              <div class="code-head">
-                <span>.mcp.json / claude_desktop_config.json</span>
-                <button class="copy-btn" onclick="copyCode('code-mcp-cfg')">Copiar</button>
-              </div>
-              <pre id="code-mcp-cfg">{
-  "mcpServers": {
-    "context-firewall": {
-      "command": "python",
-      "args": ["C:/sandbox/arch-ord-2026-4f003b/mcp_server.py"]
-    }
-  }
-}</pre>
-            </div>
+        <!-- Step 2 -->
+        <div class="step-card">
+          <span class="step-num-pill">PASO 02 // IDE LINK</span>
+          <h3 data-i18n="step2.title">Inyección Multi-IDE Idempotente</h3>
+          <p data-i18n="step2.desc">Detecta y configura automáticamente Cursor, Google Antigravity y Claude Desktop sin pisar ni corromper tus servidores MCP preexistentes.</p>
+          <div class="cmd-badge-box">
+            <code>ctxfw init --global</code>
+            <button class="btn-step-copy" onclick="copyText('ctxfw init --global')">COPY</button>
           </div>
         </div>
 
-        <div class="run-step">
-          <div class="step-num">2</div>
-          <div class="step-body">
-            <h4 data-lang="es">Invocación Autónoma en el Chat del Agente</h4>
-            <h4 data-lang="en">Autonomous Invocation in Agent Chat</h4>
-            <p data-lang="es">Pídele al asistente que use el cortafuegos antes de generar código:</p>
-            <p data-lang="en">Instruct the AI agent to prune context before reasoning:</p>
-            <div class="code-box">
-              <div class="code-head">
-                <span>Prompt</span>
-                <button class="copy-btn" onclick="copyPrompt()">Copiar</button>
-              </div>
-              <pre id="prompt-es" data-lang="es">"Usa la herramienta resolve_context_bundle sobre 'contracts.py' y con base en ese contexto optimizado genera la extensión requerida."</pre>
-              <pre id="prompt-en" data-lang="en">"Use the resolve_context_bundle tool on 'contracts.py' and based on that optimized context, generate the requested extension."</pre>
-            </div>
+        <!-- Step 3 -->
+        <div class="step-card">
+          <span class="step-num-pill">PASO 03 // BLINDAJE REPO</span>
+          <h3 data-i18n="step3.title">Sentry Pre-Commit en Repositorio</h3>
+          <p data-i18n="step3.desc">Despliega la plantilla canónica SPEC.axioms.md y el hook .git/hooks/pre-commit en tu proyecto activo para interceptar commits ambiguos.</p>
+          <div class="cmd-badge-box">
+            <code>ctxfw init --repo .</code>
+            <button class="btn-step-copy" onclick="copyText('ctxfw init --repo .')">COPY</button>
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- TAB 3: PROXY -->
-      <div id="tab-proxy" class="tab-pane">
-        <div class="run-step">
-          <div class="step-num">1</div>
-          <div class="step-body">
-            <h4 data-lang="es">Levantar Gateway Transparente (Fail-Open)</h4>
-            <h4 data-lang="en">Spin Up Transparent Gateway (Fail-Open)</h4>
-            <p data-lang="es">Proxy inverso HTTP con sobrecosto menor a 5 ms. Si el código tiene sintaxis inválida o envías el header de bypass, pasa íntegro sin romper la petición:</p>
-            <p data-lang="en">HTTP reverse proxy with &lt; 5 ms overhead. In case of syntax errors or bypass header, it gracefully passes raw code without crashing:</p>
-            <div class="code-box">
-              <div class="code-head">
-                <span>Terminal</span>
-                <button class="copy-btn" onclick="copyCode('code-proxy-start')">Copiar</button>
-              </div>
-              <pre id="code-proxy-start">python proxy_gateway.py --port 8080 --upstream https://api.openai.com</pre>
-            </div>
-            <div class="code-box">
-              <div class="code-head">
-                <span>OpenAI SDK (Python)</span>
-                <button class="copy-btn" onclick="copyCode('code-proxy-client')">Copiar</button>
-              </div>
-              <pre id="code-proxy-client"><span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+    <!-- FINOPS & TOKEN SAVINGS CALCULATOR -->
+    <section id="finops">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="finops.tag">// FINOPS & AHORRO DE CONTEXTO</span>
+        <h2 data-i18n="finops.title">Calculadora de Eficiencia de Tokens</h2>
+        <p data-i18n="finops.desc">Al podar el árbol AST en dependencias D1 y D2+, CTXFW reduce drásticamente el tamaño del prompt enviado a los LLMs, eludiendo costos innecesarios.</p>
+      </div>
 
-client = OpenAI(
-    base_url=<span class="str">"http://localhost:8080/v1"</span>,
-    api_key=<span class="str">"sk-your-actual-key"</span>
-)</pre>
+      <div class="finops-card">
+        <div class="finops-grid">
+          <div>
+            <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 13px;">
+              <span data-i18n="finops.slider_lbl">Tokens de Contexto Mensuales:</span>
+              <strong id="lblTokenVolume" style="color: var(--cyan);">10,000,000 tokens</strong>
             </div>
+            <input type="range" id="tokenSlider" class="range-slider" min="1" max="100" value="10" oninput="updateFinopsCalculation()">
+
+            <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); margin-top: 14px;" data-i18n="finops.model_lbl">
+              Selecciona el Modelo de IA del Equipo:
+            </div>
+            <div class="model-selector">
+              <button class="model-chip active" onclick="selectModelPrice(3.0, this)">Claude 3.7 Sonnet ($3.00/1M)</button>
+              <button class="model-chip" onclick="selectModelPrice(2.5, this)">GPT-4o ($2.50/1M)</button>
+              <button class="model-chip" onclick="selectModelPrice(15.0, this)">Claude 3.5 Opus ($15.00/1M)</button>
+            </div>
+
+            <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 18px;" data-i18n="finops.note">
+              * Estimación basada en una reducción conservadora del 72.4% en módulos periféricos mediante stubs de interfaz e inyección topológica por AST.
+            </p>
+          </div>
+
+          <div class="savings-display">
+            <span style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.08em;" data-i18n="finops.saved_title">
+              AHORRO FINOPS ESTIMADO / MES
+            </span>
+            <div id="finopsSavedDollars" class="savings-val">$21.72</div>
+            <div id="finopsSavedTokens" class="savings-sub">7,240,000 tokens evitados</div>
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- TAB 4: CI GATEKEEPER -->
-      <div id="tab-ci" class="tab-pane">
-        <div class="run-step">
-          <div class="step-num">1</div>
-          <div class="step-body">
-            <h4 data-lang="es">Auditoría de PRs y Control FinOps en CI/CD</h4>
-            <h4 data-lang="en">PR Audit & FinOps Accounting in CI/CD</h4>
-            <p data-lang="es">Inspecciona el diff de Git, clasifica el impacto por distancias ($D_0, D_1, D_{2+}$) y genera el resumen Markdown para GitHub Actions o Gitea:</p>
-            <p data-lang="en">Inspects Git diffs, categorizes impact by topological distance ($D_0, D_1, D_{2+}$), and emits Markdown summary tables for CI/CD runners:</p>
-            <div class="code-box">
-              <div class="code-head">
-                <span>CI Action / Workflow Step</span>
-                <button class="copy-btn" onclick="copyCode('code-ci-run')">Copiar</button>
-              </div>
-              <pre id="code-ci-run">python ci_gatekeeper.py --base origin/main --head HEAD --output $GITHUB_STEP_SUMMARY</pre>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- SOVEREIGNTY GUARANTEE -->
-  <section class="section">
-    <div class="container">
-      <div class="section-head">
-        <span class="section-label" data-lang="es">Aislamiento Perimetral</span>
-        <span class="section-label" data-lang="en">Perimetric Isolation</span>
-        <h2 class="section-title">
-          <span data-lang="es">Data Plane Soberano vs. Control Plane</span>
-          <span data-lang="en">Sovereign Data Plane vs. Control Plane</span>
-        </h2>
+    <!-- B2B COMPLIANCE MATRIX -->
+    <section id="compliance">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="comp.tag">// AUDITORÍA Y REGULACIÓN B2B</span>
+        <h2 data-i18n="comp.title">Matriz de Cumplimiento Normativo</h2>
+        <p data-i18n="comp.desc">Diseñado para superar auditorías en banca, telecomunicaciones, defensa e infraestructura crítica.</p>
       </div>
 
-      <div style="background: var(--surface); border: 1px solid var(--surface-border); padding: 32px; border-left: 4px solid var(--emerald);">
-        <h3 style="font-size: 1.25rem; margin-bottom: 12px; font-family: var(--mono);" data-lang="es">
-          ¿Por qué tu código fuente nunca sale del host local?
-        </h3>
-        <h3 style="font-size: 1.25rem; margin-bottom: 12px; font-family: var(--mono);" data-lang="en">
-          Why your raw source code never leaves the local machine
-        </h3>
-        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 0.98rem;" data-lang="es">
-          A diferencia de intermediarios en la nube que almacenan tu código en servidores de terceros, <strong>Context Firewall ejecuta el 100% de la lógica sintáctica en la memoria y CPU de tu equipo</strong>. Las firmas se extraen, las sentencias <code>raise</code> se limpian de cadenas privadas y los stubs tipados se generan localmente en milisegundos antes de cualquier llamada al proveedor LLM.
-        </p>
-        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 0.98rem;" data-lang="en">
-          Unlike third-party cloud proxies storing your source on unknown servers, <strong>Context Firewall executes 100% locally on your machine's CPU and RAM</strong>. Interfaces are extracted, <code>raise</code> statements are purged of sensitive variables, and typed stubs are computed locally in milliseconds before prompting downstream models.
-        </p>
-        <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-family: var(--mono); font-size: 0.88rem;">
-          <li style="color: var(--emerald);">[✓] Zero Cloud Network Dependency: Funciona sin conexión a internet (Air-Gapped).</li>
-          <li style="color: var(--emerald);">[✓] Secret Shielding: Neutralización forzosa de strings en excepciones `raise`.</li>
-          <li style="color: var(--emerald);">[✓] Polyglot Syntax Trees: Soporte CST para Python, TypeScript, Go y Java.</li>
-        </ul>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="tbl.h1">Marco / Estándar</th>
+              <th data-i18n="tbl.h2">Cláusula de Control</th>
+              <th data-i18n="tbl.h3">Mecanismo de Contención CTXFW</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>PCI-DSS v4.0</strong></td>
+              <td>Req 3.4 & 6.4 (Protección de Datos de Tarjetahabientes)</td>
+              <td data-i18n="tbl.r1">El sentry pre-commit intercepta cualquier requerimiento que admita almacenamiento o logging de PAN o CVV en claro antes de llegar al código.</td>
+            </tr>
+            <tr>
+              <td><strong>SOC 2 Type II</strong></td>
+              <td>CC6.6 & CC7.1 (Integridad de Código & No Repudio)</td>
+              <td data-i18n="tbl.r2">Trazabilidad criptográfica absoluta: cada commit queda ligado a un manifest_hash SHA-256 inmutable de la especificación verificada.</td>
+            </tr>
+            <tr>
+              <td><strong>EU AI Act</strong></td>
+              <td>Artículo 14 (Supervisión Humana y Determinismo)</td>
+              <td data-i18n="tbl.r3">Impide la síntesis probabilística no supervisada forzando al agente a respetar invariantes de dominio y estados formales aprobados.</td>
+            </tr>
+            <tr>
+              <td><strong>DORA (UE)</strong></td>
+              <td>Gestión de Riesgo TIC e Incidentes</td>
+              <td data-i18n="tbl.r4">Aislamiento formal de taxonomía de errores en 4 clases deterministas para evitar fallos en cascada en servicios financieros.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </div>
-  </section>
+    </section>
+  </main>
 
-  <!-- FOOTER -->
+  <!-- CLASSIFIED FOOTER -->
   <footer>
-    <div class="container footer-content">
-      <div>
-        <strong>HEURÍSTICO LAB</strong> // Autonomous Cognitive Architectures
-      </div>
-      <div>
-        <span>ORDER ID: ord-2026-4f003b // V3.0 SEALED (51/51 PASSED)</span>
-      </div>
+    <div class="container">
+      <p class="footer-tagline">ENGINEERED & CLASSIFIED BY HEURISTICO LAB // SKUNK WORKS DIVISION</p>
+      <p class="footer-sub">HIGH-ASSURANCE DEFENSE SYSTEMS GROUP // SOVEREIGN NODE ARCH-ORD-2026</p>
+      <p style="margin-top: 10px; font-family: var(--font-mono); font-size: 11px; color: #283446;">
+        MANIFEST HASH: 575d12d75bcb427be48c3d62c643a4fb4a0260768cb49197c5d09133058581ed
+      </p>
     </div>
   </footer>
 
   <script>
-    function setLang(lang) {
-      document.body.classList.remove('lang-es', 'lang-en');
-      document.body.classList.add('lang-' + lang);
-      document.getElementById('btn-es').classList.toggle('active', lang === 'es');
-      document.getElementById('btn-en').classList.toggle('active', lang === 'en');
-      localStorage.setItem('heuristico_lang', lang);
-    }
+    // -------------------------------------------------------------------------
+    // INTERNATIONALIZATION (I18N) DICTIONARY
+    // -------------------------------------------------------------------------
+    const i18n = {
+      es: {
+        "nav.litmus": "Litmus Test",
+        "nav.simulator": "Simulador Sieve",
+        "nav.playbook": "Zero-Touch",
+        "nav.finops": "FinOps Finanzas",
+        "nav.compliance": "Cumplimiento",
+        "nav.repository": "Repositorio Soberano",
 
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-      event.currentTarget.classList.add('active');
-      document.getElementById(tabId).classList.add('active');
-    }
+        "hero.eyebrow": "HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE",
+        "hero.title": "Aduana Matemática Determinista para <span class='highlight-cyan'>Código Sintético</span>",
+        "hero.lead": "Tu agente de IA miente con confianza. CTXFW lo contiene con pruebas matemáticas deterministas, poda topológica de dependencias en árbol AST y un centinela pre-commit en Git que intercepta requerimientos ambiguos en menos de 80ms.",
 
-    function copyCode(elementId) {
-      const el = document.getElementById(elementId);
-      const text = el.innerText || el.textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        const btn = event.currentTarget;
-        const originalText = btn.innerText;
-        btn.innerText = '✓ Copiado';
-        setTimeout(() => { btn.innerText = originalText; }, 1800);
+        "badge.aci": "ACI Threshold: <strong>≥ 0.9000</strong>",
+        "badge.invariants": "Piso Negativo: <strong>5 Cláusulas 'Never'</strong>",
+        "badge.latency": "Pre-Commit Sentry: <strong>&lt; 80 ms</strong>",
+        "badge.isolation": "Aislamiento stdio: <strong>100% Pure JSON-RPC</strong>",
+
+        "cap.tag": "// ARQUITECTURA DE CONTENCIÓN",
+        "cap.title": "Tres Líneas de Fuego Deterministas",
+        "cap.desc": "A diferencia de los linters sintácticos o prompts pasivos, CTXFW opera a nivel de protocolo y sistema de archivos antes de que la IA sintetice código en disco.",
+        "cap.c1_title": "Axiom Completeness Index (ACI)",
+        "cap.c1_desc": "Evalúa formalmente cualquier brief de diseño contra una Máquina de Estados Finita (FSM), variables de dominio acotadas numéricamente y una taxonomía estricta de fallos. Requiere un índice ACI ≥ 0.9000 para desbloquear la síntesis.",
+        "cap.c2_title": "Piso de Invariantes Negativas",
+        "cap.c2_desc": "Exige un mínimo no negociable de 5 cláusulas prohibitivas formales (usando cláusulas explícitas 'never' o 'shall never'). Si el pliego carece de prohibiciones tajantes sobre secretos, estados o memoria, es enviado a cuarentena.",
+        "cap.c3_title": "Sentry Pre-Commit Infranqueable",
+        "cap.c3_desc": "Hook local desplegado en .git/hooks/pre-commit que se dispara en menos de 80ms en cada git commit. Aborta la transacción en frío con código de salida 1 si la especificación activa no porta un manifest_hash válido.",
+
+        "compare.tag": "// EL PROBLEMA HUMANO",
+        "compare.title": "¿Por Qué los Flujos Agénticos Tradicionales Fallan?",
+        "compare.desc": "Las IAs actuales sufren de complacencia probabilística: prefieren adivinar supuestos antes que admitir que un requerimiento carece de límites matemáticos.",
+        "compare.bad_title": "DESARROLLO TRADICIONAL CON IA (NO CONFIABLE)",
+        "compare.b1_h": "Prompts ambiguos sin cotas",
+        "compare.b1_p": "\"Haz un endpoint de transferencias seguro y escalable\". La IA inventa timeouts y políticas arbitrarias.",
+        "compare.b2_h": "Complacencia probabilística",
+        "compare.b2_p": "La IA asume tipos de datos infinitos, omite límites de retención y genera código con potenciales fugas de memoria.",
+        "compare.b3_h": "Commits ciegos al repositorio",
+        "compare.b3_p": "El código sintético llega a la rama principal sin ninguna firma o prueba formal de que satisfizo las especificaciones.",
+        "compare.good_title": "CON PERÍMETRO SOBERANO CTXFW (GRADO DEFENSA)",
+        "compare.g1_h": "Evaluación axiomática previa obligatoria",
+        "compare.g1_p": "El agente tiene prohibido escribir código hasta que ctxfw.evaluate_spec_axioms emita status: VERIFIED.",
+        "compare.g2_h": "Invariantes prohibitivas 'never' no negociables",
+        "compare.g2_p": "5 barreras negativas explícitas aseguran que ninguna credencial, clave o token sea emitido en texto plano ni alterado en caliente.",
+        "compare.g3_h": "Atestación criptográfica SHA-256 sellada en Git",
+        "compare.g3_p": "Cada commit queda sellado con un manifest_hash inmutable. Auditoría no repudiable y trazabilidad completa de cada línea.",
+
+        "litmus.tag": "// PROTOCOLO DE CERTIFICACIÓN RÁPIDA",
+        "litmus.desc": "El test de fuego de dos minutos extraído directamente de ONBOARDING.md: de la cuarentena instantánea por ambigüedad al desbloqueo formal por pliego verificado.",
+        "litmus.s1_title": "ETAPA 1: PROVOCACIÓN DE CUARENTENA",
+        "litmus.s1_file": "1. Requerimiento Ambiguo (TEST_BRIEF.axioms.md)",
+        "litmus.s1_cmd": "2. Evaluación y Bloqueo en Git",
+        "litmus.s2_title": "ETAPA 2: DESBLOQUEO AXIOMÁTICO",
+        "litmus.s2_file": "1. Pliego Axiomático Formal (Cotas + FSM + 5 'Never')",
+        "litmus.s2_cmd": "2. Verificación y Sello Inmutable",
+
+        "sim.tag": "// LABORATORIO INTERACTIVO",
+        "sim.title": "Simulador en Vivo de la Criba Axiomática",
+        "sim.desc": "Comprueba en tiempo real cómo reacciona el motor de CTXFW ante cualquier requerimiento. Modifica el texto y observa cómo fluctúa el ACI Score y el veredicto de cuarentena.",
+        "sim.btn_def": "Cargar Ambiguo",
+        "sim.btn_comp": "Cargar Canónico",
+        "sim.edit_label": "Editor de Especificación Markdown:",
+
+        "playbook.tag": "// GUÍA RÁPIDA DE CAMPO",
+        "playbook.title": "Despliegue Zero-Touch en 30 Segundos",
+        "playbook.desc": "Tres comandos para blindar tu entorno de desarrollo, enlazar tus IDEs de IA y armar el repositorio.",
+        "step1.title": "Diagnóstico de Salud y Pureza stdio",
+        "step1.desc": "Ejecuta el auto-test integral para certificar el motor SQLite WAL, las gramáticas Tree-Sitter y garantizar que ningún log manche el canal stdout de MCP.",
+        "step2.title": "Inyección Multi-IDE Idempotente",
+        "step2.desc": "Detecta y configura automáticamente Cursor, Google Antigravity y Claude Desktop sin pisar ni corromper tus servidores MCP preexistentes.",
+        "step3.title": "Sentry Pre-Commit en Repositorio",
+        "step3.desc": "Despliega la plantilla canónica SPEC.axioms.md y el hook .git/hooks/pre-commit en tu proyecto activo para interceptar commits ambiguos.",
+
+        "finops.tag": "// FINOPS & AHORRO DE CONTEXTO",
+        "finops.title": "Calculadora de Eficiencia de Tokens",
+        "finops.desc": "Al podar el árbol AST en dependencias D1 y D2+, CTXFW reduce drásticamente el tamaño del prompt enviado a los LLMs, eludiendo costos innecesarios.",
+        "finops.slider_lbl": "Tokens de Contexto Mensuales:",
+        "finops.model_lbl": "Selecciona el Modelo de IA del Equipo:",
+        "finops.note": "* Estimación basada en una reducción conservadora del 72.4% en módulos periféricos mediante stubs de interfaz e inyección topológica por AST.",
+        "finops.saved_title": "AHORRO FINOPS ESTIMADO / MES",
+
+        "comp.tag": "// AUDITORÍA Y REGULACIÓN B2B",
+        "comp.title": "Matriz de Cumplimiento Normativo",
+        "comp.desc": "Diseñado para superar auditorías en banca, telecomunicaciones, defensa e infraestructura crítica.",
+        "tbl.h1": "Marco / Estándar",
+        "tbl.h2": "Cláusula de Control",
+        "tbl.h3": "Mecanismo de Contención CTXFW",
+        "tbl.r1": "El sentry pre-commit intercepta cualquier requerimiento que admita almacenamiento o logging de PAN o CVV en claro antes de llegar al código.",
+        "tbl.r2": "Trazabilidad criptográfica absoluta: cada commit queda ligado a un manifest_hash SHA-256 inmutable de la especificación verificada.",
+        "tbl.r3": "Impide la síntesis probabilística no supervisada forzando al agente a respetar invariantes de dominio y estados formales aprobados.",
+        "tbl.r4": "Aislamiento formal de taxonomía de errores en 4 clases deterministas para evitar fallos en cascada en servicios financieros."
+      },
+      en: {
+        "nav.litmus": "Litmus Test",
+        "nav.simulator": "Sieve Simulator",
+        "nav.playbook": "Zero-Touch",
+        "nav.finops": "FinOps Savings",
+        "nav.compliance": "Compliance",
+        "nav.repository": "Sovereign Git",
+
+        "hero.eyebrow": "HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE",
+        "hero.title": "Deterministic Axiomatic Gatekeeper for <span class='highlight-cyan'>Synthetic Code</span>",
+        "hero.lead": "Your AI agent hallucinates with confidence. CTXFW restrains it with deterministic mathematical proofs, AST dependency pruning, and an active Git pre-commit sentry that blocks ambiguous briefs in <80ms.",
+
+        "badge.aci": "ACI Threshold: <strong>≥ 0.9000</strong>",
+        "badge.invariants": "Negative Floor: <strong>5 'Never' Clauses</strong>",
+        "badge.latency": "Pre-Commit Sentry: <strong>&lt; 80 ms</strong>",
+        "badge.isolation": "stdio Isolation: <strong>100% Pure JSON-RPC</strong>",
+
+        "cap.tag": "// CONTAINMENT ARCHITECTURE",
+        "cap.title": "Three Deterministic Defense Rings",
+        "cap.desc": "Unlike passive linters or system prompts, CTXFW operates at protocol and filesystem levels before the AI synthesizes code on disk.",
+        "cap.c1_title": "Axiom Completeness Index (ACI)",
+        "cap.c1_desc": "Formally assesses any architectural brief against a deterministic Finite State Machine (FSM), bounded domain variables, and a strict fault taxonomy. Requires ACI ≥ 0.9000 to unlock synthesis.",
+        "cap.c2_title": "Negative Invariants Floor",
+        "cap.c2_desc": "Enforces a non-negotiable floor of 5 prohibitive clauses (using explicit 'never' or 'shall never'). If the brief lacks explicit negative guardrails on secrets or state, it is quarantined immediately.",
+        "cap.c3_title": "Unbreakable Git Pre-Commit Sentry",
+        "cap.c3_desc": "A zero-lag local hook deployed to .git/hooks/pre-commit that triggers in <80ms on every commit. Cold-aborts with exit code 1 if the brief lacks a valid cryptographic manifest_hash.",
+
+        "compare.tag": "// THE HUMAN PROBLEM",
+        "compare.title": "Why Do Traditional Agentic Workflows Fail?",
+        "compare.desc": "Current LLMs suffer from probabilistic complacency: they prefer guessing unverified assumptions rather than admitting a brief lacks mathematical bounds.",
+        "compare.bad_title": "TRADITIONAL UNPROTECTED AI WORKFLOW",
+        "compare.b1_h": "Ambiguous unconstrained prompts",
+        "compare.b1_p": "\"Build a fast, secure payment endpoint\". The AI invents arbitrary timeouts and unvalidated policies.",
+        "compare.b2_h": "Probabilistic complacency",
+        "compare.b2_p": "The AI assumes infinite numerical ranges, skips retention limits, and synthesizes code with latent memory leaks.",
+        "compare.b3_h": "Blind Git commits",
+        "compare.b3_p": "Synthetic code reaches production branches without cryptographic verification or formal proofs.",
+        "compare.good_title": "CTXFW SOVEREIGN PERIMETER (DEFENSE GRADE)",
+        "compare.g1_h": "Mandatory prior axiomatic evaluation",
+        "compare.g1_p": "The agent is strictly forbidden from writing code until ctxfw.evaluate_spec_axioms returns status: VERIFIED.",
+        "compare.g2_h": "Non-negotiable negative 'never' invariants",
+        "compare.g2_p": "5 explicit negative boundaries guarantee that no secret keys, raw card numbers, or auth tokens leak to disk or memory.",
+        "compare.g3_h": "Immutable SHA-256 attestation in Git",
+        "compare.g3_p": "Every commit is sealed with a non-repudiable manifest_hash. Complete compliance audit trail for every synthesized token.",
+
+        "litmus.tag": "// RAPID CERTIFICATION PROTOCOL",
+        "litmus.desc": "The 2-Minute Litmus Test directly from ONBOARDING.md: from cold quarantine on ambiguity to forge authorization via verified specification.",
+        "litmus.s1_title": "STAGE 1: QUARANTINE PROVOCATION",
+        "litmus.s1_file": "1. Ambiguous Intake Brief (TEST_BRIEF.axioms.md)",
+        "litmus.s1_cmd": "2. Evaluation & Git Rejection",
+        "litmus.s2_title": "STAGE 2: AXIOMATIC BREACH",
+        "litmus.s2_file": "1. Formal Specification Brief (Bounds + FSM + 5 'Never')",
+        "litmus.s2_cmd": "2. Formal Verification & Manifest Seal",
+
+        "sim.tag": "// INTERACTIVE LAB",
+        "sim.title": "Live Axiom Sieve Engine Simulator",
+        "sim.desc": "Test in real time how CTXFW reacts to any requirement. Edit the markdown brief and watch the ACI Score and quarantine status recalculate instantly.",
+        "sim.btn_def": "Load Ambiguous",
+        "sim.btn_comp": "Load Canonical",
+        "sim.edit_label": "Markdown Specification Editor:",
+
+        "playbook.tag": "// FIELD MANUAL PLAYBOOK",
+        "playbook.title": "30-Second Zero-Touch Provisioning",
+        "playbook.desc": "Three operational commands to audit runtime health, link installed AI IDEs, and armor the target repository.",
+        "step1.title": "Diagnostic Health & stdio Isolation",
+        "step1.desc": "Run full runtime diagnostics to certify the SQLite WAL engine, Tree-Sitter parsers, and assert zero log leakage onto stdout.",
+        "step2.title": "Idempotent Multi-IDE Injection",
+        "step2.desc": "Automatically configures Cursor, Google Antigravity, and Claude Desktop while strictly preserving existing third-party servers.",
+        "step3.title": "Pre-Commit Repository Armor",
+        "step3.desc": "Deploys canonical SPEC.axioms.md template and .git/hooks/pre-commit into your project to enforce specification compliance.",
+
+        "finops.tag": "// FINOPS & CONTEXT PRUNING",
+        "finops.title": "Token Economy & Cost Calculator",
+        "finops.desc": "By pruning AST dependency trees in D1 and D2+ modules, CTXFW compresses prompt payloads sent to frontier models, avoiding massive operational token waste.",
+        "finops.slider_lbl": "Monthly Context Volume:",
+        "finops.model_lbl": "Select Frontier AI Model:",
+        "finops.note": "* Projection based on a conservative 72.4% context reduction in peripheral modules via AST interface stubs.",
+        "finops.saved_title": "ESTIMATED FINOPS SAVINGS / MO",
+
+        "comp.tag": "// REGULATORY & ENTERPRISE AUDIT",
+        "comp.title": "Enterprise Compliance Matrix",
+        "comp.desc": "Engineered to pass rigorous audits in banking, telecommunications, defense, and critical infrastructure.",
+        "tbl.h1": "Framework / Standard",
+        "tbl.h2": "Control Clause",
+        "tbl.h3": "CTXFW Containment Mechanism",
+        "tbl.r1": "The pre-commit sentry intercepts any specification permitting cleartext PAN or CVV logging before reaching code.",
+        "tbl.r2": "Absolute cryptographic traceability: every commit is bound to an immutable SHA-256 manifest hash.",
+        "tbl.r3": "Eliminates unmonitored probabilistic code synthesis by compelling AI agents to adhere to proven invariants.",
+        "tbl.r4": "Formal 4-class fault taxonomy isolation prevents cascading downtime across mission-critical financial systems."
+      }
+    };
+
+    let currentLang = 'es';
+
+    function switchLanguage(lang) {
+      currentLang = lang;
+      document.getElementById('btnLangEs').classList.toggle('active', lang === 'es');
+      document.getElementById('btnLangEn').classList.toggle('active', lang === 'en');
+      
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[lang] && i18n[lang][key]) {
+          el.innerHTML = i18n[lang][key];
+        }
       });
     }
 
-    function copyPrompt() {
-      const isEn = document.body.classList.contains('lang-en');
-      const targetId = isEn ? 'prompt-en' : 'prompt-es';
-      const el = document.getElementById(targetId);
-      const text = el.innerText || el.textContent;
+    // -------------------------------------------------------------------------
+    // INSTALLATION TABS & COPY SYSTEM
+    // -------------------------------------------------------------------------
+    const installCommands = [
+      "pip install ctxfw-3.5.0-py3-none-any.whl",
+      "pipx install git+https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b.git@v3.5.0",
+      "git clone https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b.git && cd arch-ord-2026-4f003b && pip install -e ."
+    ];
+
+    let currentInstallIndex = 0;
+
+    function selectInstallTab(idx) {
+      currentInstallIndex = idx;
+      document.querySelectorAll('.install-tab-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === idx);
+      });
+      document.getElementById('installCmdText').textContent = installCommands[idx];
+    }
+
+    function copyCurrentInstallCmd() {
+      const cmd = installCommands[currentInstallIndex];
+      copyText(cmd);
+      const btn = document.getElementById('btnCopyInstall');
+      btn.textContent = "COPIED! ✓";
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = "COPY";
+        btn.classList.remove('copied');
+      }, 2000);
+    }
+
+    function copyText(text) {
       navigator.clipboard.writeText(text).then(() => {
-        const btn = event.currentTarget;
-        const originalText = btn.innerText;
-        btn.innerText = '✓ Copiado';
-        setTimeout(() => { btn.innerText = originalText; }, 1800);
+        showToast("COPIED TO CLIPBOARD: " + text);
+      }).catch(() => {
+        showToast("COPIED TO CLIPBOARD");
       });
     }
 
-    // Auto-detect saved language
-    const savedLang = localStorage.getItem('heuristico_lang') || 'es';
-    setLang(savedLang);
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastMessage').textContent = msg;
+      toast.classList.add('visible');
+      setTimeout(() => {
+        toast.classList.remove('visible');
+      }, 2400);
+    }
+
+    // -------------------------------------------------------------------------
+    // TERMINAL TAB OUTPUT SIMULATOR
+    // -------------------------------------------------------------------------
+    const terminalOutputs = [
+      // 0: ctxfw doctor
+      `<span class="c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
+ ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
+ ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
+ ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
+ ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
+  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.0
+ ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
+
+<span class="c-graphite">========================================================================</span>
+  <span class="c-cyan">CTXFW DOCTOR // HIGH-ASSURANCE HEALTH & ISOLATION DIAGNOSTIC</span>
+<span class="c-graphite">========================================================================</span>
+<span class="c-emerald">[PASS]</span>  <span class="c-white">Python Package & sys.path</span>        ctxfw v3.5.0 loaded cleanly from C:\\ctxfw\\src\\ctxfw\\__init__.py.
+<span class="c-emerald">[PASS]</span>  <span class="c-white">MCP stdio Stream Isolation</span>       100% pure JSON-RPC on stdout. Diagnostic logs correctly isolated to stderr.
+<span class="c-emerald">[PASS]</span>  <span class="c-white">Global CLI Executable (PATH)</span>     Binary 'ctxfw' found in PATH: C:\\Python313\\Scripts\\ctxfw.EXE
+<span class="c-emerald">[PASS]</span>  <span class="c-white">Axiomatic Sieve Engine</span>           Evaluation verified (ACI: 1.0000, Invariants: 5, Hash: 2ff805b3dec69e93...).
+<span class="c-emerald">[PASS]</span>  <span class="c-white">SQLite WAL Cache & Concurrency</span>   Journal mode: WAL, Busy timeout: 5000ms.
+<span class="c-emerald">[PASS]</span>  <span class="c-white">Polyglot Tree-Sitter Grammars</span>    Initialized 3 language parsers (typescript, go, java).
+<span class="c-graphite">------------------------------------------------------------------------</span>
+<span class="c-white">Overall Verdict:</span>            <span class="c-emerald">[HEALTHY] [ATTESTED]</span> Perimeter defense operational.
+<span class="c-graphite">========================================================================</span>`,
+
+      // 1: ctxfw init --global
+      `<span class="c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
+ ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
+ ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
+ ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
+ ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
+  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.0
+ ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
+
+<span class="c-graphite">========================================================================</span>
+  <span class="c-cyan">CTXFW GLOBAL ZERO-TOUCH PROVISIONING // MULTI-IDE ARMORED INJECTION</span>
+<span class="c-graphite">========================================================================</span>
+  <span class="c-emerald">[PASS]</span> Injected MCP server 'ctxfw' in Google Antigravity config: ~/.gemini/antigravity-ide/mcp_config.json
+  <span class="c-emerald">[PASS]</span> Injected MCP server 'ctxfw' in Cursor config: ~/.cursor/mcp.json
+  <span class="c-emerald">[PASS]</span> Injected MCP server 'ctxfw' in Claude Desktop config: ~/AppData/Roaming/Claude/claude_desktop_config.json
+  <span class="c-emerald">[PASS]</span> Deployed sovereign rules in ~/.gemini/config/rules/GEMINI.md (Inviolable Gateway Active)
+<span class="c-graphite">========================================================================</span>
+<span class="c-white">Status:</span>  Multi-IDE provisioning complete. 0 third-party servers overwritten.`,
+
+      // 2: ctxfw spec verify
+      `<span class="c-graphite">========================================================================</span>
+  <span class="c-cyan">CTXFW SPECIFICATION SIEVE // AXIOMATIC DETERMINISM VERIFIER</span>
+<span class="c-graphite">========================================================================</span>
+<span class="c-white">Evaluated File:</span>             C:\\ctxfw\\SPEC.axioms.md
+<span class="c-white">ACI Score:</span>                  <span class="c-white">1.0000</span>
+<span class="c-white">Negative Invariants Count:</span>  7
+<span class="c-white">Extracted Clauses:</span>
+  1. The context firewall engine shall never emit raw stdout logs during stdio MCP communication.
+  2. The proxy gateway shall never transmit unpruned D1 or D2 AST tokens when strict compression mode is enabled.
+  3. The specification sieve shall never issue a VERIFIED status certificate if the Axiom Completeness Index (ACI) is strictly below 0.9000.
+  4. The CLI installer shall never overwrite or corrupt existing external MCP server entries inside user IDE configuration files.
+  5. The pre-commit enforcement hook shall never permit git commits containing specification briefs marked with QUARANTINED status.
+  6. The core pipeline shall never persist unencrypted secret credentials or API tokens in the SQLite WAL telemetry cache.
+  7. The system shall never execute arbitrary unstubbed code blocks during architectural intake evaluation.
+<span class="c-white">Manifest Hash (SHA-256):</span>    <span class="c-white">575d12d75bcb427be48c3d62c643a4fb4a0260768cb49197c5d09133058581ed</span>
+<span class="c-graphite">------------------------------------------------------------------------</span>
+<span class="c-white">Final Verdict:</span>              <span class="c-emerald">[PASS] READY FOR FORGE</span>
+<span class="c-graphite">========================================================================</span>`,
+
+      // 3: ctxfw --help
+      `<span class="c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
+ ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
+ ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
+ ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
+ ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
+  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.0
+ ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
+
+usage: ctxfw [-h] [--no-clip] [--output OUTPUT] [--stdout] [--price PRICE]
+             [target_file] [project_root]
+
+ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.0)
+
+<span class="c-white">Subcommands:</span>
+  <span class="c-cyan">init</span>                 Initialize sovereign agentic perimeter, rules, and skills
+  <span class="c-cyan">doctor</span>               Run health, stdio isolation, and environment diagnostics
+  <span class="c-cyan">mcp</span>                  Start stdio Model Context Protocol server
+  <span class="c-cyan">proxy</span>                Launch local perimeter reverse proxy gateway
+  <span class="c-cyan">service</span>              Manage background service (Windows sc.exe & systemd)
+  <span class="c-cyan">ci</span>                   Run CI/CD PR topological gatekeeper
+  <span class="c-cyan">audit</span>                Audit FinOps token savings and telemetry ledger
+  <span class="c-cyan">spec</span>                 Verify specification axioms and negative invariants
+
+options:
+  -h, --help           show this help message and exit
+  --no-clip            Disable automatic copying to system clipboard
+  --output, -o OUTPUT  Optional markdown output file path
+  --stdout             Print raw markdown prompt to stdout
+  --price PRICE        Baseline price in USD per 1M tokens`
+    ];
+
+    const terminalSubtitles = [
+      "PowerShell &mdash; ctxfw doctor (High-Assurance Diagnostic)",
+      "PowerShell &mdash; ctxfw init --global (Idempotent Multi-IDE Injection)",
+      "PowerShell &mdash; ctxfw spec verify SPEC.axioms.md (Sieve Engine)",
+      "PowerShell &mdash; ctxfw --help (Unified CLI Reference)"
+    ];
+
+    function switchTerminalOutput(idx) {
+      document.querySelectorAll('.term-tab-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === idx);
+      });
+      document.getElementById('terminalWindowSubtitle').innerHTML = terminalSubtitles[idx];
+      document.getElementById('terminalBodyOutput').innerHTML = terminalOutputs[idx];
+    }
+
+    // Initialize default terminal view
+    switchTerminalOutput(0);
+
+    // -------------------------------------------------------------------------
+    // INTERACTIVE SIEVE SIMULATOR ENGINE (JS SIMULATION)
+    // -------------------------------------------------------------------------
+    const PRESET_DEFICIENT = `# Intake Brief: Payment Processor
+- We need a fast and secure payment system.
+- Configurable timeout.
+- Auto-retry on failure.
+- System should never leak credentials.`;
+
+    const PRESET_COMPLIANT = `# Architectural Specification Brief: Payment Processor
+
+## 1. Domain Entities & Bounded Variables
+- Variable \`max_amount_cents\`: integer bounded >= 1 and <= 100000000.
+- Variable \`gateway_timeout_ms\`: integer bounded >= 100 and <= 5000.
+- Variable \`max_retries\`: integer bounded >= 0 and <= 3.
+- Variable \`idempotency_ttl_sec\`: integer bounded >= 60 and <= 86400.
+- Variable \`circuit_breaker_threshold\`: integer bounded >= 3 and <= 10.
+Bounds: 5 / 5
+
+## 2. Deterministic State Machine (FSM)
+Lifecycle states and transition map:
+- States: DRAFT, QUARANTINED, VERIFIED, SEALED
+- Transition delta(DRAFT, EVALUATE_DEFICIENT) -> QUARANTINED
+- Transition delta(DRAFT, EVALUATE_COMPLIANT) -> VERIFIED
+- Transition delta(QUARANTINED, REMEDIATE) -> DRAFT
+- Transition delta(VERIFIED, SIGN_MANIFEST) -> SEALED
+- Terminal State: SEALED is immutable. Boundary violation diverts to QUARANTINED.
+
+## 3. Error Taxonomy & Quarantine
+Formal error taxonomy isolates 4 fault domains:
+- Class 1 (Transient Fault): Gateway timeout -> Exponential retry.
+- Class 2 (Deterministic Input Fault): Validation error -> 400 Bad Request.
+- Class 3 (Business & Specification Violation): Invariants violated -> Quarantine sink.
+- Class 4 (Security & Isolation Violation): Key leak attempt -> Immediate halt.
+
+## 4. Formal Proof & Cryptographic Attestation
+Formal proof included: Mathematical induction validates inductive invariance across FSM state transitions.
+Deterministic SHA-256 attestation seal guarantees manifest immutability.
+
+## 5. Negative Invariants (Floor of 5 Required)
+- System shall never process unauthenticated payment transactions.
+- System shall never double-charge an identical idempotency key.
+- System shall never log raw card numbers or CVV codes to stdout or disk.
+- System shall never bypass quarantine sink during transaction failure.
+- System shall never execute payment transfers without pre-allocating ledger balances.`;
+
+    function loadSimPreset(type) {
+      const textarea = document.getElementById('simTextarea');
+      if (type === 'deficient') {
+        textarea.value = PRESET_DEFICIENT;
+      } else {
+        textarea.value = PRESET_COMPLIANT;
+      }
+      recomputeSieveSimulation();
+    }
+
+    function recomputeSieveSimulation() {
+      const text = document.getElementById('simTextarea').value;
+
+      // 1. Negative Invariants counter: regex for 'never' or 'shall never' or 'nunca'
+      const neverMatches = text.match(/\b(never|shall never|nunca)\b/gi) || [];
+      const negCount = neverMatches.length;
+
+      // 2. Bounds detection
+      const hasBounds = /(bounded|\bmin\b|\bmax\b|>=|<=|\bcotas\b|\brange\b)/i.test(text);
+
+      // 3. FSM detection
+      const hasFsm = /(fsm|delta\(|transition|states:|terminal state|máquina de estados)/i.test(text);
+
+      // 4. Taxonomy detection
+      const hasTaxonomy = /(taxonomy|transient fault|deterministic input|quarantine sink|error taxonomy|taxonomía)/i.test(text);
+
+      // Compute ACI weights: Invariants (0.35), Bounds (0.25), FSM (0.25), Taxonomy (0.15)
+      let invScore = Math.min(1.0, negCount / 5.0) * 0.35;
+      let bndScore = hasBounds ? 0.25 : 0.0;
+      let fsmScore = hasFsm ? 0.25 : 0.0;
+      let taxScore = hasTaxonomy ? 0.15 : 0.0;
+
+      let aciScore = invScore + bndScore + fsmScore + taxScore;
+
+      // Update UI Items
+      // Invariants
+      const chkInv = document.getElementById('chkInvariants');
+      const icoInv = document.getElementById('icoInvariants');
+      const lblInv = document.getElementById('lblInvariants');
+      lblInv.textContent = `Invariantes Negativas ('never'): ${negCount} / 5 requeridas`;
+      if (negCount >= 5) {
+        chkInv.className = "sim-check-item valid";
+        icoInv.textContent = "✓";
+      } else {
+        chkInv.className = "sim-check-item invalid";
+        icoInv.textContent = "✕";
+      }
+
+      // Bounds
+      const chkBnd = document.getElementById('chkBounds');
+      const icoBnd = document.getElementById('icoBounds');
+      const lblBnd = document.getElementById('lblBounds');
+      lblBnd.textContent = hasBounds ? "Cotas de Variables: Verificadas" : "Cotas de Variables: No detectadas";
+      if (hasBounds) {
+        chkBnd.className = "sim-check-item valid";
+        icoBnd.textContent = "✓";
+      } else {
+        chkBnd.className = "sim-check-item invalid";
+        icoBnd.textContent = "✕";
+      }
+
+      // FSM
+      const chkFsmEl = document.getElementById('chkFsm');
+      const icoFsmEl = document.getElementById('icoFsm');
+      const lblFsmEl = document.getElementById('lblFsm');
+      lblFsmEl.textContent = hasFsm ? "FSM Determinista: Verificada" : "FSM Determinista: No detectada";
+      if (hasFsm) {
+        chkFsmEl.className = "sim-check-item valid";
+        icoFsmEl.textContent = "✓";
+      } else {
+        chkFsmEl.className = "sim-check-item invalid";
+        icoFsmEl.textContent = "✕";
+      }
+
+      // Taxonomy
+      const chkTax = document.getElementById('chkTaxonomy');
+      const icoTax = document.getElementById('icoTaxonomy');
+      const lblTax = document.getElementById('lblTaxonomy');
+      lblTax.textContent = hasTaxonomy ? "Taxonomía de Errores: 4 Clases Aisladas" : "Taxonomía de Errores: No detectada";
+      if (hasTaxonomy) {
+        chkTax.className = "sim-check-item valid";
+        icoTax.textContent = "✓";
+      } else {
+        chkTax.className = "sim-check-item invalid";
+        icoTax.textContent = "✕";
+      }
+
+      // Progress Bar & Score Display
+      document.getElementById('simAciScoreText').textContent = aciScore.toFixed(4);
+      const meterFill = document.getElementById('simMeterFill');
+      const pct = (aciScore * 100).toFixed(1);
+      meterFill.style.width = pct + "%";
+
+      const verdictBox = document.getElementById('simVerdictBox');
+      const hashPreview = document.getElementById('simHashPreview');
+
+      if (aciScore >= 0.9000 && negCount >= 5) {
+        meterFill.className = "meter-bar-fill pass";
+        verdictBox.className = "sim-final-box box-pass";
+        verdictBox.textContent = "[PASS] READY FOR FORGE (ACI ≥ 0.9000)";
+        hashPreview.innerHTML = `<span style="color: var(--emerald);">Manifest Hash (SHA-256): 575d12d75bcb427be48c3d62c643a4fb4a0260768cb49197c5d09133058581ed</span>`;
+      } else {
+        meterFill.className = "meter-bar-fill";
+        verdictBox.className = "sim-final-box box-fail";
+        verdictBox.textContent = "[FAIL] SPECIFICATION QUARANTINED (ACI < 0.9000)";
+        hashPreview.innerHTML = `Manifest Hash: None (Awaiting compliance)`;
+      }
+    }
+
+    // Initialize Simulator with compliant preset
+    loadSimPreset('compliant');
+
+    // -------------------------------------------------------------------------
+    // FINOPS CALCULATOR ENGINE
+    // -------------------------------------------------------------------------
+    let currentModelPricePerMillion = 3.0; // Claude 3.7 Sonnet default
+
+    function selectModelPrice(price, el) {
+      currentModelPricePerMillion = price;
+      document.querySelectorAll('.model-chip').forEach(chip => chip.classList.remove('active'));
+      el.classList.add('active');
+      updateFinopsCalculation();
+    }
+
+    function updateFinopsCalculation() {
+      const sliderVal = parseInt(document.getElementById('tokenSlider').value, 10);
+      const totalTokens = sliderVal * 1_000_000;
+      document.getElementById('lblTokenVolume').textContent = totalTokens.toLocaleString('en-US') + " tokens";
+
+      // 72.4% context reduction average
+      const prunedTokens = Math.round(totalTokens * 0.724);
+      const dollarsAvoided = (prunedTokens / 1_000_000) * currentModelPricePerMillion;
+
+      document.getElementById('finopsSavedDollars').textContent = "$" + dollarsAvoided.toFixed(2);
+      document.getElementById('finopsSavedTokens').textContent = prunedTokens.toLocaleString('en-US') + " tokens evitados";
+    }
+
+    // Run initial calculation
+    updateFinopsCalculation();
   </script>
 </body>
 </html>
