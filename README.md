@@ -133,3 +133,11 @@ The distribution binary provides dedicated console entrypoints for continuous in
 * `ctxfw-ci`: Headless compliance gatekeeper for CI/CD pipelines (GitHub Actions, Gitea, GitLab CI).
 * `ctxfw-audit`: Ledger auditor for cryptographic attestation manifests and token telemetry.
 * `ctxfw-proxy`: Local perimeter reverse proxy gateway with streaming SSE compression.
+
+---
+
+<div align="center">
+<sub>ENGINEERED & CLASSIFIED BY HEURISTICO LAB // SKUNK WORKS DIVISION</sub><br>
+<sub>HIGH-ASSURANCE DEFENSE SYSTEMS GROUP</sub>
+</div>
+

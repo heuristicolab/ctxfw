@@ -22,8 +22,16 @@ from ctxfw.sieve.engine import evaluate_specification
 
 
 # -----------------------------------------------------------------------------
-# Terminal Branding & Defense-Grade Aesthetics
+# Tactical ANSI Color Palette (Zero-Dependency) & Skunk Works Branding
 # -----------------------------------------------------------------------------
+
+CLR_RESET = "\033[0m"
+CLR_CYAN = "\033[38;5;51m"       # Tactical Ice Blue
+CLR_EMERALD = "\033[38;5;48m"    # Emerald Verification
+CLR_CRIMSON = "\033[38;5;196m"   # Blood Crimson Alert
+CLR_AMBER = "\033[38;5;214m"     # Warning Amber
+CLR_GRAPHITE = "\033[38;5;240m"  # Muted Graphite
+CLR_WHITE_BOLD = "\033[1;37m"    # Pure White Bold
 
 BANNER = r"""
   ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
@@ -32,40 +40,57 @@ BANNER = r"""
  ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
  ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
   ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.0
- [ AXIOMATIC DETERMINISM FIREWALL // DEFENSE GRADE ]
+ ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░
 """
 
 
 def print_defense_banner(stream=None) -> None:
     """Renders the brutalist defense-grade ASCII banner with UTF-8 encoding safeguard."""
     out = stream if stream is not None else sys.stdout
-    try:
-        if hasattr(out, "reconfigure"):
-            try:
-                out.reconfigure(encoding="utf-8", errors="replace")
-            except Exception:
-                pass
-        out.write(BANNER)
-        out.flush()
-    except (UnicodeEncodeError, Exception):
+    is_tty = getattr(out, "isatty", lambda: False)()
+
+    # When connected to an interactive terminal (Windows Terminal, PowerShell), ensure UTF-8
+    if is_tty and hasattr(out, "reconfigure"):
         try:
-            if hasattr(out, "buffer"):
-                out.buffer.write(BANNER.encode("utf-8", errors="replace"))
-                out.buffer.flush()
-                return
+            out.reconfigure(encoding="utf-8", errors="replace")
         except Exception:
             pass
-        # Fallback ASCII banner for restricted charmaps
-        fallback = (
-            "\n"
-            "   ____ _______  ______ _       __\n"
-            "  / __ /_  __/ |/ / __/ | /| / /\n"
-            " / /_/ // /  |   / _/ | |/ |/ /  v3.5.0\n"
-            " \\____//_/  /_/|_/_/   |__/|__/\n"
-            " [ AXIOMATIC DETERMINISM FIREWALL // DEFENSE GRADE ]\n\n"
-        )
+
+    out_encoding = getattr(out, "encoding", "utf-8") or "utf-8"
+    can_encode_unicode = True
+    try:
+        BANNER.encode(out_encoding)
+    except Exception:
+        can_encode_unicode = False
+
+    if can_encode_unicode:
+        try:
+            out.write(f"{CLR_CYAN}{BANNER}{CLR_RESET}\n")
+            out.flush()
+            return
+        except Exception:
+            pass
+
+    # Fallback clean ASCII banner for restricted charmaps (e.g. cp1252 pipes)
+    fallback = (
+        f"{CLR_CYAN}\n"
+        "   ____ _______  ______ _       __\n"
+        "  / __ /_  __/ |/ / __/ | /| / /\n"
+        " / /_/ // /  |   / _/ | |/ |/ /  v3.5.0\n"
+        " \\____//_/  /_/|_/_/   |__/|__/\n"
+        " *** HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ***\n\n"
+        f"{CLR_RESET}"
+    )
+    try:
         out.write(fallback)
         out.flush()
+    except Exception:
+        try:
+            if hasattr(out, "buffer"):
+                out.buffer.write(fallback.encode("ascii", errors="replace"))
+                out.buffer.flush()
+        except Exception:
+            pass
 
 
 # -----------------------------------------------------------------------------
@@ -672,22 +697,30 @@ def render_doctor_report(report: DoctorReport, out=None) -> int:
     """Renders the health diagnostic summary to terminal stream."""
     stream = out if out is not None else sys.stdout
     print_defense_banner(stream)
-    stream.write("========================================================================\n")
-    stream.write("  CTXFW DOCTOR // HIGH-ASSURANCE HEALTH & ISOLATION DIAGNOSTIC\n")
-    stream.write("========================================================================\n")
+    stream.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
+    stream.write(f"  {CLR_CYAN}CTXFW DOCTOR // HIGH-ASSURANCE HEALTH & ISOLATION DIAGNOSTIC{CLR_RESET}\n")
+    stream.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
 
     for check in report.checks:
-        tag = "[PASS]" if check.status == "OK" else f"[{check.status}]"
-        stream.write(f"{tag:<8} {check.name:<32} {check.details}\n")
-        if check.remediation and check.status != "OK":
-            stream.write(f"         Remediation: {check.remediation}\n")
+        if check.status == "OK":
+            tag_str = f"{CLR_EMERALD}[PASS]{CLR_RESET}  "
+        elif check.status == "FAIL":
+            tag_str = f"{CLR_CRIMSON}[FAIL]{CLR_RESET}  "
+        elif check.status == "WARN":
+            tag_str = f"{CLR_AMBER}[WARN]{CLR_RESET}  "
+        else:
+            tag_str = f"[{check.status}] "
 
-    stream.write("-" * 72 + "\n")
+        stream.write(f"{tag_str} {CLR_WHITE_BOLD}{check.name:<32}{CLR_RESET} {check.details}\n")
+        if check.remediation and check.status != "OK":
+            stream.write(f"         {CLR_AMBER}Remediation: {check.remediation}{CLR_RESET}\n")
+
+    stream.write(f"{CLR_GRAPHITE}" + "-" * 72 + f"{CLR_RESET}\n")
     if report.all_passed:
-        stream.write("Overall Verdict:            [HEALTHY] [ATTESTED] Perimeter defense operational.\n")
-        stream.write("========================================================================\n")
+        stream.write(f"{CLR_WHITE_BOLD}Overall Verdict:{CLR_RESET}            {CLR_EMERALD}[HEALTHY] [ATTESTED]{CLR_RESET} Perimeter defense operational.\n")
+        stream.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
         return 0
     else:
-        stream.write("Overall Verdict:            [QUARANTINED] One or more critical security checks failed.\n")
-        stream.write("========================================================================\n")
+        stream.write(f"{CLR_WHITE_BOLD}Overall Verdict:{CLR_RESET}            {CLR_CRIMSON}[QUARANTINED]{CLR_RESET} One or more critical security checks failed.\n")
+        stream.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
         return 1

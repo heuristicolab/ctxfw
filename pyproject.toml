@@ -1,9 +1,12 @@
 [project]
 name = "ctxfw"
 version = "3.5.0"
-description = "High-Assurance Axiomatic Gatekeeper and Context Firewall for Synthetic Code Intelligence"
+description = "Deterministic Axiomatic Gatekeeper & Context Firewall // Skunk Works Division"
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [
+  { name = "Heuristico LAB // Skunk Works Division", email = "defense@metaversemexico.mx" }
+]
 dependencies = [
     "pydantic>=2.0.0",
     "pytest>=8.0.0",

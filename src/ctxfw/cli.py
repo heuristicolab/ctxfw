@@ -156,35 +156,44 @@ def run_firewall_cli(
     )
     usd_savings = (total_saved_tokens / 1_000_000) * price_per_million
 
+    from ctxfw.installer import (
+        CLR_AMBER,
+        CLR_CYAN,
+        CLR_EMERALD,
+        CLR_GRAPHITE,
+        CLR_RESET,
+        CLR_WHITE_BOLD,
+    )
+
     # Terminal Dashboard Output
-    sys.stdout.write("========================================================================\n")
-    sys.stdout.write("  CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v3.4.0)\n")
-    sys.stdout.write("========================================================================\n")
+    sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
+    sys.stdout.write(f"  {CLR_CYAN}CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v3.5.0){CLR_RESET}\n")
+    sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
     sys.stdout.write(f"Target Module:  {bundle.root_target}\n")
     sys.stdout.write(f"Project Root:   {project_root}\n\n")
 
     sys.stdout.write(f"{'DIST':<6} | {'MODULE':<32} | {'DEPTH':<10} | {'ORIG TOK':<9} | {'PRUNED':<8} | {'SAVINGS':<8}\n")
-    sys.stdout.write("-" * 84 + "\n")
+    sys.stdout.write(f"{CLR_GRAPHITE}" + "-" * 84 + f"{CLR_RESET}\n")
 
     for dist_lbl, mod, dep, o_tok, p_tok, pct in rows:
         mod_trunc = mod if len(mod) <= 32 else ("..." + mod[-29:])
         sys.stdout.write(f"{dist_lbl:<6} | {mod_trunc:<32} | {dep:<10} | {o_tok:<9,d} | {p_tok:<8,d} | {pct:<8}\n")
 
-    sys.stdout.write("-" * 84 + "\n")
+    sys.stdout.write(f"{CLR_GRAPHITE}" + "-" * 84 + f"{CLR_RESET}\n")
     sys.stdout.write(
         f"{'TOTAL':<6} | {f'{len(rows)} Modules':<32} | {'':<10} | "
-        f"{total_orig_tokens:<9,d} | {total_pruned_tokens:<8,d} | {f'{net_reduction_pct:.1f}%':<8}\n\n"
+        f"{CLR_WHITE_BOLD}{total_orig_tokens:<9,d}{CLR_RESET} | {CLR_WHITE_BOLD}{total_pruned_tokens:<8,d}{CLR_RESET} | {f'{net_reduction_pct:.1f}%':<8}\n\n"
     )
 
-    sys.stdout.write(f"[*] Net Context Tokens Saved:  {total_saved_tokens:,} tokens ({net_reduction_pct:.1f}% reduction)\n")
-    sys.stdout.write(f"[*] Projected FinOps Savings:  ${usd_savings:.4f} USD (@ ${price_per_million:.2f}/1M tokens)\n")
+    sys.stdout.write(f"[*] Net Context Tokens Saved:  {CLR_WHITE_BOLD}{total_saved_tokens:,}{CLR_RESET} tokens ({net_reduction_pct:.1f}% reduction)\n")
+    sys.stdout.write(f"[*] Projected FinOps Savings:  {CLR_WHITE_BOLD}${usd_savings:.4f}{CLR_RESET} USD (@ ${price_per_million:.2f}/1M tokens)\n")
     sys.stdout.write(f"[*] Pipeline Latency:          {elapsed_ms:.2f} ms\n")
     if copy_clip:
-        status_clip = "COPIED TO SYSTEM CLIPBOARD" if clipboard_ok else "CLIPBOARD UNAVAILABLE"
+        status_clip = f"{CLR_EMERALD}[PASS] COPIED TO SYSTEM CLIPBOARD{CLR_RESET}" if clipboard_ok else f"{CLR_AMBER}[WARN] CLIPBOARD UNAVAILABLE{CLR_RESET}"
         sys.stdout.write(f"[*] Clipboard Status:          {status_clip}\n")
     if output_path_str:
         sys.stdout.write(f"[*] Saved to File:             {output_path_str}\n")
-    sys.stdout.write("========================================================================\n")
+    sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
 
     # HU-02: Telemetría perimetral anónima y despacho de heartbeat
     try:
@@ -299,30 +308,44 @@ def handle_init_cli(argv: list[str]) -> int:
         return 0
 
     if "--global" in argv:
-        from ctxfw.installer import print_defense_banner, run_global_init
+        from ctxfw.installer import (
+            CLR_CYAN,
+            CLR_EMERALD,
+            CLR_GRAPHITE,
+            CLR_RESET,
+            print_defense_banner,
+            run_global_init,
+        )
         print_defense_banner()
-        print("========================================================================")
-        print("  CTXFW GLOBAL ZERO-TOUCH PROVISIONING // MULTI-IDE ARMORED INJECTION")
-        print("========================================================================")
+        print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
+        print(f"  {CLR_CYAN}CTXFW GLOBAL ZERO-TOUCH PROVISIONING // MULTI-IDE ARMORED INJECTION{CLR_RESET}")
+        print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
         res = run_global_init()
         for act in res["actions"]:
-            print(f"  [PASS] {act}")
-        print("========================================================================")
+            print(f"  {CLR_EMERALD}[PASS]{CLR_RESET} {act}")
+        print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
         return 0
 
     if "--repo" in argv:
-        from ctxfw.installer import print_defense_banner, init_repository_perimeter
+        from ctxfw.installer import (
+            CLR_CYAN,
+            CLR_EMERALD,
+            CLR_GRAPHITE,
+            CLR_RESET,
+            print_defense_banner,
+            init_repository_perimeter,
+        )
         print_defense_banner()
-        print("========================================================================")
-        print("  CTXFW REPOSITORY ARMOR // CANONICAL AXIOMS & PRE-COMMIT SENTRY")
-        print("========================================================================")
+        print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
+        print(f"  {CLR_CYAN}CTXFW REPOSITORY ARMOR // CANONICAL AXIOMS & PRE-COMMIT SENTRY{CLR_RESET}")
+        print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
         repo_args = [a for a in argv if a != "--repo" and not a.startswith("-")]
         target = Path(repo_args[0]).resolve() if repo_args else Path.cwd()
         handle_init_command(target)
         res = init_repository_perimeter(target)
         for msg in res["messages"]:
-            print(f"  [ATTESTED] {msg}")
-        print("========================================================================")
+            print(f"  {CLR_EMERALD}[ATTESTED]{CLR_RESET} {msg}")
+        print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
         return 0
 
     plain_args = [a for a in argv if not a.startswith("-")]
@@ -357,36 +380,45 @@ def run_spec_verify(file_path_str: str) -> int:
 
     content = path.read_text(encoding="utf-8")
     from ctxfw.sieve.engine import evaluate_specification
+    from ctxfw.installer import (
+        CLR_AMBER,
+        CLR_CRIMSON,
+        CLR_CYAN,
+        CLR_EMERALD,
+        CLR_GRAPHITE,
+        CLR_RESET,
+        CLR_WHITE_BOLD,
+    )
 
     result = evaluate_specification(content)
 
-    sys.stdout.write("========================================================================\n")
-    sys.stdout.write("  CTXFW SPECIFICATION SIEVE -- AXIOMATIC DETERMINISM VERIFIER\n")
-    sys.stdout.write("========================================================================\n")
+    sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
+    sys.stdout.write(f"  {CLR_CYAN}CTXFW SPECIFICATION SIEVE // AXIOMATIC DETERMINISM VERIFIER{CLR_RESET}\n")
+    sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
     sys.stdout.write(f"Evaluated File:             {path}\n")
-    sys.stdout.write(f"ACI Score:                  {result.aci_score:.4f}\n")
+    sys.stdout.write(f"ACI Score:                  {CLR_WHITE_BOLD}{result.aci_score:.4f}{CLR_RESET}\n")
     sys.stdout.write(f"Negative Invariants Count:  {result.negative_invariants_count}\n")
-    sys.stdout.write("Extracted Clauses:\n")
+    sys.stdout.write(f"Extracted Clauses:\n")
     if result.extracted_never_clauses:
         for idx, clause in enumerate(result.extracted_never_clauses, start=1):
             sys.stdout.write(f"  {idx}. {clause}\n")
     else:
-        sys.stdout.write("  (None detected)\n")
+        sys.stdout.write(f"  {CLR_GRAPHITE}(None detected){CLR_RESET}\n")
 
-    sys.stdout.write(f"Manifest Hash (SHA-256):    {result.manifest_hash}\n")
-    sys.stdout.write("-" * 72 + "\n")
+    sys.stdout.write(f"Manifest Hash (SHA-256):    {CLR_WHITE_BOLD}{result.manifest_hash}{CLR_RESET}\n")
+    sys.stdout.write(f"{CLR_GRAPHITE}" + "-" * 72 + f"{CLR_RESET}\n")
 
     if result.status == "VERIFIED":
-        sys.stdout.write("Final Verdict:              [PASS] READY FOR FORGE\n")
-        sys.stdout.write("========================================================================\n")
+        sys.stdout.write(f"Final Verdict:              {CLR_EMERALD}[PASS] READY FOR FORGE{CLR_RESET}\n")
+        sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
         return 0
     else:
-        sys.stdout.write("Final Verdict:              [FAIL] SPECIFICATION QUARANTINED\n")
+        sys.stdout.write(f"Final Verdict:              {CLR_CRIMSON}[FAIL] SPECIFICATION QUARANTINED{CLR_RESET}\n")
         if result.remediation_notes:
-            sys.stdout.write("Remediation Notes:\n")
+            sys.stdout.write(f"{CLR_AMBER}Remediation Notes:{CLR_RESET}\n")
             for note in result.remediation_notes:
-                sys.stdout.write(f"  - {note}\n")
-        sys.stdout.write("========================================================================\n")
+                sys.stdout.write(f"  {CLR_AMBER}- {note}{CLR_RESET}\n")
+        sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
         return 1
 
 
@@ -414,6 +446,13 @@ def handle_spec_command(argv: list[str]) -> int:
 
 
 def main():
+    if hasattr(sys.stdout, "isatty") and sys.stdout.isatty():
+        try:
+            if hasattr(sys.stdout, "reconfigure"):
+                sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
     if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "service", "spec", "doctor"}:
         subcmd = sys.argv[1]
         sys.argv.pop(1)
@@ -445,10 +484,15 @@ def main():
             sys.exit(handle_spec_command(sys.argv[1:]))
         return
 
+    # Render classified defense banner on help or default invocation
+    if any(a in {"-h", "--help"} for a in sys.argv[1:]) or len(sys.argv) == 1:
+        from ctxfw.installer import print_defense_banner
+        print_defense_banner()
+
     # Default delegation to Clipboard CLI (HU-12)
     parser = argparse.ArgumentParser(
         prog="ctxfw",
-        description="ctxfw — Sovereign Context Firewall & Token Optimization Engine (v3.5.0)\n\n"
+        description="ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.0)\n\n"
                     "Subcommands:\n"
                     "  init                 Initialize sovereign agentic perimeter, rules, and skills\n"
                     "  doctor               Run health, stdio isolation, and environment diagnostics\n"
