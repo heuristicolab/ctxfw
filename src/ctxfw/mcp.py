@@ -310,8 +310,7 @@ class MCPServer:
 
     def run_stdio_loop(self):
         """Runs continuous JSON-RPC loop over sys.stdin and sys.stdout."""
-        sys.stderr.write(f"[{self.SERVER_NAME}] Server listening on stdio (MCP v{self.PROTOCOL_VERSION})\n")
-        sys.stderr.flush()
+        print(f"[{self.SERVER_NAME}] Server listening on stdio (MCP v{self.PROTOCOL_VERSION})", file=sys.stderr, flush=True)
 
         while self.running:
             line = sys.stdin.readline()
