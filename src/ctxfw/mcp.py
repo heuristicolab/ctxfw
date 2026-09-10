@@ -96,6 +96,20 @@ class MCPServer:
                         "required": ["target_file"],
                     },
                 },
+                {
+                    "name": "evaluate_spec_axioms",
+                    "description": "Evaluate architectural brief determinism, negative invariants floor, and Axiom Completeness Index (ACI).",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "brief_text": {
+                                "type": "string",
+                                "description": "Markdown content of the architectural intake brief to evaluate",
+                            },
+                        },
+                        "required": ["brief_text"],
+                    },
+                },
             ]
         }
 
@@ -192,6 +206,30 @@ class MCPServer:
 
                 return {
                     "content": [{"type": "text", "text": bundle.to_prompt()}],
+                    "isError": False,
+                }
+
+            elif tool_name == "evaluate_spec_axioms":
+                brief_text = arguments.get("brief_text")
+                if brief_text is None:
+                    return {
+                        "content": [{"type": "text", "text": "Parameter 'brief_text' is required."}],
+                        "isError": True,
+                    }
+
+                from ctxfw.sieve.engine import evaluate_specification
+
+                res = evaluate_specification(str(brief_text))
+                payload = {
+                    "aci_score": res.aci_score,
+                    "negative_invariants_count": res.negative_invariants_count,
+                    "extracted_never_clauses": res.extracted_never_clauses,
+                    "status": res.status,
+                    "remediation_notes": res.remediation_notes,
+                    "manifest_hash": res.manifest_hash,
+                }
+                return {
+                    "content": [{"type": "text", "text": json.dumps(payload, indent=2)}],
                     "isError": False,
                 }
 

@@ -95,6 +95,8 @@ def test_typescript_pruning_preserves_interfaces_and_stubs_bodies():
         language=SupportedLanguage.TYPESCRIPT,
         depth=PruningDepth.INTERFACE,
     )
+    # Warm up dynamic tree-sitter parser library to isolate execution timing from DLL load
+    DeterministicContextPruner.prune(req)
     pruned, orig_c, pruned_c, saved, pct, ms = DeterministicContextPruner.prune(req)
 
     # Invariants: Interfaces and Types must remain intact

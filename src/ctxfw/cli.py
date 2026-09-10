@@ -294,8 +294,73 @@ def init_entrypoint() -> None:
     handle_init_command(target)
 
 
+def run_spec_verify(file_path_str: str) -> int:
+    """Evaluates a specification markdown brief and renders terminal summary."""
+    path = Path(file_path_str).resolve()
+    if not path.is_file():
+        sys.stderr.write(f"[ERROR] Specification file not found: {path}\n")
+        return 1
+
+    content = path.read_text(encoding="utf-8")
+    from ctxfw.sieve.engine import evaluate_specification
+
+    result = evaluate_specification(content)
+
+    sys.stdout.write("========================================================================\n")
+    sys.stdout.write("  CTXFW SPECIFICATION SIEVE -- AXIOMATIC DETERMINISM VERIFIER\n")
+    sys.stdout.write("========================================================================\n")
+    sys.stdout.write(f"Evaluated File:             {path}\n")
+    sys.stdout.write(f"ACI Score:                  {result.aci_score:.4f}\n")
+    sys.stdout.write(f"Negative Invariants Count:  {result.negative_invariants_count}\n")
+    sys.stdout.write("Extracted Clauses:\n")
+    if result.extracted_never_clauses:
+        for idx, clause in enumerate(result.extracted_never_clauses, start=1):
+            sys.stdout.write(f"  {idx}. {clause}\n")
+    else:
+        sys.stdout.write("  (None detected)\n")
+
+    sys.stdout.write(f"Manifest Hash (SHA-256):    {result.manifest_hash}\n")
+    sys.stdout.write("-" * 72 + "\n")
+
+    if result.status == "VERIFIED":
+        sys.stdout.write("Final Verdict:              [PASS] READY FOR FORGE\n")
+        sys.stdout.write("========================================================================\n")
+        return 0
+    else:
+        sys.stdout.write("Final Verdict:              [FAIL] SPECIFICATION QUARANTINED\n")
+        if result.remediation_notes:
+            sys.stdout.write("Remediation Notes:\n")
+            for note in result.remediation_notes:
+                sys.stdout.write(f"  - {note}\n")
+        sys.stdout.write("========================================================================\n")
+        return 1
+
+
+def handle_spec_command(argv: list[str]) -> int:
+    """Handles ctxfw spec subcommand routing."""
+    parser = argparse.ArgumentParser(
+        prog="ctxfw spec",
+        description="Verify architectural intake specification axioms and negative invariants.",
+    )
+    subparsers = parser.add_subparsers(dest="spec_command", help="Spec commands")
+    verify_parser = subparsers.add_parser("verify", help="Verify a specification markdown brief")
+    verify_parser.add_argument("file_path", help="Path to specification markdown brief")
+
+    if not argv or (len(argv) == 1 and argv[0] in {"-h", "--help"}):
+        parser.print_help()
+        return 0
+
+    args = parser.parse_args(argv)
+
+    if args.spec_command == "verify":
+        return run_spec_verify(args.file_path)
+    else:
+        parser.print_help()
+        return 1
+
+
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "service"}:
+    if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "service", "spec"}:
         subcmd = sys.argv[1]
         sys.argv.pop(1)
         if subcmd == "init":
@@ -324,6 +389,8 @@ def main():
         elif subcmd == "service":
             from ctxfw.service import handle_service_command
             sys.exit(handle_service_command(sys.argv[1:]))
+        elif subcmd == "spec":
+            sys.exit(handle_spec_command(sys.argv[1:]))
         return
 
     # Default delegation to Clipboard CLI (HU-12)
@@ -336,7 +403,8 @@ def main():
                     "  proxy                Launch local perimeter reverse proxy gateway\n"
                     "  service              Manage background service (Windows sc.exe & systemd)\n"
                     "  ci                   Run CI/CD PR topological gatekeeper\n"
-                    "  audit                Audit FinOps token savings and telemetry ledger",
+                    "  audit                Audit FinOps token savings and telemetry ledger\n"
+                    "  spec                 Verify specification axioms and negative invariants",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("target_file", nargs="?", default=None, help="Path to the active target file being edited (Distance 0)")
@@ -368,9 +436,12 @@ __all__ = [
     "run_firewall_cli",
     "handle_init_command",
     "init_entrypoint",
+    "run_spec_verify",
+    "handle_spec_command",
     "main",
 ]
 
 
 if __name__ == "__main__":
     main()
+
