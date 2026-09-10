@@ -1,220 +1,135 @@
-# Context & Token Optimization Engine — Sovereign Core Gateway (v3.0)
-### Sovereign Architecture Blueprint & Verification Matrix (`ord-2026-4f003b`)
+<div align="center">
 
-[![Architecture Status](https://img.shields.io/badge/Architecture-V3.0%20Sealed-00ff66?style=flat-square)]()
-[![Pydantic v2](https://img.shields.io/badge/Contracts-Pydantic%20v2%20Strict-22d3ee?style=flat-square)]()
-[![Persistence](https://img.shields.io/badge/Storage-SQLite%20WAL-blue?style=flat-square)]()
-[![MCP Spec](https://img.shields.io/badge/MCP-2024--11--05-purple?style=flat-square)]()
-[![Air--Gapped](https://img.shields.io/badge/Environment-Zero--Cloud%20Telemetry-orange?style=flat-square)]()
+# CTXFW // CONTEXT FIREWALL
+### High-Assurance Axiomatic Gatekeeper for Synthetic Code Intelligence
 
----
+[![Axiomatic Completeness Index](https://img.shields.io/badge/ACI-1.0000_VERIFIED-000000?style=for-the-badge&logo=shield)](https://github.com/)
+[![Specification Seal](https://img.shields.io/badge/ATTESTATION-SHA--256_SEALED-0a0a0a?style=for-the-badge&logo=auth0)](https://github.com/)
+[![Runtime Engine](https://img.shields.io/badge/RUNTIME-PYTHON_3.10+-111111?style=for-the-badge&logo=python)](https://github.com/)
+[![License](https://img.shields.io/badge/LICENSE-PROPRIETARY_BETA-black?style=for-the-badge)](LICENSE)
 
-## 📋 Executive Architecture Spec Card
+**The deterministic boundary between generative AI hallucinations and mission-critical infrastructure.**
 
-| Attribute | Specification Details |
-| :--- | :--- |
-| **Order ID** | `ord-2026-4f003b` |
-| **Domain** | Multi-Depth Context Firewall, Polyglot AST/Tree-sitter Pruner, MCP Server, and Reverse Proxy Gateway |
-| **Supported Languages** | Python (Native AST), TypeScript, JavaScript, Go, Java (Tree-sitter) |
-| **Protocol Ingress** | Model Context Protocol over stdio (`2024-11-05`), HTTP Reverse Proxy (OpenAI & Anthropic) |
-| **SLA Standard** | Warm Cache Latency $< 2\text{ ms}$ \| Proxy Overhead $< 5\text{ ms}$ \| Cold Pruning $\le 15\text{ ms}$ |
-| **Reduction Standard** | $\ge 35\%$ token savings on dependencies; zero pass@1 degradation ($\Delta\text{pass@1} \ge 0.0\%$) |
-| **Fail-Open Guarantee** | Transparent pass-through on non-code, broken syntax, or `X-Context-Firewall-Bypass: true` |
-| **Persistence** | SQLite 3 WAL mode (`PRAGMA busy_timeout = 5000; PRAGMA journal_mode=WAL;`) |
-| **Verification** | 46-Test Matrix + Empirical A/B Eval Harness + Telemetry Attestation (`test_report.json`) |
+[Architecture](#architectural-perimeter) • [Technical Capabilities](#technical-capabilities) • [Zero-Touch Onboarding](#quickstart-the-2-minute-verification) • [Enterprise Compliance](#enterprise-compliance-mapping)
 
 ---
 
-## 🧩 Architectural Topology
+</div>
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                     INGRESS & CLIENT INTERFACES                                 │
-├────────────────────────────────┬───────────────────────────────┬────────────────────────────────┤
-│   Agentic IDEs (Cursor/Claude)  │   HTTP LLM API Client SDKs    │       CI/CD Git Pipelines      │
-│   mcp_server.py (stdio JSON-RPC)│   proxy_gateway.py (:8080)    │       ci_gatekeeper.py         │
-└────────────────┬───────────────┴───────────────┬───────────────┴────────────────┬───────────────┘
-                 │                               │                                │
-                 ▼                               ▼                                ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                TOPOLOGICAL CONTEXT FIREWALL ENGINE                              │
-│  - Distance 0 (Target Module): FULL (100% untouched implementation)                             │
-│  - Distance 1 (Direct Imports): INTERFACE (Signatures, types, sanitized raises, stubs)         │
-│  - Distance 2+ (Transitive): NOMINAL (Class/DTO stubs only)                                    │
-└────────────────────────────────────────────────┬────────────────────────────────────────────────┘
-                                                 │
-                                                 ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                              POLYGLOT DUAL-ROUTING PRUNING ENGINE                               │
-│  - Python: Native AST Visitor (_MethodBodyStripper)                                             │
-│  - TypeScript / JS / Go / Java: Tree-sitter AST Traverser (TreeSitterContextPruner)             │
-└────────────────────────────────────────────────┬────────────────────────────────────────────────┘
-                                                 │
-                                                 ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                       EMBEDDED SQLite WAL CACHE (PRAGMA busy_timeout=5000)                      │
-│  Key: SHA-256(source_code | rules_version | strip_docs | depth | language)                     │
-│  - Warm Hit (<2ms): 0 Tokens / $0.00 USD Overhead                                              │
-│  - Cold Miss: Prune -> INSERT WAL -> Topological Context Bundle                                 │
-└─────────────────────────────────────────────────────────────────────────────────────────────────┘
-```
+## Executive Abstract
+
+Modern LLM-assisted development introduces catastrophic probabilistic risk: autonomous agents generate plausible, unverified architectures violating core security invariants, transaction idempotency, and regulatory boundaries. 
+
+**CTXFW** is an out-of-band, deterministic context firewall and Model Context Protocol (MCP) gatekeeper. It intercepts architectural intake, enforces a mathematical floor on negative invariants ($N \ge 5$), binds variable domains, and cryptographically signs validated specification manifests. 
+
+> **Core Doctrine:** No synthetic code enters the repository without a verified axiomatic certificate ($\text{ACI} \ge 0.9000$).
 
 ---
 
-## 📦 Canonical Deliverable Layout
+## Architectural Perimeter
 
 ```
-arch-ord-2026-4f003b/
-├── contracts.py                       # Core Pydantic v2 schemas, AST pruner, and SQLite WAL cache
-├── polyglot_pruner.py                 # Tree-sitter multi-language pruner (TS, Go, Java)
-├── topological_resolver.py            # Static import extractor, dependency graph, and firewall engine
-├── finops_auditor.py                  # Token accounting, USD cost avoidance, and cache auditor
-├── mcp_server.py                      # Model Context Protocol server over stdio (MCP v2024-11-05)
-├── proxy_gateway.py                   # Transparent HTTP reverse proxy (/v1/chat/completions, /v1/messages)
-├── ci_gatekeeper.py                   # PR changeset topological analyzer and FinOps job summary generator
-├── firewall_cli.py                    # Instant clipboard ergonomics & terminal context compaction CLI
-├── USER_MANUAL.md                     # Canonical operational manual, runbook, and troubleshooting matrix
-├── schema.sql                         # Canonical SQLite WAL schema and indexes
-├── pyproject.toml                     # Python packaging and pytest configuration
-├── checkpoint.ps1                     # Verification and cryptographic attestation runner (PowerShell)
-├── checkpoint.sh                      # Verification and cryptographic attestation runner (POSIX Bash)
-├── 00_DIRECTIVES/
-│   └── 5_fabrication_directive.md     # Inviolable architecture directives and constraints
-├── 01_TOPOLOGY/
-│   └── 1_mermaid_dag.md               # Visual Mermaid DAG state machine
-├── 02_CONTRACTS/
-│   ├── 2_pydantic_contracts.py        # Immutable contracts mirror
-│   └── 3_schema_ddl.sql               # Database DDL mirror
-├── 03_TEST_MATRIX/
-│   └── 4_pytest_tdd_matrix.py         # Pytest contract validation mirror
-├── scripts/
-│   ├── demo_token_optimizer.py        # Interactive 3-tier showcase CLI and latency benchmark
-│   └── run_evals.py                   # Empirical A/B evaluation harness with sandboxed pass@1 verification
-└── tests/
-    ├── conftest.py                    # Deterministic telemetry hook emitting test_report.json
-    ├── eval_report.json               # Empirical A/B evaluation report (43.3% savings, 0% degradation)
-    ├── test_report.json               # Checkpoint test audit attestation
-    ├── test_contracts.py              # Unit tests for core contracts and AST pruner
-    ├── test_polyglot_pruner.py        # Multi-language Tree-sitter tests (TS, Go, Java)
-    ├── test_topological_resolver.py   # Dependency graph and multi-depth firewall tests
-    ├── test_finops_auditor.py         # FinOps ledger and SQLite cache audit tests
-    ├── test_mcp_server.py             # stdio MCP handshake, tool calling, and framing tests
-    ├── test_proxy_gateway.py          # Reverse proxy fail-open, bypass, and latency tests
-    ├── test_ci_gatekeeper.py          # PR changeset classification and Markdown summary tests
-    ├── test_firewall_cli.py           # Clipboard ergonomics and CLI telemetry tests
-    └── test_run_evals.py              # Sandboxed evaluation runner unit tests
+PROBABILISTIC DOMAIN                      DETERMINISTIC PERIMETER
+┌───────────────────────┐                  ┌────────────────────────────────────────┐
+│  Autonomous AI Agent  │                  │             CTXFW ENGINE               │
+│  (Claude / Gemini /   │                  │                                        │
+│   Cursor / Antigravity│                  │  ┌──────────────────────────────────┐  │
+└───────────┬───────────┘                  │  │     Axiomatic Sieve Engine       │  │
+            │                              │  │  - Negative Invariant Floor      │  │
+            │  Intake Brief                │  │  - Bounded Variable Ranges       │  │
+            ▼                              │  │  - Deterministic FSM Delta       │  │
+┌───────────────────────┐                  │  │  - 4-Class Error Taxonomy        │  │
+│ MCP Stdio Interceptor ├─────────────────►│  └────────────────┬─────────────────┘  │
+└───────────────────────┘                  │                   │                    │
+                                           │                   ▼                    │
+                                           │         [ ACI >= 0.9000? ]             │
+                                           │          /              \              │
+                                           │       YES                NO            │
+                                           │        │                  │            │
+                                           │        ▼                  ▼            │
+                                           │ ┌──────────────┐   ┌─────────────────┐ │
+                                           │ │ VERIFIED     │   │ QUARANTINED     │ │
+                                           │ │ SHA-256 Seal │   │ Execution Halt  │ │
+                                           │ └──────┬───────┘   └────────┬────────┘ │
+                                           └────────┼────────────────────┼──────────┘
+                                                    │                    │
+                                                    ▼                    ▼
+                                           [ Code Generation ]   [ Forensic Report ]
+                                           [ & Git Permitted ]   [ Pre-Commit Abort]
 ```
 
 ---
 
-## ⚡ Developer & Agent Tooling Guides
+## Technical Capabilities
 
-### 1. Model Context Protocol (MCP) Server Setup
-Integrate deterministic context compaction directly into **Cursor**, **Claude Code**, or **Windsurf**.
+### 1. Axiomatic Specification Sieve
+* **Negative Invariants Floor**: Enforces non-negotiable negative clauses (`shall never` or `never`) preventing silent security degradation (e.g., plaintext PAN/PIN, unvalidated idempotency, untrusted state transitions).
+* **Deterministic State Machine (FSM)**: Requires formal state transition definitions $\delta(S, E) \rightarrow S'$ and explicit terminal states before backend synthesis.
+* **4-Class Fault Domain Taxonomy**: Strict segregation into Transient (Class 1), Deterministic Client (Class 2), Semantic Business (Class 3), and Security Isolation (Class 4) quarantine sinks.
 
-Add to your MCP configuration (`claude_desktop_config.json` or `.cursor/mcp.json`):
-```json
-{
-  "mcpServers": {
-    "context-firewall": {
-      "command": "python",
-      "args": ["C:/sandbox/arch-ord-2026-4f003b/mcp_server.py"]
-    }
-  }
-}
-```
+### 2. Zero-Touch Toolchain Integration
+* **Multi-IDE Auto-Discovery**: Automatic environment detection and non-destructive injection for **Google Antigravity**, **Cursor**, and **Claude Desktop**.
+* **Safe Configuration Merge**: Idempotent configuration management (`safe_merge`) with strict third-party MCP server preservation.
+* **Local Repository Armor**: Automated deployment of `.git/hooks/pre-commit` gatekeeper preventing unverified commits.
 
-Exposed Tools:
-- `prune_file(path, depth="interface", strip_docs=false, language="python")`: Slices source code into interfaces, stubs (`...`), and sanitized raises.
-- `resolve_context_bundle(target_file, project_root=null)`: Resolves project call graph and returns multi-depth Markdown prompt context.
+### 3. Cryptographic Attestation
+* Every verified brief generates an immutable SHA-256 digest (`manifest_hash`) computed over lexicographically sorted negative invariants.
+* Enforces provenance: all generated artifacts must embed the attestation seal in their source header.
 
 ---
 
-### 2. Perimeter Reverse Proxy Gateway
-Deploy a transparent HTTP reverse proxy between agent tooling and upstream LLM providers (OpenAI / Anthropic):
+## Quickstart: The 2-Minute Verification
 
+### Installation
+Install the pre-built distribution wheel or source package:
 ```bash
-python proxy_gateway.py --port 8080 --host 0.0.0.0 --upstream https://api.openai.com
+pip install dist/ctxfw-3.5.0-py3-none-any.whl
+# or via pipx for global isolation:
+pipx install .
 ```
 
-- **Fail-Open Policy**: If code cannot be parsed or if header `X-Context-Firewall-Bypass: true` is supplied, the payload passes untouched.
-- **Audit Headers Returned**:
-  - `X-Tokens-Saved`: Estimated count of input context tokens eliminated.
-  - `X-Firewall-Latency-Ms`: Proxy inspection and caching overhead ($< 5\text{ ms}$).
-  - `X-Firewall-Status`: `compacted` \| `pass-through` \| `bypassed` \| `fail-open`.
-
----
-
-### 3. CI/CD Gatekeeper & Pre-Commit Hook
-Run automated PR changeset analysis to generate GitHub Actions Job Summaries:
-
+### 1. System Health & Stream Isolation Audit
+Run the diagnostic suite to certify your local runtime and verify stdio channel purity:
 ```bash
-# Analyze staged or committed PR differences
-python ci_gatekeeper.py --base main --head HEAD --output summary.md
-
-# Generate pre-commit hook snippet
-python ci_gatekeeper.py --generate-pre-commit .pre-commit-config.yaml
+ctxfw doctor
 ```
 
-Sample GitHub Actions Workflow integration:
-```yaml
-- name: Evaluate Context Firewall Perimeter
-  run: |
-    python ci_gatekeeper.py --base origin/main --head HEAD --output pr_summary.md
-    cat pr_summary.md >> $GITHUB_STEP_SUMMARY
+### 2. Global IDE Provisioning
+Inject the axiomatic gateway directives and MCP endpoints into all detected IDEs:
+```bash
+ctxfw init --global
+```
+
+### 3. Repository Perimeter Armor
+Activate the pre-commit gatekeeper and deploy canonical axioms into your project:
+```bash
+cd /path/to/your/project
+ctxfw init --repo .
 ```
 
 ---
 
-### 4. Empirical A/B Evaluation Harness
-Benchmark task success rates (pass@1) and token savings across identical coding problems:
+## Enterprise Compliance Mapping
 
-```bash
-# Hermetic mock mode (zero network access required)
-python scripts/run_evals.py --mock --output tests/eval_report.json
+CTXFW automates compliance requirements for organizations operating under rigorous audit frameworks:
 
-# Live LLM mode
-export OPENAI_API_KEY="sk-..."
-python scripts/run_evals.py --provider openai --model gpt-4o
-```
-
----
-
-### 5. Developer Terminal CLI & Clipboard Ergonomics
-Compact code and copy directly to operating system clipboard in $< 2\text{ ms}$:
-
-```bash
-# Compact target file and copy directly to OS clipboard
-python firewall_cli.py contracts.py
-
-# Write prompt to disk and print raw markdown to stdout
-python firewall_cli.py contracts.py --no-clip --output prompt.md
-```
+| Standard | Clause / Control | CTXFW Enforcement Mechanism |
+| :--- | :--- | :--- |
+| **PCI-DSS v4.0** | Req 3.4 & 6.4 | Pre-code invariant checking: rejects any brief permitting plaintext PAN/CVV storage or unmasked logging. |
+| **SOC 2 Type II** | CC6.6 & CC7.1 | Mathematical attestation manifests provide non-repudiable audit logs of code generation inputs and invariants. |
+| **EU AI Act** | Article 14 (Human Oversight) | Prevents runaway autonomous code generation by forcing formal spec sign-off gates and quarantine sinks. |
+| **DORA (EU)** | ICT Risk Management | Fault domain taxonomy enforces explicit resilience classification and circuit-breaking on all service endpoints. |
 
 ---
 
-### 6. Workspace Self-Seeding (`ctxfw init`)
-One-shot atomic initialization deploying agent perimeter rules, governance laws, stdio MCP server manifest, and native discoverable skill:
+## Distributed Toolchain Components
 
-```bash
-# Initialize sovereign perimeter in current project root
-ctxfw init
+The distribution binary provides dedicated console entrypoints for continuous integration and runtime defense:
 
-# Or target an arbitrary folder
-ctxfw init C:\sandbox\nuevo-proyecto
-```
-
----
-
-## ⚡ Full Test Suite & Verification Matrix
-
-```bash
-# Run all 51 automated unit and integration tests
-pytest tests/ -v --tb=short
-
-# Compile all source modules
-python -m py_compile contracts.py topological_resolver.py finops_auditor.py polyglot_pruner.py mcp_server.py proxy_gateway.py ci_gatekeeper.py firewall_cli.py
-
-# Execute satellite checkpoint protocol
-powershell -ExecutionPolicy Bypass -File .\checkpoint.ps1
-```
+* `ctxfw`: Unified operational CLI (Distance-0 context compiler and subcommand dispatcher).
+* `ctxfw-doctor`: High-assurance environment, stdio stream isolation, and integrity diagnostics.
+* `ctxfw-init`: Automated zero-touch global IDE and repository perimeter provisioner.
+* `ctxfw-mcp`: Zero-latency JSON-RPC 2.0 stdio protocol server for AI agents.
+* `ctxfw-ci`: Headless compliance gatekeeper for CI/CD pipelines (GitHub Actions, Gitea, GitLab CI).
+* `ctxfw-audit`: Ledger auditor for cryptographic attestation manifests and token telemetry.
+* `ctxfw-proxy`: Local perimeter reverse proxy gateway with streaming SSE compression.

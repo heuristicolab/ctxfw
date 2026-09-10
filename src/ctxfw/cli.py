@@ -1,7 +1,8 @@
 """
-src/ctxfw/cli.py — Unified Command Line Interface for Context Firewall (v3.4.0)
+src/ctxfw/cli.py — Unified Command Line Interface for Context Firewall (v3.5.0)
+Axiom Manifest Hash: 575d12d75bcb427be48c3d62c643a4fb4a0260768cb49197c5d09133058581ed
 Supports direct target file clipboard invocation (`ctxfw <file>`) 
-plus explicit subcommands (`ctxfw mcp`, `ctxfw proxy`, `ctxfw ci`, `ctxfw audit`).
+plus explicit subcommands (`ctxfw mcp`, `ctxfw proxy`, `ctxfw ci`, `ctxfw audit`, `ctxfw init`, `ctxfw doctor`, `ctxfw spec`).
 """
 from __future__ import annotations
 
@@ -288,10 +289,63 @@ Utiliza `resolve_context_bundle`, `audit_finops_ledger` y `gatekeeper_pr_audit` 
     return target_dir
 
 
+def handle_init_cli(argv: list[str]) -> int:
+    """Handles ctxfw init subcommand with --global, --repo, and target directory options."""
+    if any(arg in {"-h", "--help"} for arg in argv):
+        print("usage: ctxfw init [target_dir]")
+        print("\nInitialize sovereign agentic perimeter, rules, and skills in target directory.")
+        print("  --global             Perform zero-touch onboarding across installed IDEs")
+        print("  --repo [target_dir]  Deploy canonical SPEC.axioms.md and git pre-commit verification hook")
+        return 0
+
+    if "--global" in argv:
+        from ctxfw.installer import print_defense_banner, run_global_init
+        print_defense_banner()
+        print("========================================================================")
+        print("  CTXFW GLOBAL ZERO-TOUCH PROVISIONING // MULTI-IDE ARMORED INJECTION")
+        print("========================================================================")
+        res = run_global_init()
+        for act in res["actions"]:
+            print(f"  [PASS] {act}")
+        print("========================================================================")
+        return 0
+
+    if "--repo" in argv:
+        from ctxfw.installer import print_defense_banner, init_repository_perimeter
+        print_defense_banner()
+        print("========================================================================")
+        print("  CTXFW REPOSITORY ARMOR // CANONICAL AXIOMS & PRE-COMMIT SENTRY")
+        print("========================================================================")
+        repo_args = [a for a in argv if a != "--repo" and not a.startswith("-")]
+        target = Path(repo_args[0]).resolve() if repo_args else Path.cwd()
+        handle_init_command(target)
+        res = init_repository_perimeter(target)
+        for msg in res["messages"]:
+            print(f"  [ATTESTED] {msg}")
+        print("========================================================================")
+        return 0
+
+    plain_args = [a for a in argv if not a.startswith("-")]
+    target = Path(plain_args[0]).resolve() if plain_args else Path.cwd()
+    handle_init_command(target)
+    return 0
+
+
+def run_doctor_cli() -> int:
+    """Runs system health and isolation diagnostics."""
+    from ctxfw.installer import render_doctor_report, run_doctor
+    report = run_doctor()
+    return render_doctor_report(report)
+
+
+def doctor_entrypoint() -> None:
+    """Dedicated entrypoint for ctxfw-doctor console script."""
+    sys.exit(run_doctor_cli())
+
+
 def init_entrypoint() -> None:
     """Dedicated entrypoint for ctxfw-init console script."""
-    target = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else Path.cwd()
-    handle_init_command(target)
+    sys.exit(handle_init_cli(sys.argv[1:]))
 
 
 def run_spec_verify(file_path_str: str) -> int:
@@ -360,16 +414,14 @@ def handle_spec_command(argv: list[str]) -> int:
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "service", "spec"}:
+    if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "service", "spec", "doctor"}:
         subcmd = sys.argv[1]
         sys.argv.pop(1)
         if subcmd == "init":
-            if len(sys.argv) > 1 and sys.argv[1] in {"-h", "--help"}:
-                print("usage: ctxfw init [target_dir]")
-                print("\nInitialize sovereign agentic perimeter, rules, and skills in target directory.")
-                return
-            target = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else Path.cwd()
-            handle_init_command(target)
+            handle_init_cli(sys.argv[1:])
+            return
+        elif subcmd == "doctor":
+            run_doctor_cli()
             return
         elif subcmd == "mcp":
             if len(sys.argv) > 1 and sys.argv[1] in {"-h", "--help"}:
@@ -398,7 +450,8 @@ def main():
         prog="ctxfw",
         description="ctxfw — Sovereign Context Firewall & Token Optimization Engine (v3.5.0)\n\n"
                     "Subcommands:\n"
-                    "  init                 Initialize sovereign agentic perimeter and skills\n"
+                    "  init                 Initialize sovereign agentic perimeter, rules, and skills\n"
+                    "  doctor               Run health, stdio isolation, and environment diagnostics\n"
                     "  mcp                  Start stdio Model Context Protocol server\n"
                     "  proxy                Launch local perimeter reverse proxy gateway\n"
                     "  service              Manage background service (Windows sc.exe & systemd)\n"
@@ -435,7 +488,10 @@ __all__ = [
     "copy_to_clipboard",
     "run_firewall_cli",
     "handle_init_command",
+    "handle_init_cli",
     "init_entrypoint",
+    "run_doctor_cli",
+    "doctor_entrypoint",
     "run_spec_verify",
     "handle_spec_command",
     "main",

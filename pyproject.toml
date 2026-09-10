@@ -1,7 +1,7 @@
 [project]
 name = "ctxfw"
 version = "3.5.0"
-description = "Deterministic AST-based Token and Context Optimization Engine with SQLite WAL Cache & XDG Storage"
+description = "High-Assurance Axiomatic Gatekeeper and Context Firewall for Synthetic Code Intelligence"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -27,6 +27,7 @@ ctxfw-mcp = "ctxfw.mcp:main"
 ctxfw-proxy = "ctxfw.proxy:main"
 ctxfw-ci = "ctxfw.gatekeeper:main"
 ctxfw-audit = "ctxfw.auditor:main"
+ctxfw-doctor = "ctxfw.cli:doctor_entrypoint"
 
 [tool.setuptools.packages.find]
 where = ["src"]
