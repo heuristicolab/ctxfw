@@ -35,7 +35,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-DB_PATH = Path(".gtm/state/pipeline.db")
+DB_PATH = Path(os.getenv("GTM_DB_PATH", ".gtm/state/pipeline.db"))
 
 
 def load_env() -> dict[str, str]:
@@ -281,8 +281,8 @@ def poll_mailbox() -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="GTM Inbound Sentry: IMAP Listener & Intent Classifier")
     parser.add_argument("--poll", action="store_true", help="Execute a single polling pass")
-    parser.add_argument("--loop", action="store_true", help="Run continuous monitoring loop")
-    parser.add_argument("--interval", type=int, default=60, help="Polling interval in seconds (default: 60)")
+    parser.add_argument("--loop", nargs="?", const=30, type=int, default=None, help="Run continuous monitoring loop with optional interval seconds")
+    parser.add_argument("--interval", type=int, default=30, help="Polling interval in seconds (default: 30)")
     parser.add_argument("--simulate-inbound", nargs=2, metavar=("SENDER", "BODY"), help="Simulate an inbound message for test certification")
 
     args = parser.parse_args()
@@ -297,12 +297,16 @@ def main() -> int:
             print(f"{CLR_AMBER}[SIMULATION IGNORED]{CLR_RESET} Sender not matched to registered target domain.")
             return 0
 
-    if args.loop:
-        print(f"{CLR_CYAN}[DAEMON STARTED] Monitoring IMAP inbox every {args.interval}s (Ctrl+C to stop)...{CLR_RESET}")
+    if args.loop is not None or "--loop" in sys.argv:
+        interval = args.loop if isinstance(args.loop, int) else args.interval
+        print(f"{CLR_CYAN}[DAEMON STARTED] Monitoring IMAP inbox every {interval}s (Ctrl+C to stop)...{CLR_RESET}")
         try:
             while True:
-                poll_mailbox()
-                time.sleep(args.interval)
+                try:
+                    poll_mailbox()
+                except Exception as loop_err:
+                    print(f"{CLR_CRIMSON}[TRANSIENT ERROR] Listener iteration error: {loop_err}. Retrying in {interval}s...{CLR_RESET}")
+                time.sleep(interval)
         except KeyboardInterrupt:
             print(f"\n{CLR_AMBER}[DAEMON STOPPED] Listener loop terminated.{CLR_RESET}")
             return 0

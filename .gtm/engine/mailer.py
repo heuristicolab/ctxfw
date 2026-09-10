@@ -36,7 +36,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-DB_PATH = Path(".gtm/state/pipeline.db")
+DB_PATH = Path(os.getenv("GTM_DB_PATH", ".gtm/state/pipeline.db"))
 DISPATCHES_DIR = Path(".gtm/state/dispatches")
 
 
