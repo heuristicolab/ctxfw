@@ -3,7 +3,7 @@
 **Security Classification:** `RESTRICTED // TARGET DISPATCH`  
 **Target Organization:** `Kubo Finanzas` (`kubofinanciero.com`)  
 **Audience:** Carlos Morales, VP of Engineering  
-**Synthesis Date:** `2026-09-10 22:38 UTC`  
+**Synthesis Date:** `2026-09-10 23:09 UTC`  
 **Attestation Manifest Hash:** `6d039ed22ba73e356d7ce24bbe7ddc265832f8a92b7096a8355d25c991d7b385`  
 **Audit Source:** `.gtm/state/reports/kubo_finanzas_finops_audit.md`
 
@@ -27,7 +27,7 @@ Con los flujos agénticos actuales (Cursor / Claude 3.7 Sonnet), el squad inyect
 Mediante Context Firewall (ctxfw), aplicamos poda determinista Distance-0 reduciendo el payload en 72.4%. Esto produce un ahorro neto de $24,199 USD al año tras descontar la infraestructura.
 
 Sintetizamos el desglose técnico y las pruebas de compresión en el simulador interactivo:
-https://heuristicolab.com
+https://ctxfw.heuristicolab.com
 
 ¿Tiene 10 minutos este jueves para revisar los benchmarks de latencia y el protocolo Litmus Test de 2 minutos?
 
@@ -45,7 +45,7 @@ Heuristico Lab // Skunk Works Division
 Carlos, qué tal. Corrimos la auditoría FinOps de contexto para los 45 devs de Kubo Finanzas.
 Detectamos una fuga evitable de $45,259 USD anuales en Claude/Cursor por ASTs no podados.
 Con poda determinista ctxfw (72.4%) el ahorro neto es de $24,199 USD/año.
-Les preparé el dossier y simulador en https://heuristicolab.com por si te hace sentido revisarlo.
+Les preparé el dossier y simulador en https://ctxfw.heuristicolab.com por si te hace sentido revisarlo.
 ```
 
 ---

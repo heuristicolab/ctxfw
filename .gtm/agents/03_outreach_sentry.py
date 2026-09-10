@@ -176,7 +176,7 @@ def synthesize_dispatch(target: dict) -> Path:
         f"Mediante Context Firewall (ctxfw), aplicamos poda determinista Distance-0 reduciendo el payload en 72.4%. "
         f"Esto produce un ahorro neto de {net_str} al año tras descontar la infraestructura.\n\n"
         f"Sintetizamos el desglose técnico y las pruebas de compresión en el simulador interactivo:\n"
-        f"https://heuristicolab.com\n\n"
+        f"https://ctxfw.heuristicolab.com\n\n"
         f"¿Tiene 10 minutos este jueves para revisar los benchmarks de latencia y el protocolo Litmus Test de 2 minutos?\n\n"
         f"Saludos,\n"
         f"Heuristico Lab // Skunk Works Division"
@@ -187,7 +187,7 @@ def synthesize_dispatch(target: dict) -> Path:
         f"{first_name}, qué tal. Corrimos la auditoría FinOps de contexto para los {dev_count} devs de {company}.\n"
         f"Detectamos una fuga evitable de {avoided_str} anuales en Claude/Cursor por ASTs no podados.\n"
         f"Con poda determinista ctxfw (72.4%) el ahorro neto es de {net_str}/año.\n"
-        f"Les preparé el dossier y simulador en https://heuristicolab.com por si te hace sentido revisarlo."
+        f"Les preparé el dossier y simulador en https://ctxfw.heuristicolab.com por si te hace sentido revisarlo."
     )
 
     # Validate non-negotiable negative invariants

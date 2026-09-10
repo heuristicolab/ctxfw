@@ -161,6 +161,9 @@ Beyond token compression, `ctxfw` operates as an out-of-band deterministic gatek
 
 ## 6. Verification Protocol: The 2-Minute Litmus Test
 
+Explore the live token economy model and interactive specification sieve at:
+`https://ctxfw.heuristicolab.com`
+
 We invite **{lead}** and the engineering staff at **{company}** to run the zero-friction verification litmus test in an isolated repository:
 
 ```bash
