@@ -1138,8 +1138,8 @@
     /* TOAST NOTIFICATION */
     .toast {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
+      bottom: 72px;
+      right: 16px;
       background: var(--emerald);
       color: #000;
       font-family: var(--font-mono);
@@ -1158,6 +1158,281 @@
 
     .toast.visible {
       transform: translateY(0);
+    }
+
+    /* SUPPORT DRAWER & CONSOLE (CLOUDFLARE / JETBRAINS DARK STYLE) */
+    .support-tab-btn {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      z-index: 999;
+      background: #0c121e;
+      border: 1px solid #00f0ff;
+      color: #00f0ff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 20px rgba(0, 240, 255, 0.25);
+      transition: all 0.2s ease;
+    }
+
+    .support-tab-btn:hover {
+      background: rgba(0, 240, 255, 0.15);
+      box-shadow: 0 4px 25px rgba(0, 240, 255, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .drawer-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .support-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 440px;
+      max-width: 92vw;
+      height: 100vh;
+      background: #06080d;
+      border-left: 1px solid #1e293b;
+      z-index: 1001;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.8);
+      box-sizing: border-box;
+    }
+
+    .support-drawer.active {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .drawer-badge {
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      color: #00f0ff;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 3px;
+      letter-spacing: 0.08em;
+    }
+
+    .drawer-close-btn {
+      background: transparent;
+      border: 1px solid #1e293b;
+      color: #94a3b8;
+      width: 28px;
+      height: 28px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: var(--font-mono);
+      transition: all 0.15s ease;
+    }
+
+    .drawer-close-btn:hover {
+      border-color: #00f0ff;
+      color: #ffffff;
+    }
+
+    .drawer-title {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+
+    .drawer-sub {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .faq-accordion {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .faq-item {
+      background: #0c121e;
+      border: 1px solid #1e293b;
+      border-radius: 4px;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+
+    .faq-item[open] {
+      border-color: rgba(0, 240, 255, 0.4);
+    }
+
+    .faq-summary {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: #e2e8f0;
+      padding: 12px 14px;
+      cursor: pointer;
+      list-style: none;
+      position: relative;
+      padding-right: 30px;
+      user-select: none;
+    }
+
+    .faq-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-summary::after {
+      content: "+";
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      color: #00f0ff;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .faq-item[open] .faq-summary::after {
+      content: "−";
+    }
+
+    .faq-content {
+      padding: 0 14px 14px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      border-top: 1px solid rgba(30, 41, 59, 0.6);
+      margin-top: 6px;
+      padding-top: 10px;
+    }
+
+    .drawer-divider {
+      border: 0;
+      border-top: 1px solid #1e293b;
+      margin: 20px 0;
+    }
+
+    .form-title {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 12px;
+      letter-spacing: 0.05em;
+    }
+
+    .inquiry-input, .inquiry-textarea {
+      width: 100%;
+      background: #030508;
+      border: 1px solid #1e293b;
+      border-radius: 4px;
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #ffffff;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .inquiry-input:focus, .inquiry-textarea:focus {
+      outline: none;
+      border-color: #00f0ff;
+      box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+    }
+
+    .inquiry-textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    .inquiry-btn {
+      width: 100%;
+      background: #00f0ff;
+      color: #000000;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .inquiry-btn:hover {
+      background: #38bdf8;
+      box-shadow: 0 4px 15px rgba(0, 240, 255, 0.4);
+    }
+
+    .inquiry-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .inquiry-status {
+      margin-top: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.4;
+      padding: 8px 10px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .inquiry-status.success {
+      display: block;
+      background: rgba(0, 255, 136, 0.1);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      color: #00ff88;
+    }
+
+    .inquiry-status.error {
+      display: block;
+      background: rgba(255, 77, 77, 0.1);
+      border: 1px solid rgba(255, 77, 77, 0.3);
+      color: #ff4d4d;
     }
   </style>
 </head>
@@ -1693,6 +1968,63 @@
     </div>
   </footer>
 
+  <!-- Disparador flotante visible en la esquina inferior derecha -->
+  <button id="support-trigger" class="support-tab-btn" onclick="toggleSupportDrawer()" aria-label="Abrir consola de soporte técnico y FAQ">
+    <span data-i18n="drawer_tab">⚡ CONSOLA PERIMETRAL // FAQ</span>
+  </button>
+
+  <!-- Backdrop oscurecido -->
+  <div id="drawer-backdrop" class="drawer-backdrop" onclick="toggleSupportDrawer()"></div>
+
+  <!-- Consola lateral (estilo JetBrains / Cloudflare Dark) -->
+  <aside id="support-drawer" class="support-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title-heading">
+    <div class="drawer-header">
+      <div class="drawer-badge" data-i18n="faq_badge">DUDAS FRECUENTES (CTO & LEAD LEVEL)</div>
+      <button class="drawer-close-btn" onclick="toggleSupportDrawer()" aria-label="Cerrar consola" data-i18n="drawer_close">✕</button>
+    </div>
+    
+    <h2 id="drawer-title-heading" class="drawer-title" data-i18n="drawer_title">Heurístico Lab // Autonomous Operations Desk</h2>
+    <p class="drawer-sub" data-i18n="drawer_subtitle">Arquitectura determinista, auditorías de contexto y soporte perimetral.</p>
+
+    <!-- Acordeón de FAQ -->
+    <div class="faq-accordion">
+      <details class="faq-item">
+        <summary class="faq-summary" data-i18n="faq_q1">¿Cómo garantiza CTXFW que podar el 72.4% de tokens no degrade el razonamiento?</summary>
+        <div class="faq-content" data-i18n="faq_a1">CTXFW no resume con otro LLM. Utiliza gramáticas Tree-sitter para podar implementaciones privadas y redundancias cíclicas, preservando al 100% las firmas de interfaz, tipos y contratos públicos (stubs). El modelo recibe únicamente la topología matemática indispensable.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-summary" data-i18n="faq_q2">¿Qué garantías de soberanía y privacidad de datos ofrece?</summary>
+        <div class="faq-content" data-i18n="faq_a2">El motor opera íntegramente en memoria volátil (RAM sandbox). Ningún token, esquema ni línea de código se persiste en disco ni sale a APIs externas. La inspección se ejecuta en local a latencia O(1) (&lt;80ms).</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-summary" data-i18n="faq_q3">¿Cómo se integra en un pipeline de ingeniería existente?</summary>
+        <div class="faq-content" data-i18n="faq_a3">Como hook pre-commit determinista en Git (ctxfw spec verify) para bloquear código no conforme antes del push, o como proxy/sidecar HTTP entre tu orquestador de agentes (LangChain, LlamaIndex, MCP) y el proveedor de inferencia.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-summary" data-i18n="faq_q4">¿Qué incluye el Tier 0: Argos Audit ($1,500 USD)?</summary>
+        <div class="faq-content" data-i18n="faq_a4">Entrega formal en 24h hábiles sobre hasta 5,000 nSLOC de tu pipeline. Incluye mapa de fugas de contexto, diff AST reproducible y proyección formal de reducción de costos de inferencia.</div>
+      </details>
+    </div>
+
+    <hr class="drawer-divider">
+
+    <!-- Formulario de Despacho Asíncrono -->
+    <form id="inquiry-form" onsubmit="submitAsyncInquiry(event)">
+      <h3 class="form-title" data-i18n="form_title">Despacho Asíncrono al Arquitecto Principal</h3>
+      
+      <label for="inquiry-email" class="sr-only" data-i18n="form_email_label">Correo corporativo</label>
+      <input type="email" id="inquiry-email" class="inquiry-input" required placeholder="tu@empresa.com" data-i18n-attr="placeholder:form_email_placeholder">
+
+      <label for="inquiry-message" class="sr-only" data-i18n="form_msg_label">Consulta o especificación</label>
+      <textarea id="inquiry-message" class="inquiry-textarea" rows="3" required placeholder="Describe tu pipeline de agentes..." data-i18n-attr="placeholder:form_msg_placeholder"></textarea>
+
+      <button type="submit" id="inquiry-submit-btn" class="inquiry-btn">
+        <span data-i18n="form_submit">DESPACHAR CONSULTA ASÍNCRONA</span>
+      </button>
+      <div id="inquiry-status" class="inquiry-status"></div>
+    </form>
+  </aside>
+
   <script>
     // -------------------------------------------------------------------------
     // INTERNATIONALIZATION (I18N) DICTIONARY
@@ -1786,7 +2118,29 @@
         "tbl.r1": "El sentry pre-commit intercepta cualquier requerimiento que admita almacenamiento o logging de PAN o CVV en claro antes de llegar al código.",
         "tbl.r2": "Trazabilidad criptográfica absoluta: cada commit queda ligado a un manifest_hash SHA-256 inmutable de la especificación verificada.",
         "tbl.r3": "Impide la síntesis probabilística no supervisada forzando al agente a respetar invariantes de dominio y estados formales aprobados.",
-        "tbl.r4": "Aislamiento formal de taxonomía de errores en 4 clases deterministas para evitar fallos en cascada en servicios financieros."
+        "tbl.r4": "Aislamiento formal de taxonomía de errores en 4 clases deterministas para evitar fallos en cascada en servicios financieros.",
+        "drawer_tab": "⚡ CONSOLA PERIMETRAL // FAQ",
+        "drawer_title": "Heurístico Lab // Autonomous Operations Desk",
+        "drawer_subtitle": "Arquitectura determinista, auditorías de contexto y soporte perimetral.",
+        "faq_badge": "DUDAS FRECUENTES (CTO & LEAD LEVEL)",
+        "faq_q1": "¿Cómo garantiza CTXFW que podar el 72.4% de tokens no degrade el razonamiento?",
+        "faq_a1": "CTXFW no resume con otro LLM. Utiliza gramáticas Tree-sitter para podar implementaciones privadas y redundancias cíclicas, preservando al 100% las firmas de interfaz, tipos y contratos públicos (stubs). El modelo recibe únicamente la topología matemática indispensable.",
+        "faq_q2": "¿Qué garantías de soberanía y privacidad de datos ofrece?",
+        "faq_a2": "El motor opera íntegramente en memoria volátil (RAM sandbox). Ningún token, esquema ni línea de código se persiste en disco ni sale a APIs externas. La inspección se ejecuta en local a latencia O(1) (&lt;80ms).",
+        "faq_q3": "¿Cómo se integra en un pipeline de ingeniería existente?",
+        "faq_a3": "Como hook pre-commit determinista en Git (ctxfw spec verify) para bloquear código no conforme antes del push, o como proxy/sidecar HTTP entre tu orquestador de agentes (LangChain, LlamaIndex, MCP) y el proveedor de inferencia.",
+        "faq_q4": "¿Qué incluye el Tier 0: Argos Audit ($1,500 USD)?",
+        "faq_a4": "Entrega formal en 24h hábiles sobre hasta 5,000 nSLOC de tu pipeline. Incluye mapa de fugas de contexto, diff AST reproducible y proyección formal de reducción de costos de inferencia.",
+        "form_title": "Despacho Asíncrono al Arquitecto Principal",
+        "form_email_label": "Correo corporativo / técnico",
+        "form_email_placeholder": "tu@empresa.com",
+        "form_msg_label": "Especificación técnica, duda o repositorio",
+        "form_msg_placeholder": "Describe tu pipeline de agentes o endpoint problemático...",
+        "form_submit": "DESPACHAR CONSULTA ASÍNCRONA",
+        "form_submitting": "ENCRIPTANDO Y TRANSMITIENDO...",
+        "form_success": "✓ Consulta registrada en el centinela perimetral. Respuesta en < 4h.",
+        "form_error": "Error al transmitir. Escribe a mike.marin@heuristicolab.com",
+        "drawer_close": "CERRAR CONSOLA [ESC]"
       },
       en: {
         "nav.litmus": "Litmus Test",
@@ -1876,7 +2230,29 @@
         "tbl.r1": "The pre-commit sentry intercepts any specification permitting cleartext PAN or CVV logging before reaching code.",
         "tbl.r2": "Absolute cryptographic traceability: every commit is bound to an immutable SHA-256 manifest hash.",
         "tbl.r3": "Eliminates unmonitored probabilistic code synthesis by compelling AI agents to adhere to proven invariants.",
-        "tbl.r4": "Formal 4-class fault taxonomy isolation prevents cascading downtime across mission-critical financial systems."
+        "tbl.r4": "Formal 4-class fault taxonomy isolation prevents cascading downtime across mission-critical financial systems.",
+        "drawer_tab": "⚡ PERIMETER CONSOLE // FAQ",
+        "drawer_title": "Heurístico Lab // Autonomous Operations Desk",
+        "drawer_subtitle": "Deterministic architecture, context audits, and perimeter support.",
+        "faq_badge": "FREQUENT INQUIRIES (CTO & LEAD LEVEL)",
+        "faq_q1": "How does CTXFW prune 72.4% of tokens without reasoning degradation?",
+        "faq_a1": "CTXFW never uses probabilistic LLMs to summarize. It applies Tree-sitter grammars to prune private method bodies and cyclic redundancies, preserving 100% of interface signatures, types, and public contracts (stubs). The model receives only the indispensable AST topology.",
+        "faq_q2": "What sovereignty and data privacy guarantees are enforced?",
+        "faq_a2": "The engine runs strictly in volatile memory (RAM sandbox). Zero tokens, schemas, or source lines are ever written to disk or sent to third-party APIs. Enforcement happens locally at O(1) latency (<80ms).",
+        "faq_q3": "How does it deploy into an existing engineering stack?",
+        "faq_a3": "Either as a deterministic Git pre-commit hook (ctxfw spec verify) to prevent non-compliant commits, or as an HTTP sidecar/proxy between your agent orchestrators (LangChain, LlamaIndex, MCP) and frontier model endpoints.",
+        "faq_q4": "What is delivered in the Tier 0: Argos Audit ($1,500 USD)?",
+        "faq_a4": "Formal delivery within 24 business hours across up to 5,000 nSLOC. Includes token leakage mapping, reproducible AST diffs, and a binding FinOps cost reduction projection.",
+        "form_title": "Direct Async Dispatch to Principal Architect",
+        "form_email_label": "Corporate / Technical Email",
+        "form_email_placeholder": "you@company.com",
+        "form_msg_label": "Technical spec, question, or repo overview",
+        "form_msg_placeholder": "Outline your agent pipeline or problematic schema...",
+        "form_submit": "DISPATCH ASYNC INQUIRY",
+        "form_submitting": "ENCRYPTING & DISPATCHING...",
+        "form_success": "✓ Inquiry registered in perimeter sentinel. Response SLA < 4h.",
+        "form_error": "Transmission error. Direct dispatch: mike.marin@heuristicolab.com",
+        "drawer_close": "CLOSE CONSOLE [ESC]"
       }
     };
 
@@ -1884,15 +2260,27 @@
 
     function switchLanguage(lang) {
       currentLang = lang;
-      document.getElementById('btnLangEs').classList.toggle('active', lang === 'es');
-      document.getElementById('btnLangEn').classList.toggle('active', lang === 'en');
+      const btnEs = document.getElementById('btnLangEs');
+      const btnEn = document.getElementById('btnLangEn');
+      if (btnEs) btnEs.classList.toggle('active', lang === 'es');
+      if (btnEn) btnEn.classList.toggle('active', lang === 'en');
       
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
-        if (i18n[lang] && i18n[lang][key]) {
+        if (i18n[lang] && i18n[lang][key] !== undefined) {
           el.innerHTML = i18n[lang][key];
         }
       });
+
+      document.querySelectorAll('[data-i18n-attr]').forEach(el => {
+        const attrMapping = el.getAttribute('data-i18n-attr');
+        const [attr, key] = attrMapping.split(':');
+        if (i18n[lang] && i18n[lang][key] !== undefined) {
+          el.setAttribute(attr, i18n[lang][key]);
+        }
+      });
+
+      updateFinopsCalculation();
     }
 
     // -------------------------------------------------------------------------
@@ -2298,6 +2686,74 @@ Deterministic SHA-256 attestation seal guarantees manifest immutability.
 
     // Run initial calculation
     updateFinopsCalculation();
+
+    // -------------------------------------------------------------------------
+    // SUPPORT DRAWER & ASYNC INQUIRY DISPATCH
+    // -------------------------------------------------------------------------
+    function toggleSupportDrawer() {
+      const drawer = document.getElementById('support-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (!drawer || !backdrop) return;
+      const isOpen = drawer.classList.toggle('active');
+      backdrop.classList.toggle('active', isOpen);
+      if (isOpen) {
+        const emailInput = document.getElementById('inquiry-email');
+        if (emailInput) setTimeout(() => emailInput.focus(), 100);
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const drawer = document.getElementById('support-drawer');
+        if (drawer && drawer.classList.contains('active')) {
+          toggleSupportDrawer();
+        }
+      }
+    });
+
+    async function submitAsyncInquiry(event) {
+      event.preventDefault();
+      const emailInput = document.getElementById('inquiry-email');
+      const messageInput = document.getElementById('inquiry-message');
+      const submitBtn = document.getElementById('inquiry-submit-btn');
+      const statusEl = document.getElementById('inquiry-status');
+
+      const email = emailInput.value.trim();
+      const message = messageInput.value.trim();
+
+      if (!email || !message) return;
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>${i18n[currentLang].form_submitting}</span>`;
+      statusEl.className = 'inquiry-status';
+      statusEl.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/inquiries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, message })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.status === 'SUCCESS') {
+          statusEl.className = 'inquiry-status success';
+          statusEl.textContent = i18n[currentLang].form_success;
+          statusEl.style.display = 'block';
+          document.getElementById('inquiry-form').reset();
+        } else {
+          throw new Error(data.message || 'Transmission failure');
+        }
+      } catch (err) {
+        statusEl.className = 'inquiry-status error';
+        statusEl.textContent = i18n[currentLang].form_error;
+        statusEl.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span data-i18n="form_submit">${i18n[currentLang].form_submit}</span>`;
+      }
+    }
   </script>
 </body>
 </html>
