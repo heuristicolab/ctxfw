@@ -1352,6 +1352,18 @@
       padding-top: 10px;
     }
 
+    .custom-dev-card {
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .custom-dev-card:hover {
+      border-color: rgba(0, 240, 255, 0.4) !important;
+      background: rgba(0, 240, 255, 0.06) !important;
+    }
+    .custom-dev-link:hover {
+      text-decoration: underline !important;
+      color: #38bdf8 !important;
+    }
+
     .drawer-divider {
       border: 0;
       border-top: 1px solid #1e293b;
@@ -2008,8 +2020,24 @@
       </details>
       <details class="faq-item">
         <summary class="faq-summary" data-i18n="faq_q4">¿Qué incluye el Tier 0: Argos Audit ($1,500 USD)?</summary>
-        <div class="faq-content" data-i18n="faq_a4">Entrega formal en 24h hábiles sobre hasta 5,000 nSLOC de tu pipeline. Incluye mapa de fugas de contexto, diff AST reproducible y proyección formal de reducción de costos de inferencia.</div>
+        <div class="faq-content" data-i18n="faq_a4">Entrega formal en 24h hábiles sobre hasta 5,000 nSLOC de tu pipeline. Incluye mapa de fugas de contexto, diff AST reproducible y proyección formal de reducción de costos de inferencia. Gestionado directamente a través de <a href="https://heuristicolab.com" target="_blank" rel="noopener noreferrer" style="color: #00f0ff; text-decoration: underline;">heuristicolab.com</a>.</div>
       </details>
+    </div>
+
+    <!-- Bloque de Enrutamiento a Desarrollo Específico -->
+    <div class="custom-dev-card" style="margin: 20px 0; padding: 16px; background: rgba(0, 240, 255, 0.03); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 4px;">
+      <span class="badge" style="font-family: var(--font-mono); font-size: 10px; color: #00f0ff; letter-spacing: 0.1em; text-transform: uppercase;" data-i18n="custom_dev_badge">
+        DESARROLLO A MEDIDA // AUDITORÍAS DEDICADAS
+      </span>
+      <h4 style="margin: 8px 0 6px; font-size: 14px; font-weight: 600; color: #f8fafc;" data-i18n="custom_dev_title">
+        ¿Requieres una implementación o desarrollo específico?
+      </h4>
+      <p style="margin: 0 0 12px; font-size: 12px; line-height: 1.5; color: #94a3b8;" data-i18n="custom_dev_desc">
+        Entrega formal en 24 horas hábiles sobre hasta 5,000 nSLOC. Incluye mapeo de fugas de tokens, diffs AST reproducibles y una proyección vinculante de reducción de costos FinOps.
+      </p>
+      <a href="https://heuristicolab.com" target="_blank" rel="noopener noreferrer" class="custom-dev-link" style="display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: #00f0ff; text-decoration: none; letter-spacing: 0.05em;">
+        <span data-i18n="custom_dev_cta">INICIAR EN HEURISTICO LAB →</span>
+      </a>
     </div>
 
     <hr class="drawer-divider">
@@ -2136,7 +2164,11 @@
         "faq_q3": "¿Cómo se integra en un pipeline de ingeniería existente?",
         "faq_a3": "Como hook pre-commit determinista en Git (ctxfw spec verify) para bloquear código no conforme antes del push, o como proxy/sidecar HTTP entre tu orquestador de agentes (LangChain, LlamaIndex, MCP) y el proveedor de inferencia.",
         "faq_q4": "¿Qué incluye el Tier 0: Argos Audit ($1,500 USD)?",
-        "faq_a4": "Entrega formal en 24h hábiles sobre hasta 5,000 nSLOC de tu pipeline. Incluye mapa de fugas de contexto, diff AST reproducible y proyección formal de reducción de costos de inferencia.",
+        "faq_a4": "Entrega formal en 24h hábiles sobre hasta 5,000 nSLOC de tu pipeline. Incluye mapa de fugas de contexto, diff AST reproducible y proyección formal de reducción de costos de inferencia. Gestionado directamente a través de <a href=\"https://heuristicolab.com\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: #00f0ff; text-decoration: underline;\">heuristicolab.com</a>.",
+        "custom_dev_badge": "DESARROLLO A MEDIDA // AUDITORÍAS DEDICADAS",
+        "custom_dev_title": "¿Requieres una implementación o desarrollo específico?",
+        "custom_dev_desc": "Entrega formal en 24 horas hábiles sobre hasta 5,000 nSLOC. Incluye mapeo de fugas de tokens, diffs AST reproducibles y una proyección vinculante de reducción de costos FinOps.",
+        "custom_dev_cta": "INICIAR EN HEURISTICO LAB →",
         "form_title": "Despacho Asíncrono al Arquitecto Principal",
         "form_email_label": "Correo corporativo / técnico",
         "form_email_placeholder": "tu@empresa.com",
@@ -2248,7 +2280,11 @@
         "faq_q3": "How does it deploy into an existing engineering stack?",
         "faq_a3": "Either as a deterministic Git pre-commit hook (ctxfw spec verify) to prevent non-compliant commits, or as an HTTP sidecar/proxy between your agent orchestrators (LangChain, LlamaIndex, MCP) and frontier model endpoints.",
         "faq_q4": "What is delivered in the Tier 0: Argos Audit ($1,500 USD)?",
-        "faq_a4": "Formal delivery within 24 business hours across up to 5,000 nSLOC. Includes token leakage mapping, reproducible AST diffs, and a binding FinOps cost reduction projection.",
+        "faq_a4": "Formal delivery within 24 business hours across up to 5,000 nSLOC. Includes token leakage mapping, reproducible AST diffs, and a binding FinOps cost reduction projection. Commissioned directly via <a href=\"https://heuristicolab.com\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: #00f0ff; text-decoration: underline;\">heuristicolab.com</a>.",
+        "custom_dev_badge": "CUSTOM ARCHITECTURE // DEDICATED AUDITS",
+        "custom_dev_title": "Require custom development or bespoke integration?",
+        "custom_dev_desc": "Formal delivery within 24 business hours across up to 5,000 nSLOC. Includes token leakage mapping, reproducible AST diffs, and a binding FinOps cost reduction projection.",
+        "custom_dev_cta": "LAUNCH AT HEURISTICO LAB →",
         "form_title": "Direct Async Dispatch to Principal Architect",
         "form_email_label": "Corporate / Technical Email",
         "form_email_placeholder": "you@company.com",
