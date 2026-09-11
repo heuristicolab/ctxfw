@@ -1,0 +1,22 @@
+# CTXFW // High-Assurance FinOps & AST Boundary for LLMs
+
+> Deterministic context pruning and sovereignty boundary for frontier AI systems (Claude Fable, GPT-6, DeepSeek).
+
+## Overview
+CTXFW (Context Framework) is an in-memory, deterministic AST pruning firewall and FinOps gateway. It intercepts recursive context payloads before API dispatch, eliminating up to 72.4% of redundant AST tokens while guaranteeing 100% interface contract validity via Tree-sitter.
+
+## Core Capabilities
+- **Deterministic Tree-sitter AST Pruning:** Strips internal method implementations while preserving strict cryptographic interface contracts.
+- **FinOps Reduction:** Reduces recurring inference expenditure across engineering squads by an audited 72.4%.
+- **Zero-Trust Memory Sandbox:** Operates entirely in volatile RAM. No AST tokens or source schemas are ever stored on disk or transferred to third-party aduanas.
+- **Axiom Completeness Index (ACI):** Evaluates mathematical invariants and contract integrity at O(1) latency.
+
+## Architecture & Deployment Tiers
+1. **Tier 0: Perimeter Audit ($1,500 USD):** 24h turn-around static context and token leakage audit.
+2. **Tier 1: Core Engine License ($4,500 USD):** Self-hosted AST pruning daemon for single-repo pipelines.
+3. **Tier 2: Sovereign AI Forge ($9,500 USD):** Multi-model routing, dynamic cost-capping, and bespoke Tree-sitter grammars.
+4. **Tier 3: Skunk Works Enterprise ($16,500+ USD):** Air-gapped deployment, custom compiler bridges, and on-premise SLA.
+
+## API & Endpoints
+- Documentation & Live Sensor: https://ctxfw.heuristicolab.com
+- Architectural Inquiries: mike.marin@heuristicolab.com

@@ -5,9 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CTXFW // Context Firewall & Axiomatic Gatekeeper — Heuristico LAB Skunk Works</title>
   <meta name="description" content="Aduana matemática determinista y Model Context Protocol (MCP) gatekeeper para flujos agénticos de IA. Grado defensa, rechazo en pre-commit <80ms y cero complacencia probabilística.">
+  <link rel="alternate" type="text/markdown" href="/llms.txt" title="LLM-friendly text format">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+  </noscript>
   <style>
     :root {
       --bg: #06080d;
@@ -31,14 +36,26 @@
       --text: #cbd7e6;
       --text-muted: #6f8099;
       --text-bright: #ffffff;
-      --font-mono: 'JetBrains Mono', monospace;
-      --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Monaco, Consolas, monospace;
+      --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+    }
+
+    /* Screen reader accessible utility */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
     }
 
     body {
@@ -427,7 +444,7 @@
     .term-tab-btn {
       background: #111722;
       border: 1px solid var(--border);
-      color: var(--text-muted);
+      color: #a0aec0; /* WCAG AA accessible contrast ratio >= 4.5:1 */
       font-family: var(--font-mono);
       font-size: 11px;
       font-weight: 600;
@@ -461,7 +478,7 @@
     .c-amber { color: var(--amber); }
     .c-graphite { color: var(--graphite); }
     .c-white { color: #ffffff; font-weight: bold; }
-    .c-dim { color: #52637a; }
+    .c-dim { color: #94a3b8; } /* WCAG AA accessible contrast ratio >= 4.5:1 */
 
     /* SECTIONS COMMON */
     section {
@@ -1107,15 +1124,15 @@
       font-family: var(--font-mono);
       font-size: 12px;
       font-weight: 700;
-      color: var(--text-muted);
+      color: #94a3b8;
       letter-spacing: 0.12em;
       margin-bottom: 8px;
     }
 
-    footer p.footer-sub {
+    footer p.footer-sub, footer p {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: #3e4b5e;
+      color: #94a3b8;
     }
 
     /* TOAST NOTIFICATION */
@@ -1568,7 +1585,10 @@
               <span data-i18n="finops.slider_lbl">Desarrolladores Activos en el Equipo:</span>
               <strong id="lblDevCount" style="color: var(--cyan);">45 desarrolladores</strong>
             </div>
-            <input type="range" id="tokenSlider" class="range-slider" min="1" max="150" value="45" oninput="updateFinopsCalculation()">
+            <!-- Slider de Tokens -->
+            <label for="tokenSlider" class="sr-only">Tokens por solicitud / Desarrolladores activos</label>
+            <input type="range" id="tokenSlider" class="range-slider" min="1" max="150" value="45" 
+                   aria-label="Tokens por solicitud" oninput="updateFinopsCalculation()">
 
             <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: -10px; margin-bottom: 14px;">
               <span>1 dev</span>
@@ -1576,10 +1596,13 @@
               <span>150 devs</span>
             </div>
 
+            <!-- Selector de Modelo -->
+            <label for="modelSelect" class="sr-only">Modelo frontera de razonamiento</label>
             <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); margin-top: 14px;" data-i18n="finops.model_lbl">
               Modelo Frontera (Precios Septiembre 2026):
             </div>
-            <select id="modelSelect" class="model-dropdown" onchange="onModelDropdownChange(this.value)">
+            <select id="modelSelect" class="model-dropdown" 
+                    aria-label="Seleccionar modelo de razonamiento" onchange="onModelDropdownChange(this.value)">
               <option value="10.00" data-model="Claude Fable 5.1" selected>Claude Fable 5.1 (Input $10.00 / Output $50.00)</option>
               <option value="10.00_gpt6" data-model="GPT-6 Astra">GPT-6 Astra (Input $10.00 / Output $50.00)</option>
               <option value="5.00_opus5" data-model="Claude Opus 5">Claude Opus 5 (Input $5.00 / Output $25.00)</option>
@@ -1664,7 +1687,7 @@
     <div class="container">
       <p class="footer-tagline">ENGINEERED & CLASSIFIED BY HEURISTICO LAB // SKUNK WORKS DIVISION</p>
       <p class="footer-sub">HIGH-ASSURANCE DEFENSE SYSTEMS GROUP // HEURISTICO LAB // SKUNK WORKS DIVISION</p>
-      <p style="margin-top: 10px; font-family: var(--font-mono); font-size: 11px; color: #283446;">
+      <p style="margin-top: 10px; font-family: var(--font-mono); font-size: 11px; color: #94a3b8;">
         MANIFEST HASH: 575d12d75bcb427be48c3d62c643a4fb4a0260768cb49197c5d09133058581ed
       </p>
     </div>
