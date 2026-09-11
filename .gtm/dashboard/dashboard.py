@@ -1,5 +1,5 @@
 # C:\ctxfw\.gtm\dashboard\dashboard.py
-# Axiom Manifest Hash: b7e12daa2ed7ae4ee23754eabd1ea68faeb0783a751b3f35cce23e04bf6d3b92
+# Axiom Manifest Hash: 2cd7226de1dab826ae6c1e316e84c32b2400e20037dbf6ae74632a9f0136b9fa
 """
 GTM Mission Control: Real-Time CRM Telemetry Dashboard & Dispatch Terminal
 FastAPI + SSE backend with Dark Brutalist defense-grade HUD, Kanban radar,
@@ -9,15 +9,18 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import json
 import os
 from pathlib import Path
 import re
 import secrets
+import smtplib
 import sqlite3
 import sys
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -632,12 +635,60 @@ async def broadcast_sse_event(event_type: str, payload: dict):
             pass
 
 
+def dispatch_lead_notification(prospect_email: str, company: str, message: str):
+    """
+    Dispatches immediate real-time alert email to principal architect for inbound leads.
+    Configures Reply-To directly to prospect for one-click native email client replies.
+    """
+    recipient = "mike.marin@heuristicolab.com"
+    sender = "sentinel@ctxfw.heuristicolab.com"
+
+    # Sanitize header fields to eliminate newline injection
+    clean_company = company.replace("\r", "").replace("\n", "").strip()
+    clean_prospect = prospect_email.replace("\r", "").replace("\n", "").strip()
+
+    subject = f"[CTXFW LEAD] Consulta entrante: {clean_company} ({clean_prospect})"
+
+    body = f"""Alerta de Lead Orgánico // CTXFW Sentinel
+
+Prospecto: {clean_prospect}
+
+Organización detectada: {clean_company}
+
+Canal: Web Technical Console (FAQ Drawer)
+
+Requerimiento / Mensaje:
+{message}
+
+---
+Para responder de inmediato, haz clic en 'Responder' en Thunderbird (Reply-To configurado directamente al prospecto).
+
+Registro indexado en pipeline.db con estado ENGAGED.
+"""
+
+    msg = MIMEMultipart()
+    msg['From'] = f"CTXFW Sentinel <{sender}>"
+    msg['To'] = recipient
+    msg['Reply-To'] = clean_prospect
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
+    try:
+        # Intento de envío local vía SMTP port 25
+        with smtplib.SMTP('127.0.0.1', 25, timeout=5) as server:
+            server.send_message(msg)
+            print(f"[SENTINEL NOTIFICATION] Lead email dispatched for {clean_company} ({clean_prospect})")
+    except Exception as e:
+        # Fallback silencioso registrado en logs sin detener el pipeline
+        print(f"[SENTINEL NOTIFICATION ERROR] No se pudo despachar SMTP: {e}")
+
+
 @app.post("/api/inquiries")
-async def receive_inquiry(request: Request):
+async def receive_inquiry(request: Request, background_tasks: BackgroundTasks):
     """
     Captures async inbound inquiries from technical console support drawer.
     Persists or matches corporate target, records interaction in pipeline.db,
-    and dispatches live SSE event.
+    dispatches live SSE event, and triggers background email alert.
     """
     try:
         try:
@@ -709,6 +760,14 @@ async def receive_inquiry(request: Request):
             "preview": message[:120],
             "timestamp": now_iso
         })
+
+        # Despachar correo en segundo plano
+        background_tasks.add_task(
+            dispatch_lead_notification,
+            prospect_email=email,
+            company=company_name,
+            message=message
+        )
 
         return JSONResponse(
             status_code=200,
