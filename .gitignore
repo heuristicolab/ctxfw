@@ -10,3 +10,6 @@ __pycache__/
 *.env
 *.egg-info/
 build/
+public_export/
+org_profile/
+profile_readme/
