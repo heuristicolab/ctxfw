@@ -998,6 +998,40 @@
       background: var(--cyan-dim);
     }
 
+    .model-dropdown {
+      width: 100%;
+      background: #0f1521;
+      border: 1px solid var(--border);
+      color: var(--cyan);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 10px 14px;
+      border-radius: 4px;
+      margin-top: 10px;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .model-dropdown:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan-dim);
+    }
+
+    .model-dropdown option {
+      background: #0d121b;
+      color: var(--text);
+      padding: 8px;
+    }
+
+    .savings-annual {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--emerald);
+      margin-bottom: 8px;
+    }
+
     .savings-display {
       background: #070a10;
       border: 1px solid var(--border-highlight);
@@ -1141,8 +1175,8 @@
           <button id="btnLangEn" class="lang-btn" onclick="switchLanguage('en')">EN</button>
         </div>
 
-        <a href="https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b" target="_blank" rel="noopener noreferrer" class="btn-repo">
-          <span style="color: var(--cyan);">●</span> <span data-i18n="nav.repository">Sovereign Git</span>
+        <a href="https://github.com/heuristicolab/ctxfw" target="_blank" rel="noopener noreferrer" class="btn-repo">
+          <span style="color: var(--cyan);">●</span> <span data-i18n="nav.repository">GitHub Oficial</span>
         </a>
       </div>
     </div>
@@ -1165,14 +1199,14 @@
       <!-- INSTALL COMMAND BOX (3 TABS) -->
       <div class="install-box">
         <div class="install-nav">
-          <button class="install-tab-btn active" onclick="selectInstallTab(0)">Standalone Wheel</button>
-          <button class="install-tab-btn" onclick="selectInstallTab(1)">pipx Global CLI</button>
-          <button class="install-tab-btn" onclick="selectInstallTab(2)">Editable Git Source</button>
+          <button class="install-tab-btn active" onclick="selectInstallTab(0)">Instalador Canónico</button>
+          <button class="install-tab-btn" onclick="selectInstallTab(1)">pip Global CLI</button>
+          <button class="install-tab-btn" onclick="selectInstallTab(2)">Git Clone (Soberano)</button>
         </div>
         <div class="install-row">
           <div>
             <span class="cmd-symbol">$</span>
-            <span id="installCmdText">pip install ctxfw-3.5.0-py3-none-any.whl</span>
+            <span id="installCmdText">curl -fsSL https://ctxfw.heuristicolab.com/install.sh | bash</span>
           </div>
           <button id="btnCopyInstall" class="copy-button" onclick="copyCurrentInstallCmd()">COPY</button>
         </div>
@@ -1531,31 +1565,51 @@
         <div class="finops-grid">
           <div>
             <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 13px;">
-              <span data-i18n="finops.slider_lbl">Tokens de Contexto Mensuales:</span>
-              <strong id="lblTokenVolume" style="color: var(--cyan);">10,000,000 tokens</strong>
+              <span data-i18n="finops.slider_lbl">Desarrolladores Activos en el Equipo:</span>
+              <strong id="lblDevCount" style="color: var(--cyan);">45 desarrolladores</strong>
             </div>
-            <input type="range" id="tokenSlider" class="range-slider" min="1" max="100" value="10" oninput="updateFinopsCalculation()">
+            <input type="range" id="tokenSlider" class="range-slider" min="1" max="150" value="45" oninput="updateFinopsCalculation()">
+
+            <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: -10px; margin-bottom: 14px;">
+              <span>1 dev</span>
+              <span id="lblTokenVolume" style="color: var(--text);">1,488,375,000 tokens/mes</span>
+              <span>150 devs</span>
+            </div>
 
             <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); margin-top: 14px;" data-i18n="finops.model_lbl">
-              Selecciona el Modelo de IA del Equipo:
+              Modelo Frontera (Precios Septiembre 2026):
             </div>
+            <select id="modelSelect" class="model-dropdown" onchange="onModelDropdownChange(this.value)">
+              <option value="10.00" data-model="Claude Fable 5.1" selected>Claude Fable 5.1 (Input $10.00 / Output $50.00)</option>
+              <option value="10.00_gpt6" data-model="GPT-6 Astra">GPT-6 Astra (Input $10.00 / Output $50.00)</option>
+              <option value="5.00_opus5" data-model="Claude Opus 5">Claude Opus 5 (Input $5.00 / Output $25.00)</option>
+              <option value="5.00_sol" data-model="GPT-5.6 Sol">GPT-5.6 Sol (Input $5.00 / Output $30.00)</option>
+              <option value="2.00" data-model="Claude Sonnet 5">Claude Sonnet 5 (Input $2.00 / Output $10.00)</option>
+              <option value="0.375" data-model="Gemini 3.8 Flash">Gemini 3.8 Flash (Input $0.375 / Output $1.875)</option>
+            </select>
+
             <div class="model-selector">
-              <button class="model-chip active" onclick="selectModelPrice(3.0, this)">Claude 3.7 Sonnet ($3.00/1M)</button>
-              <button class="model-chip" onclick="selectModelPrice(2.5, this)">GPT-4o ($2.50/1M)</button>
-              <button class="model-chip" onclick="selectModelPrice(15.0, this)">Claude 3.5 Opus ($15.00/1M)</button>
+              <button class="model-chip active" data-model="Claude Fable 5.1" onclick="selectModelPrice(10.0, this, 'Claude Fable 5.1')">Claude Fable 5.1 ($10.00)</button>
+              <button class="model-chip" data-model="GPT-6 Astra" onclick="selectModelPrice(10.0, this, 'GPT-6 Astra')">GPT-6 Astra ($10.00)</button>
+              <button class="model-chip" data-model="Claude Opus 5" onclick="selectModelPrice(5.0, this, 'Claude Opus 5')">Claude Opus 5 ($5.00)</button>
+              <button class="model-chip" data-model="GPT-5.6 Sol" onclick="selectModelPrice(5.0, this, 'GPT-5.6 Sol')">GPT-5.6 Sol ($5.00)</button>
+              <button class="model-chip" data-model="Claude Sonnet 5" onclick="selectModelPrice(2.0, this, 'Claude Sonnet 5')">Claude Sonnet 5 ($2.00)</button>
+              <button class="model-chip" data-model="Gemini 3.8 Flash" onclick="selectModelPrice(0.375, this, 'Gemini 3.8 Flash')">Gemini 3.8 Flash ($0.38)</button>
             </div>
 
-            <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 18px;" data-i18n="finops.note">
-              * Estimación basada en una reducción conservadora del 72.4% en módulos periféricos mediante stubs de interfaz e inyección topológica por AST.
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 18px;" data-i18n="finops.note">
+              * Estimación basada en 35 prompts/dev/día a 45k tokens y una reducción determinista del 72.4% mediante stubs de interfaz e inyección topológica por AST.
             </p>
           </div>
 
           <div class="savings-display">
-            <span style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.08em;" data-i18n="finops.saved_title">
-              AHORRO FINOPS ESTIMADO / MES
+            <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.08em;" data-i18n="finops.saved_title">
+              CAPITAL EVITADO ESTIMADO (72.4% PODA AST)
             </span>
-            <div id="finopsSavedDollars" class="savings-val">$21.72</div>
-            <div id="finopsSavedTokens" class="savings-sub">7,240,000 tokens evitados</div>
+            <div id="finopsSavedDollars" class="savings-val">$10,775.84</div>
+            <div style="font-family: var(--font-mono); font-size: 12px; color: var(--cyan); margin-bottom: 6px;">/ mes evitado</div>
+            <div id="finopsSavedAnnual" class="savings-annual">$129,310.02 / año evitado</div>
+            <div id="finopsSavedTokens" class="savings-sub" style="margin-top: 8px;">1,077,583,500 tokens podados</div>
           </div>
         </div>
       </div>
@@ -1609,7 +1663,7 @@
   <footer>
     <div class="container">
       <p class="footer-tagline">ENGINEERED & CLASSIFIED BY HEURISTICO LAB // SKUNK WORKS DIVISION</p>
-      <p class="footer-sub">HIGH-ASSURANCE DEFENSE SYSTEMS GROUP // SOVEREIGN NODE ARCH-ORD-2026</p>
+      <p class="footer-sub">HIGH-ASSURANCE DEFENSE SYSTEMS GROUP // HEURISTICO LAB // SKUNK WORKS DIVISION</p>
       <p style="margin-top: 10px; font-family: var(--font-mono); font-size: 11px; color: #283446;">
         MANIFEST HASH: 575d12d75bcb427be48c3d62c643a4fb4a0260768cb49197c5d09133058581ed
       </p>
@@ -1695,10 +1749,10 @@
         "finops.tag": "// FINOPS & AHORRO DE CONTEXTO",
         "finops.title": "Calculadora de Eficiencia de Tokens",
         "finops.desc": "Al podar el árbol AST en dependencias D1 y D2+, CTXFW reduce drásticamente el tamaño del prompt enviado a los LLMs, eludiendo costos innecesarios.",
-        "finops.slider_lbl": "Tokens de Contexto Mensuales:",
-        "finops.model_lbl": "Selecciona el Modelo de IA del Equipo:",
-        "finops.note": "* Estimación basada en una reducción conservadora del 72.4% en módulos periféricos mediante stubs de interfaz e inyección topológica por AST.",
-        "finops.saved_title": "AHORRO FINOPS ESTIMADO / MES",
+        "finops.slider_lbl": "Desarrolladores Activos en el Equipo:",
+        "finops.model_lbl": "Modelo Frontera (Precios Septiembre 2026):",
+        "finops.note": "* Estimación basada en 35 prompts/dev/día a 45k tokens y una reducción determinista del 72.4% mediante stubs de interfaz e inyección topológica por AST.",
+        "finops.saved_title": "CAPITAL EVITADO ESTIMADO (72.4% PODA AST)",
 
         "comp.tag": "// AUDITORÍA Y REGULACIÓN B2B",
         "comp.title": "Matriz de Cumplimiento Normativo",
@@ -1785,10 +1839,10 @@
         "finops.tag": "// FINOPS & CONTEXT PRUNING",
         "finops.title": "Token Economy & Cost Calculator",
         "finops.desc": "By pruning AST dependency trees in D1 and D2+ modules, CTXFW compresses prompt payloads sent to frontier models, avoiding massive operational token waste.",
-        "finops.slider_lbl": "Monthly Context Volume:",
-        "finops.model_lbl": "Select Frontier AI Model:",
-        "finops.note": "* Projection based on a conservative 72.4% context reduction in peripheral modules via AST interface stubs.",
-        "finops.saved_title": "ESTIMATED FINOPS SAVINGS / MO",
+        "finops.slider_lbl": "Active Engineering Squad Size:",
+        "finops.model_lbl": "Frontier AI Model (September 2026 Matrix):",
+        "finops.note": "* Projection based on 35 prompts/dev/day at 45k tokens and deterministic 72.4% AST interface stub pruning.",
+        "finops.saved_title": "ESTIMATED AVOIDED CAPITAL (72.4% AST PRUNING)",
 
         "comp.tag": "// REGULATORY & ENTERPRISE AUDIT",
         "comp.title": "Enterprise Compliance Matrix",
@@ -1822,9 +1876,9 @@
     // INSTALLATION TABS & COPY SYSTEM
     // -------------------------------------------------------------------------
     const installCommands = [
-      "pip install ctxfw-3.5.0-py3-none-any.whl",
-      "pipx install git+https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b.git@v3.5.0",
-      "git clone https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b.git && cd arch-ord-2026-4f003b && pip install -e ."
+      "curl -fsSL https://ctxfw.heuristicolab.com/install.sh | bash",
+      "pip install ctxfw",
+      "git clone https://github.com/heuristicolab/ctxfw.git && cd ctxfw && pip install -e ."
     ];
 
     let currentInstallIndex = 0;
@@ -2140,28 +2194,83 @@ Deterministic SHA-256 attestation seal guarantees manifest immutability.
     loadSimPreset('compliant');
 
     // -------------------------------------------------------------------------
-    // FINOPS CALCULATOR ENGINE
+    // FINOPS CALCULATOR ENGINE (SEPTEMBER 2026 FRONTIER MODELS)
     // -------------------------------------------------------------------------
-    let currentModelPricePerMillion = 3.0; // Claude 3.7 Sonnet default
+    let currentModelPricePerMillion = 10.00; // Claude Fable 5.1 default ($10.00 / 1M input)
 
-    function selectModelPrice(price, el) {
+    function onModelDropdownChange(val) {
+      const price = parseFloat(val);
+      currentModelPricePerMillion = price;
+
+      const selectEl = document.getElementById('modelSelect');
+      const selectedOption = selectEl.options[selectEl.selectedIndex];
+      const modelName = selectedOption.getAttribute('data-model') || selectedOption.text;
+
+      document.querySelectorAll('.model-chip').forEach(chip => {
+        const chipModel = chip.getAttribute('data-model') || chip.textContent;
+        if (modelName.includes(chipModel) || chipModel.includes(modelName.split(' ')[0])) {
+          chip.classList.add('active');
+        } else {
+          chip.classList.remove('active');
+        }
+      });
+      updateFinopsCalculation();
+    }
+
+    function selectModelPrice(price, el, modelName) {
       currentModelPricePerMillion = price;
       document.querySelectorAll('.model-chip').forEach(chip => chip.classList.remove('active'));
       el.classList.add('active');
+
+      const selectEl = document.getElementById('modelSelect');
+      if (selectEl && modelName) {
+        for (let i = 0; i < selectEl.options.length; i++) {
+          const optModel = selectEl.options[i].getAttribute('data-model') || selectEl.options[i].text;
+          if (optModel.includes(modelName) || selectEl.options[i].text.includes(modelName)) {
+            selectEl.selectedIndex = i;
+            break;
+          }
+        }
+      }
       updateFinopsCalculation();
     }
 
     function updateFinopsCalculation() {
-      const sliderVal = parseInt(document.getElementById('tokenSlider').value, 10);
-      const totalTokens = sliderVal * 1_000_000;
-      document.getElementById('lblTokenVolume').textContent = totalTokens.toLocaleString('en-US') + " tokens";
+      const slider = document.getElementById('tokenSlider') || document.getElementById('devSlider');
+      if (!slider) return;
+      const devs = parseInt(slider.value, 10);
 
-      // 72.4% context reduction average
-      const prunedTokens = Math.round(totalTokens * 0.724);
-      const dollarsAvoided = (prunedTokens / 1_000_000) * currentModelPricePerMillion;
+      const lblDev = document.getElementById('lblDevCount');
+      if (lblDev) {
+        lblDev.textContent = `${devs} ${currentLang === 'en' ? 'engineers' : 'desarrolladores'}`;
+      }
 
-      document.getElementById('finopsSavedDollars').textContent = "$" + dollarsAvoided.toFixed(2);
-      document.getElementById('finopsSavedTokens').textContent = prunedTokens.toLocaleString('en-US') + " tokens evitados";
+      // Baseline: 35 prompts/dev/day * 21 days/mo * 45,000 AST tokens/prompt = 33,075,000 tokens/dev/mo
+      const grossTokensSquadMonth = devs * 35 * 21 * 45000;
+      const lblVol = document.getElementById('lblTokenVolume');
+      if (lblVol) {
+        lblVol.textContent = grossTokensSquadMonth.toLocaleString('en-US') + (currentLang === 'en' ? ' tokens/mo' : ' tokens/mes');
+      }
+
+      // Deterministic 72.4% AST reduction
+      const prunedTokens = Math.round(grossTokensSquadMonth * 0.724);
+      const dollarsAvoidedMonth = (prunedTokens / 1_000_000) * currentModelPricePerMillion;
+      const dollarsAvoidedYear = dollarsAvoidedMonth * 12;
+
+      const elDollars = document.getElementById('finopsSavedDollars');
+      if (elDollars) {
+        elDollars.textContent = "$" + dollarsAvoidedMonth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      const elAnnual = document.getElementById('finopsSavedAnnual');
+      if (elAnnual) {
+        elAnnual.textContent = "$" + dollarsAvoidedYear.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (currentLang === 'en' ? ' / yr avoided' : ' / año evitado');
+      }
+
+      const elSavedTokens = document.getElementById('finopsSavedTokens');
+      if (elSavedTokens) {
+        elSavedTokens.textContent = prunedTokens.toLocaleString('en-US') + (currentLang === 'en' ? " tokens avoided (72.4% AST)" : " tokens podados (72.4% AST)");
+      }
     }
 
     // Run initial calculation
