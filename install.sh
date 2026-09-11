@@ -7,6 +7,57 @@
 # ==============================================================================
 set -euo pipefail
 
+# Identificadores y rutas estándar
+BIN_NAME="ctxfw"
+INSTALL_DIR="${HOME}/.local/bin"
+CONFIG_DIR="${HOME}/.ctxfw"
+GLOBAL_BIN="/usr/local/bin/${BIN_NAME}"
+
+# Subrutina de Purga / Desinstalación
+purge_ctxfw() {
+    printf "\n\033[1;36m[CTXFW // PERIMETER PURGE]\033[0m Iniciando remoción limpia...\n"
+    
+    # 1. Remover binarios locales y globales
+    if [ -f "${INSTALL_DIR}/${BIN_NAME}" ]; then
+        rm -f "${INSTALL_DIR}/${BIN_NAME}"
+        printf "  \033[32m✓\033[0m Binario removido: %s/%s\n" "${INSTALL_DIR}" "${BIN_NAME}"
+    fi
+
+    if [ -f "${GLOBAL_BIN}" ]; then
+        rm -f "${GLOBAL_BIN}" 2>/dev/null || sudo rm -f "${GLOBAL_BIN}" 2>/dev/null || true
+        printf "  \033[32m✓\033[0m Binario global removido: %s\n" "${GLOBAL_BIN}"
+    fi
+
+    # 2. Remover directorio de configuración y caché local
+    if [ -d "${CONFIG_DIR}" ]; then
+        rm -rf "${CONFIG_DIR}"
+        printf "  \033[32m✓\033[0m Directorio de configuración purgado: %s\n" "${CONFIG_DIR}"
+    fi
+
+    # 3. Limpieza de variables en archivos de perfil shell (.bashrc, .zshrc, .profile)
+    for rcfile in "${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile"; do
+        if [ -f "$rcfile" ] && grep -q "ctxfw" "$rcfile"; then
+            # Limpieza compatible con Linux y macOS (BSD sed)
+            if sed --version 2>/dev/null | grep -q GNU; then
+                sed -i '/ctxfw/d' "$rcfile"
+            else
+                sed -i '' '/ctxfw/d' "$rcfile"
+            fi
+            printf "  \033[32m✓\033[0m Entradas depuradas en: %s\n" "$rcfile"
+        fi
+    done
+
+    printf "\n\033[1;32m[DONE]\033[0m Desinstalación completada. Cero residuos en el sistema host.\n\n"
+    exit 0
+}
+
+# Evaluar si se pasó argumento de desinstalación
+case "${1:-}" in
+    --uninstall|-u|uninstall|purge)
+        purge_ctxfw
+        ;;
+esac
+
 CYAN='\033[38;5;51m'
 EMERALD='\033[38;5;48m'
 WHITE='\033[1;37m'
