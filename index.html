@@ -1136,10 +1136,16 @@
     }
 
     /* TOAST NOTIFICATION */
-    .toast {
+    #copyToast, .copy-toast, #toastNotification, .toast {
       position: fixed;
-      bottom: 72px;
-      right: 16px;
+      bottom: 80px; /* Separado del botón de soporte */
+      right: 20px;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(15px);
+      transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s;
       background: var(--emerald);
       color: #000;
       font-family: var(--font-mono);
@@ -1148,24 +1154,24 @@
       padding: 12px 20px;
       border-radius: 4px;
       box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4);
-      transform: translateY(120%);
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      z-index: 1000;
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .toast.visible {
+    #copyToast.show, .copy-toast.show, #toastNotification.show, .toast.show, #toastNotification.visible, .toast.visible {
+      opacity: 1;
+      visibility: visible;
       transform: translateY(0);
+      pointer-events: auto;
     }
 
     /* SUPPORT DRAWER & CONSOLE (CLOUDFLARE / JETBRAINS DARK STYLE) */
-    .support-tab-btn {
+    #support-trigger, .support-tab-btn {
       position: fixed;
-      bottom: 16px;
-      right: 16px;
-      z-index: 999;
+      bottom: 20px;
+      right: 20px;
+      z-index: 998;
       background: #0c121e;
       border: 1px solid #00f0ff;
       color: #00f0ff;
@@ -1439,7 +1445,7 @@
 <body>
 
   <!-- Toast Notification -->
-  <div id="toastNotification" class="toast">
+  <div id="copyToast" class="toast copy-toast">
     <span>✓</span>
     <span id="toastMessage">COMMAND COPIED TO CLIPBOARD</span>
   </div>
@@ -2323,13 +2329,21 @@
     }
 
     function showToast(msg) {
-      const toast = document.getElementById('toastNotification');
-      document.getElementById('toastMessage').textContent = msg;
-      toast.classList.add('visible');
-      setTimeout(() => {
-        toast.classList.remove('visible');
-      }, 2400);
+      const toast = document.getElementById('copyToast') || document.getElementById('toastNotification');
+      const toastMsg = document.getElementById('toastMessage');
+      if (toastMsg && msg) {
+        toastMsg.textContent = msg;
+      }
+      if (toast) {
+        toast.classList.add('show');
+        clearTimeout(window._toastTimer);
+        window._toastTimer = setTimeout(() => {
+          toast.classList.remove('show');
+        }, 2500);
+      }
     }
+
+    window.copyCommand = copyText;
 
     // -------------------------------------------------------------------------
     // TERMINAL TAB OUTPUT SIMULATOR
