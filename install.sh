@@ -15,39 +15,38 @@ GLOBAL_BIN="/usr/local/bin/${BIN_NAME}"
 
 # Subrutina de Purga / Desinstalación
 purge_ctxfw() {
-    printf "\n\033[1;36m[CTXFW // PERIMETER PURGE]\033[0m Iniciando remoción limpia...\n"
+    printf "\n\033[1;36m[CTXFW // PERIMETER PURGE]\033[0m Initiating clean teardown...\n"
     
-    # 1. Remover binarios locales y globales
+    # 1. Purge local and global binaries
     if [ -f "${INSTALL_DIR}/${BIN_NAME}" ]; then
         rm -f "${INSTALL_DIR}/${BIN_NAME}"
-        printf "  \033[32m✓\033[0m Binario removido: %s/%s\n" "${INSTALL_DIR}" "${BIN_NAME}"
+        printf "  \033[32m✓\033[0m Local binary removed: %s/%s\n" "${INSTALL_DIR}" "${BIN_NAME}"
     fi
 
     if [ -f "${GLOBAL_BIN}" ]; then
         rm -f "${GLOBAL_BIN}" 2>/dev/null || sudo rm -f "${GLOBAL_BIN}" 2>/dev/null || true
-        printf "  \033[32m✓\033[0m Binario global removido: %s\n" "${GLOBAL_BIN}"
+        printf "  \033[32m✓\033[0m Global binary removed: %s\n" "${GLOBAL_BIN}"
     fi
 
-    # 2. Remover directorio de configuración y caché local
+    # 2. Purge local configuration and telemetry cache
     if [ -d "${CONFIG_DIR}" ]; then
         rm -rf "${CONFIG_DIR}"
-        printf "  \033[32m✓\033[0m Directorio de configuración purgado: %s\n" "${CONFIG_DIR}"
+        printf "  \033[32m✓\033[0m Configuration sandbox purged: %s\n" "${CONFIG_DIR}"
     fi
 
-    # 3. Limpieza de variables en archivos de perfil shell (.bashrc, .zshrc, .profile)
+    # 3. Sanitize shell startup files (.bashrc, .zshrc, .profile)
     for rcfile in "${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile"; do
         if [ -f "$rcfile" ] && grep -q "ctxfw" "$rcfile"; then
-            # Limpieza compatible con Linux y macOS (BSD sed)
             if sed --version 2>/dev/null | grep -q GNU; then
                 sed -i '/ctxfw/d' "$rcfile"
             else
                 sed -i '' '/ctxfw/d' "$rcfile"
             fi
-            printf "  \033[32m✓\033[0m Entradas depuradas en: %s\n" "$rcfile"
+            printf "  \033[32m✓\033[0m Cleaned entries in: %s\n" "$rcfile"
         fi
     done
 
-    printf "\n\033[1;32m[DONE]\033[0m Desinstalación completada. Cero residuos en el sistema host.\n\n"
+    printf "\n\033[1;32m[DONE]\033[0m Teardown complete. Zero traces remaining on host system.\n\n"
     exit 0
 }
 
