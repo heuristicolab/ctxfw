@@ -1,5 +1,5 @@
 # C:\ctxfw\.gtm\dashboard\dashboard.py
-# Axiom Manifest Hash: 977656caeda215d58846022e045dfdfc4ab581c975bbb6917b828be5c91c39a8
+# Axiom Manifest Hash: 6fb69b86afa8e894d776de70107d569b8809fed44d5b5234fe0b6e8a31c1bb26
 """
 GTM Mission Control: Real-Time CRM Telemetry Dashboard & Dispatch Terminal
 FastAPI + SSE backend with Dark Brutalist defense-grade HUD, Kanban radar,
@@ -204,16 +204,189 @@ def trigger_dispatch(payload: dict, _user: str = Depends(authenticate_operator))
     }
 
 
+# Active SSE subscriber queues for real-time dispatch
+sse_subscribers: set[asyncio.Queue] = set()
+
+
+async def broadcast_sse_event(event_type: str, payload: dict):
+    """Broadcasts SSE telemetry event to all active Mission Control subscribers."""
+    event_payload = {
+        "event": event_type,
+        "payload": payload,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    raw_data = json.dumps(event_payload)
+    for q in list(sse_subscribers):
+        try:
+            await q.put(raw_data)
+        except Exception:
+            pass
+
+
+@app.post("/api/register-lead")
+async def register_lead(request: Request):
+    """
+    Ingests inbound developer leads from interactive curl installer.
+    Extracts corporate domain, calculates preliminary ICP score based on squad size,
+    persists target in 'DISCOVERED' status, and broadcasts instant SSE trigger.
+    """
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    email = str(data.get("email", "")).strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Valid corporate email required")
+
+    email_parts = email.split("@")
+    if len(email_parts) != 2 or not email_parts[1] or "." not in email_parts[1]:
+        raise HTTPException(status_code=400, detail="Malformed email address domain")
+
+    domain = email_parts[1].strip().lower()
+
+    # Bounded squad size (1 to 5000)
+    raw_dev_count = data.get("dev_count", 10)
+    try:
+        dev_count = int(raw_dev_count)
+    except (ValueError, TypeError):
+        dev_count = 10
+    dev_count = max(1, min(5000, dev_count))
+
+    # Derive company name
+    company_name = data.get("company_name")
+    if not company_name:
+        domain_name = domain.split(".")[0]
+        company_name = domain_name.capitalize()
+    company_name = str(company_name).strip()[:120]
+
+    # Derive tech lead name
+    tech_lead_name = data.get("lead_name") or data.get("tech_lead_name")
+    if not tech_lead_name:
+        user_part = email_parts[0].replace(".", " ").replace("_", " ").title()
+        tech_lead_name = user_part if len(user_part) > 2 else "Lead Engineer"
+    tech_lead_name = str(tech_lead_name).strip()[:100]
+
+    tech_lead_title = data.get("tech_lead_title", "Engineering Lead / Architect")
+
+    # Detect vertical
+    domain_lower = domain.lower()
+    if any(k in domain_lower for k in ["fin", "bank", "pay", "cred", "wallet", "bolsa"]):
+        vertical = "fintech"
+    elif any(k in domain_lower for k in ["health", "med", "salud", "pharma", "clinic"]):
+        vertical = "healthtech"
+    elif any(k in domain_lower for k in ["insur", "segur", "policy"]):
+        vertical = "insurtech"
+    elif any(k in domain_lower for k in ["def", "sec", "armor", "shield"]):
+        vertical = "defense"
+    else:
+        vertical = "devops_infrastructure"
+
+    # Preliminary ICP score (icp_rules.json sweet spot 15-120 devs)
+    if 15 <= dev_count <= 120:
+        headcount_score = 25
+    elif 5 <= dev_count < 15:
+        headcount_score = 15
+    elif dev_count > 120:
+        headcount_score = 20
+    else:
+        headcount_score = 5
+
+    ai_tooling_score = 25  # Installing CTXFW proves active AI tooling
+    vertical_score = 20
+    compliance_score = 10
+    icp_score = min(100, headcount_score + ai_tooling_score + vertical_score + compliance_score)
+
+    compliance_scope = "SOC2 Type II / Pre-Commit Defense Gate"
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if not DB_PATH.is_file():
+        raise HTTPException(status_code=500, detail="Pipeline database not found")
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO targets (
+                company_name, domain, vertical, dev_count,
+                tech_lead_name, tech_lead_title, ai_tools_detected,
+                compliance_scope, icp_score, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'DISCOVERED', ?)
+            ON CONFLICT(company_name) DO UPDATE SET
+                domain = excluded.domain,
+                dev_count = excluded.dev_count,
+                tech_lead_name = COALESCE(excluded.tech_lead_name, targets.tech_lead_name),
+                icp_score = excluded.icp_score
+        """, (
+            company_name, domain, vertical, dev_count,
+            tech_lead_name, tech_lead_title, True,
+            compliance_scope, icp_score, now_iso
+        ))
+        conn.commit()
+
+        cursor.execute("SELECT id FROM targets WHERE company_name = ?", (company_name,))
+        target_row = cursor.fetchone()
+        target_id = target_row["id"] if target_row else None
+
+        if target_id:
+            msg_id = f"cli-lead-{target_id}-{int(datetime.now(timezone.utc).timestamp())}"
+            cursor.execute("""
+                INSERT INTO interactions (
+                    target_id, direction, channel, subject, body_text, message_id, classification, created_at
+                ) VALUES (?, 'INBOUND', 'CLI_INSTALLER', 'Interactive Lead Ingestion', ?, ?, 'INTERESTED', ?)
+            """, (
+                target_id,
+                f"Interactive curl installer executed by {tech_lead_name} <{email}> (Squad: {dev_count} devs, Score: {icp_score})",
+                msg_id,
+                now_iso
+            ))
+            conn.commit()
+
+    # Trigger real-time SSE event to update Mission Control radar instantly
+    await broadcast_sse_event("NEW_LEAD_DISCOVERED", {
+        "id": target_id,
+        "company_name": company_name,
+        "domain": domain,
+        "dev_count": dev_count,
+        "icp_score": icp_score,
+        "status": "DISCOVERED",
+    })
+
+    return {
+        "status": "SUCCESS",
+        "lead_id": target_id,
+        "company": company_name,
+        "domain": domain,
+        "dev_count": dev_count,
+        "icp_score": icp_score,
+        "stage": "01 // DISCOVERED",
+        "message": "Lead ingested and telemetry radar updated",
+    }
+
+
 @app.get("/events")
 async def sse_stream(request: Request, _user: str = Depends(authenticate_operator)):
-    """Streams real-time Server-Sent Events with pipeline telemetry heartbeats."""
+    """Streams real-time Server-Sent Events with telemetry heartbeats and instant lead triggers."""
+    queue: asyncio.Queue = asyncio.Queue()
+    sse_subscribers.add(queue)
+
     async def event_generator():
-        while True:
-            if await request.is_disconnected():
-                break
+        try:
+            # Emit immediate initial telemetry state
             metrics = get_metrics(_user=DASH_USER)
             yield f"data: {json.dumps(metrics)}\n\n"
-            await asyncio.sleep(4)
+
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    # Wait for push event or send heartbeat every 4 seconds
+                    msg = await asyncio.wait_for(queue.get(), timeout=4.0)
+                    yield f"data: {msg}\n\n"
+                except asyncio.TimeoutError:
+                    metrics = get_metrics(_user=DASH_USER)
+                    yield f"data: {json.dumps(metrics)}\n\n"
+        finally:
+            sse_subscribers.discard(queue)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
