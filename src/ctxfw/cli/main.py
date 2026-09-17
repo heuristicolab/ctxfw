@@ -1,12 +1,13 @@
 """
-src/ctxfw/cli.py — Unified Command Line Interface for Context Firewall (v3.5.0)
-Axiom Manifest Hash: 575d12d75bcb427be48c3d62c643a4fb4a0260768cb49197c5d09133058581ed
+src/ctxfw/cli/main.py — Unified Command Line Interface for Context Firewall (v3.5.1)
+Axiom Manifest Hash: a403b7072c7ea6b37a804db8feec61058e552d2bb3240390098f9c747867d924
 Supports direct target file clipboard invocation (`ctxfw <file>`) 
-plus explicit subcommands (`ctxfw mcp`, `ctxfw proxy`, `ctxfw ci`, `ctxfw audit`, `ctxfw init`, `ctxfw doctor`, `ctxfw spec`).
+plus explicit subcommands (`ctxfw benchmark`, `ctxfw mcp`, `ctxfw proxy`, `ctxfw ci`, `ctxfw audit`, `ctxfw init`, `ctxfw doctor`, `ctxfw spec`).
 """
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 import platform
 import shutil
@@ -18,6 +19,7 @@ from typing import Optional
 from ctxfw.core.contracts import PruningDepth
 from ctxfw.core.pruner import DeterministicContextPruner
 from ctxfw.core.topological import ContextFirewallEngine, TopologicalContextBundleDTO
+from ctxfw.cli.commands import benchmark
 
 
 def copy_to_clipboard(text: str) -> bool:
@@ -167,7 +169,7 @@ def run_firewall_cli(
 
     # Terminal Dashboard Output
     sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
-    sys.stdout.write(f"  {CLR_CYAN}CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v3.5.0){CLR_RESET}\n")
+    sys.stdout.write(f"  {CLR_CYAN}CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v3.5.1){CLR_RESET}\n")
     sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
     sys.stdout.write(f"Target Module:  {bundle.root_target}\n")
     sys.stdout.write(f"Project Root:   {project_root}\n\n")
@@ -195,7 +197,7 @@ def run_firewall_cli(
         sys.stdout.write(f"[*] Saved to File:             {output_path_str}\n")
     sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
 
-    # HU-02: Telemetría perimetral anónima y despacho de heartbeat
+    # Telemetría perimetral anónima y despacho de heartbeat
     try:
         from datetime import datetime, timezone
         from ctxfw.core.contracts import TelemetryRecordDTO
@@ -445,6 +447,31 @@ def handle_spec_command(argv: list[str]) -> int:
         return 1
 
 
+def build_parser() -> argparse.ArgumentParser:
+    """Builds central subcommands parser for ctxfw."""
+    parser = argparse.ArgumentParser(
+        prog="ctxfw",
+        description="ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.1)\n\n"
+                    "Subcommands:\n"
+                    "  init                 Initialize sovereign agentic perimeter, rules, and skills\n"
+                    "  doctor               Run health, stdio isolation, and environment diagnostics\n"
+                    "  mcp                  Start stdio Model Context Protocol server\n"
+                    "  proxy                Launch local perimeter reverse proxy gateway\n"
+                    "  service              Manage background service (Windows sc.exe & systemd)\n"
+                    "  ci                   Run CI/CD PR topological gatekeeper\n"
+                    "  audit                Audit FinOps token savings and telemetry ledger\n"
+                    "  spec                 Verify specification axioms and negative invariants\n"
+                    "  benchmark            Profile topological AST token reduction and FinOps savings",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    # Subcomando benchmark
+    benchmark.register_parser(subparsers)
+
+    return parser
+
+
 def main():
     if hasattr(sys.stdout, "isatty") and sys.stdout.isatty():
         try:
@@ -453,8 +480,15 @@ def main():
         except Exception:
             pass
 
-    if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "service", "spec", "doctor"}:
+    if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "service", "spec", "doctor", "benchmark"}:
         subcmd = sys.argv[1]
+        if subcmd == "benchmark":
+            parser = build_parser()
+            args = parser.parse_args(sys.argv[1:])
+            if hasattr(args, "func"):
+                sys.exit(args.func(args))
+            return
+
         sys.argv.pop(1)
         if subcmd == "init":
             handle_init_cli(sys.argv[1:])
@@ -492,7 +526,7 @@ def main():
     # Default delegation to Clipboard CLI (HU-12)
     parser = argparse.ArgumentParser(
         prog="ctxfw",
-        description="ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.0)\n\n"
+        description="ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.1)\n\n"
                     "Subcommands:\n"
                     "  init                 Initialize sovereign agentic perimeter, rules, and skills\n"
                     "  doctor               Run health, stdio isolation, and environment diagnostics\n"
@@ -501,7 +535,8 @@ def main():
                     "  service              Manage background service (Windows sc.exe & systemd)\n"
                     "  ci                   Run CI/CD PR topological gatekeeper\n"
                     "  audit                Audit FinOps token savings and telemetry ledger\n"
-                    "  spec                 Verify specification axioms and negative invariants",
+                    "  spec                 Verify specification axioms and negative invariants\n"
+                    "  benchmark            Profile topological AST token reduction and FinOps savings",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("target_file", nargs="?", default=None, help="Path to the active target file being edited (Distance 0)")
@@ -529,6 +564,7 @@ def main():
 
 
 __all__ = [
+    "build_parser",
     "copy_to_clipboard",
     "run_firewall_cli",
     "handle_init_command",
@@ -544,4 +580,3 @@ __all__ = [
 
 if __name__ == "__main__":
     main()
-
