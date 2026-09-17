@@ -248,3 +248,60 @@ def test_warm_cache_sub_5ms_overhead(client: TestClient):
 
     # Minimum warm latency should be fast (<15ms on Windows disk IO)
     assert min(latencies) < 15.0
+
+
+def test_finops_model_clamping(client: TestClient, mock_upstream):
+    """Asserts that requests targeting opus or fable are clamped to claude-3-5-sonnet-20241022."""
+    resp = client.post(
+        "/v1/messages",
+        json={
+            "model": "claude-fable-5-1",
+            "messages": [{"role": "user", "content": "ping"}],
+            "max_tokens": 16384,
+            "thinking": {"type": "adaptive"},
+        },
+    )
+    assert resp.status_code == 200
+    assert len(mock_upstream) == 1
+    upstream_body = mock_upstream[0]["body"]
+    assert upstream_body["model"] == "claude-3-5-sonnet-20241022"
+    assert upstream_body["max_tokens"] == 4096
+    assert upstream_body["thinking"] == {"type": "enabled", "budget_tokens": 1024}
+
+
+def test_finops_thinking_stripped_for_doc_synthesis(client: TestClient, mock_upstream):
+    """Asserts that thinking is stripped if the prompt is for chronicler / documentation synthesis."""
+    resp = client.post(
+        "/v1/messages",
+        json={
+            "model": "claude-3-opus-20240229",
+            "messages": [{"role": "user", "content": "Synthesize CLAUDE.md and README.md via Sovereign Chronicler"}],
+            "max_tokens": 8192,
+            "thinking": {"type": "adaptive"},
+            "output_config": {"effort": "medium"},
+        },
+    )
+    assert resp.status_code == 200
+    assert len(mock_upstream) == 1
+    upstream_body = mock_upstream[0]["body"]
+    assert upstream_body["model"] == "claude-3-5-sonnet-20241022"
+    assert upstream_body["max_tokens"] == 4096
+    assert "thinking" not in upstream_body
+
+
+def test_finops_circuit_breaker_rejects_exceeding_40k_tokens(client: TestClient, mock_upstream):
+    """Asserts that requests exceeding 40k tokens are rejected with HTTP 413."""
+    # 1 token is ~4 chars, 45k tokens is ~180k chars
+    huge_text = "word " * 45000
+    resp = client.post(
+        "/v1/messages",
+        json={
+            "model": "claude-3-5-sonnet-20241022",
+            "messages": [{"role": "user", "content": huge_text}],
+        },
+    )
+    assert resp.status_code == 413
+    assert "FinOps Limit: Payload context exceeds 40k tokens" in resp.text
+    # Ensure nothing was forwarded upstream
+    assert len(mock_upstream) == 0
+

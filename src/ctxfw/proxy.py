@@ -1,7 +1,9 @@
 """
-src/ctxfw/proxy.py — Perimeter Reverse Proxy Service (v3.4.0)
+src/ctxfw/proxy.py — Perimeter Reverse Proxy Service (v3.5.0)
+Manifest Hash: 22765740d4ee59328c52f4259f862ac6c389a2cb8d863021cf64fd0027f22310
 Transparent HTTP reverse proxy implementing the Fail-Open Context Firewall policy
 for OpenAI (/v1/chat/completions) and Anthropic (/v1/messages) protocols.
+Enforces FinOps Policy Governance (model clamping, token caps, thinking budget, circuit breaker).
 """
 from __future__ import annotations
 
@@ -13,7 +15,7 @@ import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import BackgroundTasks, FastAPI, Header, Request, Response
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 import httpx
 import uvicorn
@@ -208,6 +210,31 @@ def compact_text_payload(
     return modified_text, total_saved
 
 
+def estimate_payload_tokens(payload: Dict[str, Any]) -> int:
+    """Estimates total token volume in payload messages for telemetry accounting."""
+    text_parts = []
+    if "messages" in payload and isinstance(payload["messages"], list):
+        for msg in payload["messages"]:
+            if isinstance(msg, dict):
+                content = msg.get("content")
+                if isinstance(content, str):
+                    text_parts.append(content)
+                elif isinstance(content, list):
+                    for part in content:
+                        if isinstance(part, dict) and isinstance(part.get("text"), str):
+                            text_parts.append(part["text"])
+    if "system" in payload:
+        sys_val = payload["system"]
+        if isinstance(sys_val, str):
+            text_parts.append(sys_val)
+        elif isinstance(sys_val, list):
+            for part in sys_val:
+                if isinstance(part, dict) and isinstance(part.get("text"), str):
+                    text_parts.append(part["text"])
+    full_text = " ".join(text_parts)
+    return max(1, DeterministicContextPruner.estimate_tokens(len(full_text)))
+
+
 def inspect_and_compact_payload(
     body: Dict[str, Any],
     cache: Optional[LocalSemanticCache] = None,
@@ -215,9 +242,54 @@ def inspect_and_compact_payload(
     """
     Recursively inspects messages/content in an OpenAI or Anthropic payload,
     compacting code blocks while preserving schema structure.
+    Enforces FinOps Policy Governance:
+      1. Model Clamping: Forces Sonnet if model contains 'opus' or 'fable'.
+      2. Thinking Clamping: Bounded to budget_tokens=1024 or stripped for doc synthesis.
+      3. Max Tokens Cap: Clamped to min(max_tokens, 4096).
+      4. FinOps Disyuntor: Rejects payloads exceeding 40,000 tokens with HTTP 413.
     """
+    # 4. Disyuntor FinOps: Reject payloads exceeding 40k tokens
+    estimated_tokens = estimate_payload_tokens(body)
+    if estimated_tokens > 40000:
+        raise HTTPException(
+            status_code=413,
+            detail="FinOps Limit: Payload context exceeds 40k tokens",
+        )
+
     total_tokens_saved = 0
     compacted_body = dict(body)
+
+    # 1. Clamping de Modelo
+    if "model" in compacted_body and isinstance(compacted_body["model"], str):
+        model_lower = compacted_body["model"].lower()
+        if "opus" in model_lower or "fable" in model_lower:
+            compacted_body["model"] = "claude-3-5-sonnet-20241022"
+
+    # 2. Clamping de Thinking
+    if "thinking" in compacted_body and compacted_body["thinking"] is not None:
+        body_text_sample = json.dumps(
+            compacted_body.get("messages", []) + [compacted_body.get("system", "")]
+        ).lower()
+        doc_synthesis_keywords = [
+            "chronicler",
+            "documentation quality",
+            "user_manual",
+            "readme.md",
+            "claude.md",
+            "doc_synthesis",
+            "documentation synthesis",
+        ]
+        if any(keyword in body_text_sample for keyword in doc_synthesis_keywords):
+            compacted_body.pop("thinking", None)
+            if "output_config" in compacted_body and isinstance(compacted_body["output_config"], dict):
+                compacted_body["output_config"].pop("effort", None)
+                if not compacted_body["output_config"]:
+                    compacted_body.pop("output_config", None)
+        else:
+            compacted_body["thinking"] = {"type": "enabled", "budget_tokens": 1024}
+
+    # 3. Techo de Max Tokens
+    compacted_body["max_tokens"] = min(int(compacted_body.get("max_tokens", 4096)), 4096)
 
     # Process "messages" array (OpenAI and Anthropic)
     if "messages" in compacted_body and isinstance(compacted_body["messages"], list):
@@ -272,31 +344,6 @@ def inspect_and_compact_payload(
             compacted_body["system"] = new_sys_list
 
     return compacted_body, total_tokens_saved
-
-
-def estimate_payload_tokens(payload: Dict[str, Any]) -> int:
-    """Estimates total token volume in payload messages for telemetry accounting."""
-    text_parts = []
-    if "messages" in payload and isinstance(payload["messages"], list):
-        for msg in payload["messages"]:
-            if isinstance(msg, dict):
-                content = msg.get("content")
-                if isinstance(content, str):
-                    text_parts.append(content)
-                elif isinstance(content, list):
-                    for part in content:
-                        if isinstance(part, dict) and isinstance(part.get("text"), str):
-                            text_parts.append(part["text"])
-    if "system" in payload:
-        sys_val = payload["system"]
-        if isinstance(sys_val, str):
-            text_parts.append(sys_val)
-        elif isinstance(sys_val, list):
-            for part in sys_val:
-                if isinstance(part, dict) and isinstance(part.get("text"), str):
-                    text_parts.append(part["text"])
-    full_text = " ".join(text_parts)
-    return max(1, DeterministicContextPruner.estimate_tokens(len(full_text)))
 
 
 def record_request_telemetry(
@@ -525,6 +572,11 @@ async def chat_completions(
     cache = get_cache(request.app)
 
     if bypass:
+        if estimate_payload_tokens(raw_body) > 40000:
+            raise HTTPException(
+                status_code=413,
+                detail="FinOps Limit: Payload context exceeds 40k tokens",
+            )
         payload = raw_body
         tokens_saved = 0
         status_tag = "bypassed"
@@ -532,6 +584,8 @@ async def chat_completions(
         try:
             payload, tokens_saved = inspect_and_compact_payload(raw_body, cache)
             status_tag = "compacted" if tokens_saved > 0 else "pass-through"
+        except HTTPException:
+            raise
         except Exception:
             # Fail-open: pass payload unmodified
             payload = raw_body
@@ -573,6 +627,11 @@ async def messages_completion(
     cache = get_cache(request.app)
 
     if bypass:
+        if estimate_payload_tokens(raw_body) > 40000:
+            raise HTTPException(
+                status_code=413,
+                detail="FinOps Limit: Payload context exceeds 40k tokens",
+            )
         payload = raw_body
         tokens_saved = 0
         status_tag = "bypassed"
@@ -580,6 +639,8 @@ async def messages_completion(
         try:
             payload, tokens_saved = inspect_and_compact_payload(raw_body, cache)
             status_tag = "compacted" if tokens_saved > 0 else "pass-through"
+        except HTTPException:
+            raise
         except Exception:
             # Fail-open
             payload = raw_body

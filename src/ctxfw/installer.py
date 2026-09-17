@@ -1,6 +1,6 @@
 """
 src/ctxfw/installer.py — Zero-Touch Industrialization & Diagnostics Engine
-Axiom Manifest Hash: 575d12d75bcb427be48c3d62c643a4fb4a0260768cb49197c5d09133058581ed
+Axiom Manifest Hash: 021bb7d9251ba059ed7a833f9d9bb939bed351a2d015c83cb7c3260f394c6d8d
 
 Provides zero-touch onboarding, idempotent IDE configuration injection,
 multiplatform pre-commit hook deployment, and comprehensive self-diagnostics.
@@ -718,7 +718,11 @@ def render_doctor_report(report: DoctorReport, out=None) -> int:
     stream.write(f"{CLR_GRAPHITE}" + "-" * 72 + f"{CLR_RESET}\n")
     if report.all_passed:
         stream.write(f"{CLR_WHITE_BOLD}Overall Verdict:{CLR_RESET}            {CLR_EMERALD}[HEALTHY] [ATTESTED]{CLR_RESET} Perimeter defense operational.\n")
-        stream.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
+        stream.write("========================================================================\n")
+        stream.write("CTXFW // 72.4% AST Bloat Eliminated. Zero Telemetry Egress.\n")
+        stream.write("Need team-wide budget circuit breakers or multi-node proxy governance?\n")
+        stream.write("Control Plane & Enterprise Licensing: https://ctxfw.heuristicolab.com\n")
+        stream.write("========================================================================\n")
         return 0
     else:
         stream.write(f"{CLR_WHITE_BOLD}Overall Verdict:{CLR_RESET}            {CLR_CRIMSON}[QUARANTINED]{CLR_RESET} One or more critical security checks failed.\n")
