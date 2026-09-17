@@ -8,6 +8,7 @@
 [![Tests](https://img.shields.io/badge/TESTS-102%2F102_PASSING-00C853?style=for-the-badge&logo=pytest)](https://pypi.org/project/ctxfw/)
 [![License](https://img.shields.io/badge/LICENSE-APACHE_2.0-black?style=for-the-badge)](LICENSE)
 [![Smithery MCP](https://img.shields.io/badge/SMITHERY_MCP-CERTIFIED-FF6B00?style=for-the-badge&logo=server)](https://smithery.ai/server/ctxfw)
+[![Glama MCP](https://glama.ai/mcp/servers/heuristicolab/ctxfw/badge)](https://glama.ai/mcp/servers/heuristicolab/ctxfw)
 
 **The deterministic boundary between probabilistic LLM hallucination and production infrastructure.**
 
