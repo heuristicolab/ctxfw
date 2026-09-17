@@ -164,6 +164,6 @@ class DeterministicContextPruner:
         pruned_chars = len(pruned_code)
         pruned_tokens = cls.estimate_tokens(pruned_chars)
         tokens_saved = max(0, orig_tokens - pruned_tokens)
-        savings_pct = round(((orig_chars - pruned_chars) / max(1, orig_chars)) * 100, 2)
+        savings_pct = max(0.0, min(100.0, round(((orig_chars - pruned_chars) / max(1, orig_chars)) * 100, 2)))
 
         return pruned_code, orig_chars, pruned_chars, tokens_saved, savings_pct, round(elapsed_ms, 3)
