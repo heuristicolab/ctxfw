@@ -6,10 +6,16 @@ __pycache__/
 *.swp
 *.db
 .env
-.gtm/.env
 *.env
 *.egg-info/
 build/
+dist/
+scratch/
+release_assets/
+.gtm/
+*.exe
+*.conf
+*.xml
 public_export/
 org_profile/
 profile_readme/
