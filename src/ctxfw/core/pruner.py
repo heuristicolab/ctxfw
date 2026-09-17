@@ -167,3 +167,50 @@ class DeterministicContextPruner:
         savings_pct = max(0.0, min(100.0, round(((orig_chars - pruned_chars) / max(1, orig_chars)) * 100, 2)))
 
         return pruned_code, orig_chars, pruned_chars, tokens_saved, savings_pct, round(elapsed_ms, 3)
+
+
+class PruneResult:
+    """Encapsulates the pruned source code and token metrics."""
+    def __init__(self, pruned_code: str, pruned_tokens: int):
+        self.pruned_code = pruned_code
+        self.pruned_tokens = pruned_tokens
+
+
+class PolyglotASTPruner:
+    """High-level polyglot pruner supporting depth-level slicing."""
+    def prune_by_depth(self, code: str, suffix: str, depth_level: int) -> PruneResult:
+        if depth_level == 0:
+            tokens = DeterministicContextPruner.estimate_tokens(len(code))
+            return PruneResult(code, tokens)
+
+        depth = PruningDepth.INTERFACE if depth_level == 1 else PruningDepth.NOMINAL
+        ext = suffix.lower().lstrip(".")
+        if ext in ("py", "python"):
+            req = OptimizationRequestDTO(
+                source_code=code,
+                language="python",
+                depth=depth,
+                strip_docs=False,
+                sanitize_raises=True,
+            )
+            pruned_code, _, _, _, _, _ = DeterministicContextPruner.prune(req)
+        elif ext in ("ts", "js", "go", "java"):
+            from ctxfw.core.polyglot import TreeSitterContextPruner
+            lang_map = {
+                "ts": SupportedLanguage.TYPESCRIPT,
+                "js": SupportedLanguage.JAVASCRIPT,
+                "go": SupportedLanguage.GO,
+                "java": SupportedLanguage.JAVA,
+            }
+            lang = lang_map.get(ext, SupportedLanguage.PYTHON)
+            pruned_code, _, _, _, _, _ = TreeSitterContextPruner.prune(
+                source_code=code,
+                language=lang,
+                depth=depth.value,
+            )
+        else:
+            pruned_code = code
+
+        pruned_tokens = DeterministicContextPruner.estimate_tokens(len(pruned_code))
+        return PruneResult(pruned_code, pruned_tokens)
+

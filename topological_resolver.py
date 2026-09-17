@@ -15,6 +15,7 @@ from ctxfw.core.topological import (
     ProjectDependencyGraph,
     StaticImportExtractor,
     TopologicalContextBundleDTO,
+    TopologicalResolver,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "ProjectDependencyGraph",
     "TopologicalContextBundleDTO",
     "ContextFirewallEngine",
+    "TopologicalResolver",
 ]

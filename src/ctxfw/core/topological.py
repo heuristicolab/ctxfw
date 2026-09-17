@@ -60,12 +60,20 @@ class StaticImportExtractor(ast.NodeVisitor):
 
         return None
 
+    def _resolve_in_hierarchy(self, module_name: str) -> Optional[Path]:
+        curr = self.file_path.parent
+        while True:
+            cand = self._resolve_candidate(module_name, curr)
+            if cand:
+                return cand
+            if curr == self.project_root or curr == curr.parent:
+                break
+            curr = curr.parent
+        return self._resolve_candidate(module_name, self.project_root)
+
     def visit_Import(self, node: ast.Import):
         for alias in node.names:
-            resolved = (
-                self._resolve_candidate(alias.name, self.file_path.parent)
-                or self._resolve_candidate(alias.name, self.project_root)
-            )
+            resolved = self._resolve_in_hierarchy(alias.name)
             if resolved and resolved != self.file_path:
                 self.local_dependencies.add(resolved)
         self.generic_visit(node)
@@ -89,20 +97,14 @@ class StaticImportExtractor(ast.NodeVisitor):
         else:
             # Absolute project-level import
             if node.module:
-                resolved = (
-                    self._resolve_candidate(node.module, self.file_path.parent)
-                    or self._resolve_candidate(node.module, self.project_root)
-                )
+                resolved = self._resolve_in_hierarchy(node.module)
                 if resolved and resolved != self.file_path:
                     self.local_dependencies.add(resolved)
                 elif not resolved:
                     # In case of `from pkg import mod`, check alias names
                     for alias in node.names:
                         compound = f"{node.module}.{alias.name}"
-                        cand = (
-                            self._resolve_candidate(compound, self.file_path.parent)
-                            or self._resolve_candidate(compound, self.project_root)
-                        )
+                        cand = self._resolve_in_hierarchy(compound)
                         if cand and cand != self.file_path:
                             self.local_dependencies.add(cand)
 
@@ -263,3 +265,39 @@ class ContextFirewallEngine:
             root_target=target_rel,
             entries=entries,
         )
+
+
+class DependencyNode:
+    """Represents an individual dependency node in a topological manifest."""
+    def __init__(self, file_path: Path, depth_level: int, token_count: int):
+        self.file_path = Path(file_path)
+        self.depth_level = depth_level
+        self.token_count = token_count
+
+
+class TopologicalManifest:
+    """Represents the resolved topological manifest for a target module."""
+    def __init__(self, target_file: Path, dependencies: List[DependencyNode]):
+        self.target_file = Path(target_file)
+        self.dependencies = dependencies
+        self.total_tokens = sum(d.token_count for d in dependencies)
+
+
+class TopologicalResolver:
+    """High-level resolver calculating topological manifests for a given root directory."""
+    def __init__(self, root_dir: Path | str):
+        self.root_dir = Path(root_dir).resolve()
+        self.graph = ProjectDependencyGraph(self.root_dir)
+
+    def resolve(self, target_file: Path | str) -> TopologicalManifest:
+        target_path = Path(target_file).resolve()
+        distances = self.graph.get_distances(target_path)
+        deps: List[DependencyNode] = []
+        for rel_path, dist in sorted(distances.items(), key=lambda x: (x[1], x[0])):
+            fp = self.root_dir / rel_path
+            if fp.is_file():
+                chars = len(fp.read_text(encoding="utf-8", errors="replace"))
+                tokens = DeterministicContextPruner.estimate_tokens(chars)
+                deps.append(DependencyNode(file_path=fp, depth_level=dist, token_count=tokens))
+        return TopologicalManifest(target_file=target_path, dependencies=deps)
+

@@ -12,5 +12,6 @@ if _src.is_dir() and str(_src) not in sys.path:
 
 from ctxfw.core.contracts import SupportedLanguage
 from ctxfw.core.polyglot import TreeSitterContextPruner
+from ctxfw.core.pruner import PolyglotASTPruner
 
-__all__ = ["SupportedLanguage", "TreeSitterContextPruner"]
+__all__ = ["SupportedLanguage", "TreeSitterContextPruner", "PolyglotASTPruner"]
