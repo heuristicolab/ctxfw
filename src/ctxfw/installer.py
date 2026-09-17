@@ -154,10 +154,10 @@ PRE_COMMIT_HOOK_SCRIPT = r"""#!/bin/sh
 echo "[ctxfw] Running axiomatic specification gatekeeper..."
 
 # Multiplatform executable resolution
-if command -v ctxfw >/dev/null 2>&1; then
-    CMD="ctxfw"
-elif command -v python >/dev/null 2>&1; then
+if command -v python >/dev/null 2>&1; then
     CMD="python -m ctxfw.cli"
+elif command -v ctxfw >/dev/null 2>&1; then
+    CMD="ctxfw"
 elif command -v py >/dev/null 2>&1; then
     CMD="py -m ctxfw.cli"
 elif command -v python3 >/dev/null 2>&1; then
