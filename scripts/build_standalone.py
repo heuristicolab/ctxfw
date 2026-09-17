@@ -73,6 +73,7 @@ def main() -> int:
         ["proxy", "--help"],
         ["mcp", "--help"],
         ["service", "--help"],
+        ["benchmark", "--help"],
     ]
 
     for sub in subcommands:

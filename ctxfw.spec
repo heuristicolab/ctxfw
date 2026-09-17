@@ -31,6 +31,9 @@ hiddenimports = [
     'starlette',
     'httpx',
     'ctxfw.cli',
+    'ctxfw.cli.main',
+    'ctxfw.cli.commands',
+    'ctxfw.cli.commands.benchmark',
     'ctxfw.proxy',
     'ctxfw.mcp',
     'ctxfw.service',
@@ -51,7 +54,7 @@ for pkg in ['tree_sitter', 'tree_sitter_typescript', 'tree_sitter_go', 'tree_sit
         pass
 
 a = Analysis(
-    ['src/ctxfw/cli.py'],
+    ['src/ctxfw/cli/__main__.py'],
     pathex=['src', '.'],
     binaries=binaries,
     datas=datas,
