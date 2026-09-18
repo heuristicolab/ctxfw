@@ -7,7 +7,6 @@
 [![Axiomatic Completeness Index](https://img.shields.io/badge/ACI-1.0000_VERIFIED-000000?style=for-the-badge&logo=shield)](https://ctxfw.heuristicolab.com)
 [![Tests](https://img.shields.io/badge/TESTS-108%2F108_PASSING-00C853?style=for-the-badge&logo=pytest)](https://pypi.org/project/ctxfw/)
 [![License](https://img.shields.io/badge/LICENSE-APACHE_2.0-black?style=for-the-badge)](LICENSE)
-[![Smithery MCP](https://img.shields.io/badge/SMITHERY_MCP-CERTIFIED-FF6B00?style=for-the-badge&logo=server)](https://smithery.ai/server/ctxfw)
 [![Glama](https://glama.ai/mcp/servers/heuristicolab/ctxfw/badge)](https://glama.ai/mcp/servers/heuristicolab/ctxfw)
 
 **The deterministic boundary between probabilistic LLM hallucination and production infrastructure.**
@@ -74,12 +73,8 @@ Or for global CLI availability using `pipx`:
 pipx install ctxfw
 ```
 
-### 2. Smithery MCP Registry
-CTXFW is certified for automatic client configuration via the Smithery CLI:
-```bash
-npx -y @smithery/cli install ctxfw --client claude
-```
-Or register the stdio server manually in your `.mcp.json` or IDE config:
+### 2. Native MCP Stdio Configuration
+Register the stdio server directly in your IDE or client configuration (`claude_desktop_config.json`, Cursor, Windsurf, or Antigravity):
 ```json
 {
   "mcpServers": {
@@ -90,6 +85,13 @@ Or register the stdio server manually in your `.mcp.json` or IDE config:
   }
 }
 ```
+
+### 3. Verified MCP Registry (Glama)
+CTXFW is indexed and verified with Grade A compliance on the official Glama MCP registry:
+
+[![Glama](https://glama.ai/mcp/servers/heuristicolab/ctxfw/badge)](https://glama.ai/mcp/servers/heuristicolab/ctxfw)
+
+Direct access to tool inspection, schemas, and live diagnostic telemetry on [Glama](https://glama.ai/mcp/servers/heuristicolab/ctxfw).
 
 ---
 
