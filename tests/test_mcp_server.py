@@ -61,10 +61,12 @@ def test_handshake_and_notifications(mcp_server: MCPServer):
     assert init_resp["jsonrpc"] == "2.0"
     assert init_resp["id"] == "req-1"
 
+    from ctxfw import __version__
+
     result = init_resp["result"]
     assert result["protocolVersion"] == "2024-11-05"
     assert result["serverInfo"]["name"] == "context-firewall-mcp"
-    assert result["serverInfo"]["version"] == "3.2.0"
+    assert result["serverInfo"]["version"] == __version__
     assert "tools" in result["capabilities"]
 
     # Notifications must be silently acknowledged with None (no JSON-RPC response)
@@ -76,7 +78,7 @@ def test_handshake_and_notifications(mcp_server: MCPServer):
 
 
 def test_tools_list_schema(mcp_server: MCPServer):
-    """Asserts that tools/list exposes 'prune_file' and 'resolve_context_bundle' with valid schemas."""
+    """Asserts that tools/list exposes tools with valid schemas and Glama TDQS metadata."""
     list_req = {
         "jsonrpc": "2.0",
         "id": "req-2",
@@ -92,6 +94,7 @@ def test_tools_list_schema(mcp_server: MCPServer):
 
     assert "prune_file" in tool_map
     assert "resolve_context_bundle" in tool_map
+    assert "evaluate_spec_axioms" in tool_map
 
     # Validate prune_file schema
     prune_schema = tool_map["prune_file"]["inputSchema"]
@@ -106,6 +109,19 @@ def test_tools_list_schema(mcp_server: MCPServer):
     assert bundle_schema["type"] == "object"
     assert "target_file" in bundle_schema["required"]
     assert "project_root" in bundle_schema["properties"]
+
+    # Validate Glama TDQS annotations and outputSchema
+    for t_name in ["prune_file", "resolve_context_bundle", "evaluate_spec_axioms"]:
+        tool = tool_map[t_name]
+        assert "annotations" in tool
+        assert tool["annotations"]["readOnlyHint"] is True
+        assert tool["annotations"]["destructiveHint"] is False
+        assert tool["annotations"]["idempotentHint"] is True
+        assert tool["annotations"]["openWorldHint"] is False
+        assert "outputSchema" in tool
+        assert tool["outputSchema"]["type"] == "object"
+        assert "content" in tool["outputSchema"]["required"]
+        assert "isError" in tool["outputSchema"]["required"]
 
 
 def test_tools_call_prune_file(mcp_server: MCPServer, tmp_path: Path):

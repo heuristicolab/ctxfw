@@ -11,6 +11,7 @@ from typing import List
 
 from ctxfw.core.pruner import PolyglotASTPruner
 from ctxfw.core.topological import TopologicalResolver
+from ctxfw import __version__
 
 MODEL_PRICING_1M = {
     "claude-3-5-sonnet": 3.00,
@@ -162,7 +163,7 @@ def _render_table(p: dict) -> None:
     print(f"[+] Projected FinOps Savings:   ${m['projected_savings_usd']:.2f} USD / {p['metadata']['cycles']} cycles")
     print(f"[+] Profiler Latency:           {p['metadata']['latency_ms']} ms")
     print("-" * 80)
-    print("Audit generated via ctxfw v3.5.4 (Compiled Tree-Sitter AST Engine)")
+    print(f"Audit generated via ctxfw v{__version__} (Compiled Tree-Sitter AST Engine)")
     print("Enterprise Token Proxies & Custom LLM FinOps Audits: contacto@heuristicolab.com")
     print("Repo: https://github.com/heuristicolab/ctxfw")
     print("=" * 80)

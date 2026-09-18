@@ -51,7 +51,7 @@ def test_benchmark_run_table_output(sample_project: Path, monkeypatch):
     assert "CTXFW EMPIRICAL BENCHMARK" in output
     assert "main.py" in output
     assert "Projected FinOps Savings" in output
-    assert "Audit generated via ctxfw v3.5.4" in output
+    assert "Audit generated via ctxfw" in output
     assert "contacto@heuristicolab.com" in output
 
 

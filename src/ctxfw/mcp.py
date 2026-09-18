@@ -19,6 +19,7 @@ from ctxfw.core.contracts import (
 from ctxfw.core.pruner import DeterministicContextPruner
 from ctxfw.core.topological import ContextFirewallEngine
 from ctxfw.storage.cache import LocalSemanticCache
+from ctxfw import __version__
 
 
 class MCPServer:
@@ -26,7 +27,7 @@ class MCPServer:
 
     PROTOCOL_VERSION = "2024-11-05"
     SERVER_NAME = "context-firewall-mcp"
-    SERVER_VERSION = "3.2.0"
+    SERVER_VERSION = f"{__version__}"
 
     def __init__(self, cache: Optional[LocalSemanticCache] = None):
         self.running = True
@@ -41,17 +42,30 @@ class MCPServer:
             },
             "serverInfo": {
                 "name": self.SERVER_NAME,
-                "version": self.SERVER_VERSION,
+                "version": f"{__version__}",
             },
         }
 
     def handle_tools_list(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Lists available context compacting tools."""
+        tool_annotations = {
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        }
+
         return {
             "tools": [
                 {
                     "name": "prune_file",
-                    "description": "Extract semantic interfaces, types, sanitized raises, and stubs from a source file.",
+                    "description": (
+                        "Extract semantic interfaces, types, pydantic models, sanitized raises, and signatures "
+                        "from a source file while replacing procedural bodies with AST stubs. Use this when you "
+                        "only need to inspect contracts or APIs of an individual dependency without ingesting "
+                        "raw implementation code. Does not modify files on disk (pure in-memory AST operation)."
+                    ),
+                    "annotations": tool_annotations,
                     "inputSchema": {
                         "type": "object",
                         "properties": {
@@ -77,10 +91,38 @@ class MCPServer:
                         },
                         "required": ["path"],
                     },
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "content": {
+                                "type": "array",
+                                "description": "Semantic interface stubs extracted via in-memory Tree-Sitter AST",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "type": {"type": "string", "enum": ["text"]},
+                                        "text": {"type": "string", "description": "Pruned source code with AST stubs"},
+                                    },
+                                    "required": ["type", "text"],
+                                },
+                            },
+                            "isError": {
+                                "type": "boolean",
+                                "description": "True if pruning encountered a fatal parsing or file resolution failure",
+                            },
+                        },
+                        "required": ["content", "isError"],
+                    },
                 },
                 {
                     "name": "resolve_context_bundle",
-                    "description": "Calculate topological dependency distances (D0 full, D1 interface, D2 nominal) and return bundled Markdown context.",
+                    "description": (
+                        "Calculate topological dependency graph distances (D0 full target, D1 interface stubs, "
+                        "D2 nominal symbols) for an active target file and compile a token-pruned Markdown context bundle. "
+                        "Use this as your primary context builder before editing a file in a multi-module project. "
+                        "For inspecting isolated files, use prune_file instead. Read-only operation."
+                    ),
+                    "annotations": tool_annotations,
                     "inputSchema": {
                         "type": "object",
                         "properties": {
@@ -95,10 +137,37 @@ class MCPServer:
                         },
                         "required": ["target_file"],
                     },
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "content": {
+                                "type": "array",
+                                "description": "Compiled topological Markdown prompt context bundle",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "type": {"type": "string", "enum": ["text"]},
+                                        "text": {"type": "string", "description": "Token-optimized Markdown context bundle"},
+                                    },
+                                    "required": ["type", "text"],
+                                },
+                            },
+                            "isError": {
+                                "type": "boolean",
+                                "description": "True if dependency resolution or file traversal failed",
+                            },
+                        },
+                        "required": ["content", "isError"],
+                    },
                 },
                 {
                     "name": "evaluate_spec_axioms",
-                    "description": "Evaluate architectural brief determinism, negative invariants floor, and Axiom Completeness Index (ACI).",
+                    "description": (
+                        "Evaluate an architectural brief against formal determinism rules, negative invariant floors, "
+                        "and the Axiom Completeness Index (ACI 1.0000). Use this during intake or planning phases "
+                        "before writing code. Pure analytical evaluation with no side effects."
+                    ),
+                    "annotations": tool_annotations,
                     "inputSchema": {
                         "type": "object",
                         "properties": {
@@ -108,6 +177,31 @@ class MCPServer:
                             },
                         },
                         "required": ["brief_text"],
+                    },
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "content": {
+                                "type": "array",
+                                "description": "JSON-serialized architectural determinism verification report",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "type": {"type": "string", "enum": ["text"]},
+                                        "text": {
+                                            "type": "string",
+                                            "description": "JSON report containing aci_score, negative_invariants_count, extracted_never_clauses, status, remediation_notes, and manifest_hash",
+                                        },
+                                    },
+                                    "required": ["type", "text"],
+                                },
+                            },
+                            "isError": {
+                                "type": "boolean",
+                                "description": "True if brief specification evaluation encountered an unhandled error",
+                            },
+                        },
+                        "required": ["content", "isError"],
                     },
                 },
             ]
