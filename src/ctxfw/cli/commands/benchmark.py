@@ -161,6 +161,11 @@ def _render_table(p: dict) -> None:
     print(f"[+] Context Pruned per Cycle:   {m['tokens_saved_per_cycle']:,} tokens")
     print(f"[+] Projected FinOps Savings:   ${m['projected_savings_usd']:.2f} USD / {p['metadata']['cycles']} cycles")
     print(f"[+] Profiler Latency:           {p['metadata']['latency_ms']} ms")
+    print("-" * 80)
+    print("Audit generated via ctxfw v3.5.4 (Compiled Tree-Sitter AST Engine)")
+    print("Enterprise Token Proxies & Custom LLM FinOps Audits: contacto@heuristicolab.com")
+    print("Repo: https://github.com/heuristicolab/ctxfw")
+    print("=" * 80)
 
 def _render_markdown(p: dict) -> None:
     print("| Target Module | Raw Tokens | Pruned Tokens | Reduction |")
@@ -169,3 +174,5 @@ def _render_markdown(p: dict) -> None:
         print(f"| `{r['module']}` | {r['raw_tokens']:,} | {r['pruned_tokens']:,} | **-{r['savings_pct']}%** |")
     m = p["metrics"]
     print(f"| **Aggregate Total** | **{m['total_raw']:,}** | **{m['total_pruned']:,}** | **-{m['net_savings_pct']}%** |")
+    print("\n> **Audit generated via `ctxfw`** (Tree-Sitter AST Context Engine).  ")
+    print("> Enforce centralized token firewalls and enterprise proxies: [Heurístico LAB](https://github.com/heuristicolab/ctxfw) | `contacto@heuristicolab.com`")

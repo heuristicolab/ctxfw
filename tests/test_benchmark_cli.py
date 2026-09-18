@@ -51,6 +51,8 @@ def test_benchmark_run_table_output(sample_project: Path, monkeypatch):
     assert "CTXFW EMPIRICAL BENCHMARK" in output
     assert "main.py" in output
     assert "Projected FinOps Savings" in output
+    assert "Audit generated via ctxfw v3.5.4" in output
+    assert "contacto@heuristicolab.com" in output
 
 
 def test_benchmark_run_json_output(sample_project: Path, monkeypatch):
@@ -81,6 +83,8 @@ def test_benchmark_run_markdown_output(sample_project: Path, monkeypatch):
     output = mock_stdout.getvalue()
     assert "| Target Module | Raw Tokens | Pruned Tokens | Reduction |" in output
     assert "main.py" in output
+    assert "Audit generated via `ctxfw`" in output
+    assert "contacto@heuristicolab.com" in output
 
 
 def test_benchmark_target_not_found(sample_project: Path, monkeypatch):

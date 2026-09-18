@@ -452,7 +452,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Builds central subcommands parser for ctxfw."""
     parser = argparse.ArgumentParser(
         prog="ctxfw",
-        description="ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.3)\n\n"
+        description=f"ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v{__version__})\n\n"
                     "Subcommands:\n"
                     "  init                 Initialize sovereign agentic perimeter, rules, and skills\n"
                     "  doctor               Run health, stdio isolation, and environment diagnostics\n"
@@ -533,7 +533,7 @@ def main():
     # Default delegation to Clipboard CLI (HU-12)
     parser = argparse.ArgumentParser(
         prog="ctxfw",
-        description="ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.3)\n\n"
+        description=f"ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v{__version__})\n\n"
                     "Subcommands:\n"
                     "  init                 Initialize sovereign agentic perimeter, rules, and skills\n"
                     "  doctor               Run health, stdio isolation, and environment diagnostics\n"
