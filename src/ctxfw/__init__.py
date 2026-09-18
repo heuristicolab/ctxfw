@@ -21,7 +21,7 @@ from ctxfw.core.topological import (
 from ctxfw.cli import handle_init_command
 from ctxfw.storage.cache import LocalSemanticCache, get_canonical_cache_path
 
-__version__ = "3.5.1"
+__version__ = "3.5.2"
 
 __all__ = [
     "__version__",

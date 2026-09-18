@@ -1,6 +1,6 @@
 # Axiom Manifest Hash: 021bb7d9251ba059ed7a833f9d9bb939bed351a2d015c83cb7c3260f394c6d8d
 name: "ctxfw"
-version: "3.5.1"
+version: "3.5.2"
 description: "In-memory AST pruning and sovereign context firewall for coding agents"
 runtime: "python"
 startCommand:
