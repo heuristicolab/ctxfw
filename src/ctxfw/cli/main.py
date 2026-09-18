@@ -20,6 +20,7 @@ from ctxfw.core.contracts import PruningDepth
 from ctxfw.core.pruner import DeterministicContextPruner
 from ctxfw.core.topological import ContextFirewallEngine, TopologicalContextBundleDTO
 from ctxfw.cli.commands import benchmark
+from ctxfw import __version__
 
 
 def copy_to_clipboard(text: str) -> bool:
@@ -451,7 +452,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Builds central subcommands parser for ctxfw."""
     parser = argparse.ArgumentParser(
         prog="ctxfw",
-        description="ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.1)\n\n"
+        description="ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.3)\n\n"
                     "Subcommands:\n"
                     "  init                 Initialize sovereign agentic perimeter, rules, and skills\n"
                     "  doctor               Run health, stdio isolation, and environment diagnostics\n"
@@ -464,6 +465,7 @@ def build_parser() -> argparse.ArgumentParser:
                     "  benchmark            Profile topological AST token reduction and FinOps savings",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command")
 
     # Subcomando benchmark
@@ -479,6 +481,11 @@ def main():
                 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         except Exception:
             pass
+
+    if any(a in {"-v", "--version"} for a in sys.argv[1:]):
+        parser = build_parser()
+        parser.parse_args(sys.argv[1:])
+        return
 
     if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "service", "spec", "doctor", "benchmark"}:
         subcmd = sys.argv[1]
@@ -526,7 +533,7 @@ def main():
     # Default delegation to Clipboard CLI (HU-12)
     parser = argparse.ArgumentParser(
         prog="ctxfw",
-        description="ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.1)\n\n"
+        description="ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.3)\n\n"
                     "Subcommands:\n"
                     "  init                 Initialize sovereign agentic perimeter, rules, and skills\n"
                     "  doctor               Run health, stdio isolation, and environment diagnostics\n"
@@ -539,6 +546,7 @@ def main():
                     "  benchmark            Profile topological AST token reduction and FinOps savings",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("target_file", nargs="?", default=None, help="Path to the active target file being edited (Distance 0)")
     parser.add_argument("project_root", nargs="?", default=None, help="Root directory of the project")
     parser.add_argument("--no-clip", action="store_true", help="Disable automatic copying to system clipboard")

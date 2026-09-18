@@ -4,6 +4,8 @@ Hermetic Toolchain implementation adhering to Google style and POSIX/XDG standar
 """
 from __future__ import annotations
 
+__version__ = "3.5.3"
+
 from ctxfw.core.contracts import (
     OptimizationRequestDTO,
     OptimizationResultDTO,
@@ -20,8 +22,6 @@ from ctxfw.core.topological import (
 )
 from ctxfw.cli import handle_init_command
 from ctxfw.storage.cache import LocalSemanticCache, get_canonical_cache_path
-
-__version__ = "3.5.2"
 
 __all__ = [
     "__version__",

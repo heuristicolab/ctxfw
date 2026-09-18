@@ -210,3 +210,18 @@ def test_cli_main_subcommand_init_help(monkeypatch):
     main()
     assert "usage: ctxfw init [target_dir]" in mock_stdout.getvalue()
 
+
+def test_cli_version_flag():
+    """Asserts that `ctxfw --version` returns code 0 and prints 'ctxfw 3.5.3'."""
+    import subprocess
+    import sys
+
+    res = subprocess.run(
+        [sys.executable, "-m", "ctxfw.cli", "--version"],
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0
+    assert "ctxfw 3.5.3" in (res.stdout + res.stderr)
+
+
