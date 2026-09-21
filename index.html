@@ -1789,7 +1789,7 @@
   <header>
     <div class="container nav">
       <a href="#" class="brand-wrap">
-        <span class="brand-pill">CTXFW // v3.5.0</span>
+        <span class="brand-pill">CTXFW // v3.5.6</span>
         <span class="brand-name">CONTEXT FIREWALL</span>
       </a>
 
@@ -1823,23 +1823,23 @@
         <span data-i18n="hero.eyebrow">HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE</span>
       </div>
 
-      <h1 data-i18n="hero.title">Aduana Matemática Determinista para <span class="highlight-cyan">Código Sintético</span></h1>
+      <h1 data-i18n="hero.title">Cortafuegos de Contexto y Poda AST en Memoria para <span class="highlight-cyan">Agentes de Código</span></h1>
       
       <p class="lead" data-i18n="hero.lead">
-        Tu agente de IA miente con confianza. CTXFW lo contiene con pruebas matemáticas deterministas, poda topológica de dependencias en árbol AST y un centinela pre-commit en Git que intercepta requerimientos ambiguos en menos de 80ms.
+        Los agentes de IA saturan su ventana de contexto inyectando dependencias completas. CTXFW intercepta el flujo con Tree-Sitter en C (&lt;60ms), poda el 72% del bloat sintáctico a interfaces tipadas y blinda el repositorio con un centinela pre-commit determinista.
       </p>
 
       <!-- INSTALL COMMAND BOX (3 TABS) -->
       <div class="install-box">
         <div class="install-nav">
-          <button class="install-tab-btn active" onclick="selectInstallTab(0)">Instalador Canónico</button>
-          <button class="install-tab-btn" onclick="selectInstallTab(1)">pip Global CLI</button>
-          <button class="install-tab-btn" onclick="selectInstallTab(2)">Git Clone (Soberano)</button>
+          <button class="install-tab-btn active" onclick="selectInstallTab(0)">pip install ctxfw</button>
+          <button class="install-tab-btn" onclick="selectInstallTab(1)" data-i18n="install.tab_curl">Instalador Canónico (curl)</button>
+          <button class="install-tab-btn" onclick="selectInstallTab(2)" data-i18n="install.tab_git">Git Clone (Soberano)</button>
         </div>
         <div class="install-row">
           <div>
             <span class="cmd-symbol">$</span>
-            <span id="installCmdText">curl -fsSL https://ctxfw.heuristicolab.com/install.sh | bash</span>
+            <span id="installCmdText">pip install ctxfw</span>
           </div>
           <button id="btnCopyInstall" class="copy-button" onclick="copyCurrentInstallCmd()">COPY</button>
         </div>
@@ -1878,9 +1878,10 @@
           </div>
           <div class="terminal-tabs">
             <button class="term-tab-btn active" onclick="switchTerminalOutput(0)">ctxfw doctor</button>
-            <button class="term-tab-btn" onclick="switchTerminalOutput(1)">ctxfw init --global</button>
-            <button class="term-tab-btn" onclick="switchTerminalOutput(2)">ctxfw spec verify</button>
-            <button class="term-tab-btn" onclick="switchTerminalOutput(3)">ctxfw --help</button>
+            <button class="term-tab-btn" onclick="switchTerminalOutput(1)">ctxfw benchmark</button>
+            <button class="term-tab-btn" onclick="switchTerminalOutput(2)">ctxfw init --global</button>
+            <button class="term-tab-btn" onclick="switchTerminalOutput(3)">ctxfw spec verify</button>
+            <button class="term-tab-btn" onclick="switchTerminalOutput(4)">ctxfw --help</button>
           </div>
         </div>
         <div id="terminalBodyOutput" class="terminal-body"></div>
@@ -1897,31 +1898,31 @@
 
       <div class="grid-3">
         <div class="card">
-          <span class="card-tag">// 01 DETERMINISMO MATEMÁTICO</span>
+          <span class="card-tag" data-i18n="cap.c1_tag">// 01 DETERMINISMO MATEMÁTICO</span>
           <h3 data-i18n="cap.c1_title">Axiom Completeness Index (ACI)</h3>
           <p data-i18n="cap.c1_desc">Evalúa formalmente cualquier brief de diseño contra una Máquina de Estados Finita (FSM), variables de dominio acotadas numéricamente y una taxonomía estricta de fallos. Requiere un índice ACI ≥ 0.9000 para desbloquear la síntesis.</p>
           <div class="card-footer-metric">
-            <span>Score Mínimo Requerido</span>
+            <span data-i18n="cap.c1_metric_lbl">Score Mínimo Requerido</span>
             <strong>0.9000 / 1.0000</strong>
           </div>
         </div>
 
         <div class="card">
-          <span class="card-tag">// 02 PISO DE SEGURIDAD NEGATIVA</span>
+          <span class="card-tag" data-i18n="cap.c2_tag">// 02 PISO DE SEGURIDAD NEGATIVA</span>
           <h3 data-i18n="cap.c2_title">Piso de Invariantes Negativas</h3>
           <p data-i18n="cap.c2_desc">Exige un mínimo no negociable de 5 cláusulas prohibitivas formales (usando cláusulas explícitas 'never' o 'shall never'). Si el pliego carece de prohibiciones tajantes sobre secretos, estados o memoria, es enviado a cuarentena.</p>
           <div class="card-footer-metric">
-            <span>Invariantes Negativas</span>
-            <strong>N ≥ 5 Cláusulas</strong>
+            <span data-i18n="cap.c2_metric_lbl">Invariantes Negativas</span>
+            <strong data-i18n="cap.c2_metric_val">N ≥ 5 Cláusulas</strong>
           </div>
         </div>
 
         <div class="card">
-          <span class="card-tag">// 03 INTERCEPTOR GIT LOCAL</span>
+          <span class="card-tag" data-i18n="cap.c3_tag">// 03 INTERCEPTOR GIT LOCAL</span>
           <h3 data-i18n="cap.c3_title">Sentry Pre-Commit Infranqueable</h3>
           <p data-i18n="cap.c3_desc">Hook local desplegado en .git/hooks/pre-commit que se dispara en menos de 80ms en cada git commit. Aborta la transacción en frío con código de salida 1 si la especificación activa no porta un manifest_hash válido.</p>
           <div class="card-footer-metric">
-            <span>Latencia de Bloqueo</span>
+            <span data-i18n="cap.c3_metric_lbl">Latencia de Bloqueo</span>
             <strong>&lt; 80 ms (Zero-Lag)</strong>
           </div>
         </div>
@@ -2083,7 +2084,7 @@
       <div class="simulator-wrap">
         <div class="sim-header">
           <span style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--text-bright);">
-            INTERACTIVE SIEVE ENGINE // V3.5.0
+            INTERACTIVE SIEVE ENGINE // V3.5.6
           </span>
           <div class="sim-controls">
             <button class="btn-sim-preset" onclick="loadSimPreset('deficient')" data-i18n="sim.btn_def">Cargar Ambiguo</button>
@@ -2094,7 +2095,7 @@
         <div class="sim-body">
           <div class="sim-editor-pane">
             <span class="code-label" data-i18n="sim.edit_label">Editor de Especificación Markdown:</span>
-            <textarea id="simTextarea" class="sim-textarea" oninput="recomputeSieveSimulation()" placeholder="Escribe o pega aquí tu especificación de requerimiento..."></textarea>
+            <textarea id="simTextarea" class="sim-textarea" oninput="recomputeSieveSimulation()" data-i18n-attr="placeholder:sim.placeholder" placeholder="Escribe o pega aquí tu especificación de requerimiento..."></textarea>
           </div>
 
           <div class="sim-results-pane">
@@ -2153,7 +2154,7 @@
       <div class="playbook-steps">
         <!-- Step 1 -->
         <div class="step-card">
-          <span class="step-num-pill">PASO 01 // AUDITORÍA</span>
+          <span class="step-num-pill" data-i18n="step1.pill">PASO 01 // AUDITORÍA</span>
           <h3 data-i18n="step1.title">Diagnóstico de Salud y Pureza stdio</h3>
           <p data-i18n="step1.desc">Ejecuta el auto-test integral para certificar el motor SQLite WAL, las gramáticas Tree-Sitter y garantizar que ningún log manche el canal stdout de MCP.</p>
           <div class="cmd-badge-box">
@@ -2164,7 +2165,7 @@
 
         <!-- Step 2 -->
         <div class="step-card">
-          <span class="step-num-pill">PASO 02 // IDE LINK</span>
+          <span class="step-num-pill" data-i18n="step2.pill">PASO 02 // IDE LINK</span>
           <h3 data-i18n="step2.title">Inyección Multi-IDE Idempotente</h3>
           <p data-i18n="step2.desc">Detecta y configura automáticamente Cursor, Google Antigravity y Claude Desktop sin pisar ni corromper tus servidores MCP preexistentes.</p>
           <div class="cmd-badge-box">
@@ -2175,7 +2176,7 @@
 
         <!-- Step 3 -->
         <div class="step-card">
-          <span class="step-num-pill">PASO 03 // BLINDAJE REPO</span>
+          <span class="step-num-pill" data-i18n="step3.pill">PASO 03 // BLINDAJE REPO</span>
           <h3 data-i18n="step3.title">Sentry Pre-Commit en Repositorio</h3>
           <p data-i18n="step3.desc">Despliega la plantilla canónica SPEC.axioms.md y el hook .git/hooks/pre-commit en tu proyecto activo para interceptar commits ambiguos.</p>
           <div class="cmd-badge-box">
@@ -2246,7 +2247,7 @@
               CAPITAL EVITADO ESTIMADO (72.4% PODA AST)
             </span>
             <div id="finopsSavedDollars" class="savings-val">$10,775.84</div>
-            <div style="font-family: var(--font-mono); font-size: 12px; color: var(--cyan); margin-bottom: 6px;">/ mes evitado</div>
+            <div style="font-family: var(--font-mono); font-size: 12px; color: var(--cyan); margin-bottom: 6px;" data-i18n="finops.per_month">/ mes evitado</div>
             <div id="finopsSavedAnnual" class="savings-annual">$129,310.02 / año evitado</div>
             <div id="finopsSavedTokens" class="savings-sub" style="margin-top: 8px;">1,077,583,500 tokens podados</div>
           </div>
@@ -2274,22 +2275,22 @@
           <tbody>
             <tr>
               <td><strong>PCI-DSS v4.0</strong></td>
-              <td>Req 3.4 & 6.4 (Protección de Datos de Tarjetahabientes)</td>
+              <td data-i18n="tbl.c1">Req 3.4 & 6.4 (Protección de Datos de Tarjetahabientes)</td>
               <td data-i18n="tbl.r1">El sentry pre-commit intercepta cualquier requerimiento que admita almacenamiento o logging de PAN o CVV en claro antes de llegar al código.</td>
             </tr>
             <tr>
               <td><strong>SOC 2 Type II</strong></td>
-              <td>CC6.6 & CC7.1 (Integridad de Código & No Repudio)</td>
+              <td data-i18n="tbl.c2">CC6.6 & CC7.1 (Integridad de Código & No Repudio)</td>
               <td data-i18n="tbl.r2">Trazabilidad criptográfica absoluta: cada commit queda ligado a un manifest_hash SHA-256 inmutable de la especificación verificada.</td>
             </tr>
             <tr>
               <td><strong>EU AI Act</strong></td>
-              <td>Artículo 14 (Supervisión Humana y Determinismo)</td>
+              <td data-i18n="tbl.c3">Artículo 14 (Supervisión Humana y Determinismo)</td>
               <td data-i18n="tbl.r3">Impide la síntesis probabilística no supervisada forzando al agente a respetar invariantes de dominio y estados formales aprobados.</td>
             </tr>
             <tr>
               <td><strong>DORA (UE)</strong></td>
-              <td>Gestión de Riesgo TIC e Incidentes</td>
+              <td data-i18n="tbl.c4">Gestión de Riesgo TIC e Incidentes</td>
               <td data-i18n="tbl.r4">Aislamiento formal de taxonomía de errores en 4 clases deterministas para evitar fallos en cascada en servicios financieros.</td>
             </tr>
           </tbody>
@@ -2321,7 +2322,7 @@
   <aside id="support-drawer" class="support-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title-heading">
     <div class="drawer-header">
       <div class="drawer-badge" data-i18n="faq_badge">DUDAS FRECUENTES (CTO & LEAD LEVEL)</div>
-      <button class="drawer-close-btn" onclick="toggleSupportDrawer()" aria-label="Cerrar consola" data-i18n="drawer_close">✕</button>
+      <button class="drawer-close-btn" onclick="toggleSupportDrawer()" aria-label="Cerrar consola" data-i18n-attr="aria-label:drawer_close_aria">✕</button>
     </div>
     
     <h2 id="drawer-title-heading" class="drawer-title" data-i18n="drawer_title">Heurístico Lab // Autonomous Operations Desk</h2>
@@ -2396,8 +2397,11 @@
         "nav.repository": "Repositorio Soberano",
 
         "hero.eyebrow": "HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE",
-        "hero.title": "Aduana Matemática Determinista para <span class='highlight-cyan'>Código Sintético</span>",
-        "hero.lead": "Tu agente de IA miente con confianza. CTXFW lo contiene con pruebas matemáticas deterministas, poda topológica de dependencias en árbol AST y un centinela pre-commit en Git que intercepta requerimientos ambiguos en menos de 80ms.",
+        "hero.title": "Cortafuegos de Contexto y Poda AST en Memoria para <span class='highlight-cyan'>Agentes de Código</span>",
+        "hero.lead": "Los agentes de IA saturan su ventana de contexto inyectando dependencias completas. CTXFW intercepta el flujo con Tree-Sitter en C (<60ms), poda el 72% del bloat sintáctico a interfaces tipadas y blinda el repositorio con un centinela pre-commit determinista.",
+
+        "install.tab_curl": "Instalador Canónico (curl)",
+        "install.tab_git": "Git Clone (Soberano)",
 
         "badge.aci": "ACI Threshold: <strong>≥ 0.9000</strong>",
         "badge.invariants": "Piso Negativo: <strong>5 Cláusulas 'Never'</strong>",
@@ -2407,12 +2411,19 @@
         "cap.tag": "// ARQUITECTURA DE CONTENCIÓN",
         "cap.title": "Tres Líneas de Fuego Deterministas",
         "cap.desc": "A diferencia de los linters sintácticos o prompts pasivos, CTXFW opera a nivel de protocolo y sistema de archivos antes de que la IA sintetice código en disco.",
+        "cap.c1_tag": "// 01 DETERMINISMO MATEMÁTICO",
         "cap.c1_title": "Axiom Completeness Index (ACI)",
         "cap.c1_desc": "Evalúa formalmente cualquier brief de diseño contra una Máquina de Estados Finita (FSM), variables de dominio acotadas numéricamente y una taxonomía estricta de fallos. Requiere un índice ACI ≥ 0.9000 para desbloquear la síntesis.",
+        "cap.c1_metric_lbl": "Score Mínimo Requerido",
+        "cap.c2_tag": "// 02 PISO DE SEGURIDAD NEGATIVA",
         "cap.c2_title": "Piso de Invariantes Negativas",
         "cap.c2_desc": "Exige un mínimo no negociable de 5 cláusulas prohibitivas formales (usando cláusulas explícitas 'never' o 'shall never'). Si el pliego carece de prohibiciones tajantes sobre secretos, estados o memoria, es enviado a cuarentena.",
+        "cap.c2_metric_lbl": "Invariantes Negativas",
+        "cap.c2_metric_val": "N ≥ 5 Cláusulas",
+        "cap.c3_tag": "// 03 INTERCEPTOR GIT LOCAL",
         "cap.c3_title": "Sentry Pre-Commit Infranqueable",
         "cap.c3_desc": "Hook local desplegado en .git/hooks/pre-commit que se dispara en menos de 80ms en cada git commit. Aborta la transacción en frío con código de salida 1 si la especificación activa no porta un manifest_hash válido.",
+        "cap.c3_metric_lbl": "Latencia de Bloqueo",
 
         "compare.tag": "// EL PROBLEMA HUMANO",
         "compare.title": "¿Por Qué los Flujos Agénticos Tradicionales Fallan?",
@@ -2447,14 +2458,18 @@
         "sim.btn_def": "Cargar Ambiguo",
         "sim.btn_comp": "Cargar Canónico",
         "sim.edit_label": "Editor de Especificación Markdown:",
+        "sim.placeholder": "Escribe o pega aquí tu especificación de requerimiento...",
 
         "playbook.tag": "// GUÍA RÁPIDA DE CAMPO",
         "playbook.title": "Despliegue Zero-Touch en 30 Segundos",
         "playbook.desc": "Tres comandos para blindar tu entorno de desarrollo, enlazar tus IDEs de IA y armar el repositorio.",
+        "step1.pill": "PASO 01 // AUDITORÍA",
         "step1.title": "Diagnóstico de Salud y Pureza stdio",
         "step1.desc": "Ejecuta el auto-test integral para certificar el motor SQLite WAL, las gramáticas Tree-Sitter y garantizar que ningún log manche el canal stdout de MCP.",
+        "step2.pill": "PASO 02 // IDE LINK",
         "step2.title": "Inyección Multi-IDE Idempotente",
         "step2.desc": "Detecta y configura automáticamente Cursor, Google Antigravity y Claude Desktop sin pisar ni corromper tus servidores MCP preexistentes.",
+        "step3.pill": "PASO 03 // BLINDAJE REPO",
         "step3.title": "Sentry Pre-Commit en Repositorio",
         "step3.desc": "Despliega la plantilla canónica SPEC.axioms.md y el hook .git/hooks/pre-commit en tu proyecto activo para interceptar commits ambiguos.",
 
@@ -2465,6 +2480,7 @@
         "finops.model_lbl": "Modelo Frontera (Precios Septiembre 2026):",
         "finops.note": "* Estimación basada en 35 prompts/dev/día a 45k tokens y una reducción determinista del 72.4% mediante stubs de interfaz e inyección topológica por AST.",
         "finops.saved_title": "CAPITAL EVITADO ESTIMADO (72.4% PODA AST)",
+        "finops.per_month": "/ mes evitado",
 
         "comp.tag": "// AUDITORÍA Y REGULACIÓN B2B",
         "comp.title": "Matriz de Cumplimiento Normativo",
@@ -2472,6 +2488,10 @@
         "tbl.h1": "Marco / Estándar",
         "tbl.h2": "Cláusula de Control",
         "tbl.h3": "Mecanismo de Contención CTXFW",
+        "tbl.c1": "Req 3.4 & 6.4 (Protección de Datos de Tarjetahabientes)",
+        "tbl.c2": "CC6.6 & CC7.1 (Integridad de Código & No Repudio)",
+        "tbl.c3": "Artículo 14 (Supervisión Humana y Determinismo)",
+        "tbl.c4": "Gestión de Riesgo TIC e Incidentes",
         "tbl.r1": "El sentry pre-commit intercepta cualquier requerimiento que admita almacenamiento o logging de PAN o CVV en claro antes de llegar al código.",
         "tbl.r2": "Trazabilidad criptográfica absoluta: cada commit queda ligado a un manifest_hash SHA-256 inmutable de la especificación verificada.",
         "tbl.r3": "Impide la síntesis probabilística no supervisada forzando al agente a respetar invariantes de dominio y estados formales aprobados.",
@@ -2500,8 +2520,9 @@
         "form_submit": "DESPACHAR CONSULTA ASÍNCRONA",
         "form_submitting": "ENCRIPTANDO Y TRANSMITIENDO...",
         "form_success": "✓ Consulta registrada en el centinela perimetral. Respuesta en < 4h.",
-        "form_error": "Error al transmitir. Escribe a mike.marin@heuristicolab.com",
-        "drawer_close": "CERRAR CONSOLA [ESC]"
+        "form_error": "Error al transmitir. Escribe a mo@heuristicolab.com",
+        "drawer_close": "CERRAR CONSOLA [ESC]",
+        "drawer_close_aria": "Cerrar consola [ESC]"
       },
       en: {
         "nav.litmus": "Litmus Test",
@@ -2512,8 +2533,11 @@
         "nav.repository": "Sovereign Git",
 
         "hero.eyebrow": "HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE",
-        "hero.title": "Deterministic Axiomatic Gatekeeper for <span class='highlight-cyan'>Synthetic Code</span>",
-        "hero.lead": "Your AI agent hallucinates with confidence. CTXFW restrains it with deterministic mathematical proofs, AST dependency pruning, and an active Git pre-commit sentry that blocks ambiguous briefs in <80ms.",
+        "hero.title": "In-Memory AST Context Firewall & Pruning for <span class='highlight-cyan'>Coding Agents</span>",
+        "hero.lead": "AI coding agents flood context windows by ingesting raw dependency trees. CTXFW intercepts tool calls via C-native Tree-Sitter (<60ms), prunes 72% of AST bloat into typed interface stubs, and enforces repository integrity with a deterministic pre-commit sentry.",
+
+        "install.tab_curl": "Canonical Installer (curl)",
+        "install.tab_git": "Git Clone (Sovereign)",
 
         "badge.aci": "ACI Threshold: <strong>≥ 0.9000</strong>",
         "badge.invariants": "Negative Floor: <strong>5 'Never' Clauses</strong>",
@@ -2523,12 +2547,19 @@
         "cap.tag": "// CONTAINMENT ARCHITECTURE",
         "cap.title": "Three Deterministic Defense Rings",
         "cap.desc": "Unlike passive linters or system prompts, CTXFW operates at protocol and filesystem levels before the AI synthesizes code on disk.",
+        "cap.c1_tag": "// 01 MATHEMATICAL DETERMINISM",
         "cap.c1_title": "Axiom Completeness Index (ACI)",
         "cap.c1_desc": "Formally assesses any architectural brief against a deterministic Finite State Machine (FSM), bounded domain variables, and a strict fault taxonomy. Requires ACI ≥ 0.9000 to unlock synthesis.",
+        "cap.c1_metric_lbl": "Minimum Required Score",
+        "cap.c2_tag": "// 02 NEGATIVE SECURITY FLOOR",
         "cap.c2_title": "Negative Invariants Floor",
         "cap.c2_desc": "Enforces a non-negotiable floor of 5 prohibitive clauses (using explicit 'never' or 'shall never'). If the brief lacks explicit negative guardrails on secrets or state, it is quarantined immediately.",
+        "cap.c2_metric_lbl": "Negative Invariants",
+        "cap.c2_metric_val": "N ≥ 5 Clauses",
+        "cap.c3_tag": "// 03 LOCAL GIT INTERCEPTOR",
         "cap.c3_title": "Unbreakable Git Pre-Commit Sentry",
         "cap.c3_desc": "A zero-lag local hook deployed to .git/hooks/pre-commit that triggers in <80ms on every commit. Cold-aborts with exit code 1 if the brief lacks a valid cryptographic manifest_hash.",
+        "cap.c3_metric_lbl": "Block Latency",
 
         "compare.tag": "// THE HUMAN PROBLEM",
         "compare.title": "Why Do Traditional Agentic Workflows Fail?",
@@ -2563,14 +2594,18 @@
         "sim.btn_def": "Load Ambiguous",
         "sim.btn_comp": "Load Canonical",
         "sim.edit_label": "Markdown Specification Editor:",
+        "sim.placeholder": "Write or paste your specification brief here...",
 
         "playbook.tag": "// FIELD MANUAL PLAYBOOK",
         "playbook.title": "30-Second Zero-Touch Provisioning",
         "playbook.desc": "Three operational commands to audit runtime health, link installed AI IDEs, and armor the target repository.",
+        "step1.pill": "STEP 01 // AUDIT",
         "step1.title": "Diagnostic Health & stdio Isolation",
         "step1.desc": "Run full runtime diagnostics to certify the SQLite WAL engine, Tree-Sitter parsers, and assert zero log leakage onto stdout.",
+        "step2.pill": "STEP 02 // IDE LINK",
         "step2.title": "Idempotent Multi-IDE Injection",
         "step2.desc": "Automatically configures Cursor, Google Antigravity, and Claude Desktop while strictly preserving existing third-party servers.",
+        "step3.pill": "STEP 03 // REPO ARMOR",
         "step3.title": "Pre-Commit Repository Armor",
         "step3.desc": "Deploys canonical SPEC.axioms.md template and .git/hooks/pre-commit into your project to enforce specification compliance.",
 
@@ -2581,6 +2616,7 @@
         "finops.model_lbl": "Frontier AI Model (September 2026 Matrix):",
         "finops.note": "* Projection based on 35 prompts/dev/day at 45k tokens and deterministic 72.4% AST interface stub pruning.",
         "finops.saved_title": "ESTIMATED AVOIDED CAPITAL (72.4% AST PRUNING)",
+        "finops.per_month": "/ mo avoided",
 
         "comp.tag": "// REGULATORY & ENTERPRISE AUDIT",
         "comp.title": "Enterprise Compliance Matrix",
@@ -2588,6 +2624,10 @@
         "tbl.h1": "Framework / Standard",
         "tbl.h2": "Control Clause",
         "tbl.h3": "CTXFW Containment Mechanism",
+        "tbl.c1": "Req 3.4 & 6.4 (Cardholder Data Protection)",
+        "tbl.c2": "CC6.6 & CC7.1 (Code Integrity & Non-Repudiation)",
+        "tbl.c3": "Article 14 (Human Oversight & Determinism)",
+        "tbl.c4": "ICT Risk Management & Incident Reporting",
         "tbl.r1": "The pre-commit sentry intercepts any specification permitting cleartext PAN or CVV logging before reaching code.",
         "tbl.r2": "Absolute cryptographic traceability: every commit is bound to an immutable SHA-256 manifest hash.",
         "tbl.r3": "Eliminates unmonitored probabilistic code synthesis by compelling AI agents to adhere to proven invariants.",
@@ -2616,8 +2656,9 @@
         "form_submit": "DISPATCH ASYNC INQUIRY",
         "form_submitting": "ENCRYPTING & DISPATCHING...",
         "form_success": "✓ Inquiry registered in perimeter sentinel. Response SLA < 4h.",
-        "form_error": "Transmission error. Direct dispatch: mike.marin@heuristicolab.com",
-        "drawer_close": "CLOSE CONSOLE [ESC]"
+        "form_error": "Transmission error. Direct dispatch: mo@heuristicolab.com",
+        "drawer_close": "CLOSE CONSOLE [ESC]",
+        "drawer_close_aria": "Close console [ESC]"
       }
     };
 
@@ -2625,6 +2666,7 @@
 
     function switchLanguage(lang) {
       currentLang = lang;
+      document.documentElement.lang = lang;
       const btnEs = document.getElementById('btnLangEs');
       const btnEn = document.getElementById('btnLangEn');
       if (btnEs) btnEs.classList.toggle('active', lang === 'es');
@@ -2646,14 +2688,15 @@
       });
 
       updateFinopsCalculation();
+      recomputeSieveSimulation();
     }
 
     // -------------------------------------------------------------------------
     // INSTALLATION TABS & COPY SYSTEM
     // -------------------------------------------------------------------------
     const installCommands = [
-      "curl -fsSL https://ctxfw.heuristicolab.com/install.sh | bash",
       "pip install ctxfw",
+      "curl -fsSL https://ctxfw.heuristicolab.com/install.sh | bash",
       "git clone https://github.com/heuristicolab/ctxfw.git && cd ctxfw && pip install -e ."
     ];
 
@@ -2710,17 +2753,17 @@
     const terminalOutputs = [
       // 0: ctxfw doctor
       `<span class="c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
- ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
- ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
- ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
- ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
-  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.0
- ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
+  ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
+  ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
+  ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
+  ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
+   ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
+  ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
 
 <span class="c-graphite">========================================================================</span>
   <span class="c-cyan">CTXFW DOCTOR // HIGH-ASSURANCE HEALTH & ISOLATION DIAGNOSTIC</span>
 <span class="c-graphite">========================================================================</span>
-<span class="c-emerald">[PASS]</span>  <span class="c-white">Python Package & sys.path</span>        ctxfw v3.5.0 loaded cleanly from C:\\ctxfw\\src\\ctxfw\\__init__.py.
+<span class="c-emerald">[PASS]</span>  <span class="c-white">Python Package & sys.path</span>        ctxfw v3.5.6 loaded cleanly from C:\\ctxfw\\src\\ctxfw\\__init__.py.
 <span class="c-emerald">[PASS]</span>  <span class="c-white">MCP stdio Stream Isolation</span>       100% pure JSON-RPC on stdout. Diagnostic logs correctly isolated to stderr.
 <span class="c-emerald">[PASS]</span>  <span class="c-white">Global CLI Executable (PATH)</span>     Binary 'ctxfw' found in PATH: C:\\Python313\\Scripts\\ctxfw.EXE
 <span class="c-emerald">[PASS]</span>  <span class="c-white">Axiomatic Sieve Engine</span>           Evaluation verified (ACI: 1.0000, Invariants: 5, Hash: 2ff805b3dec69e93...).
@@ -2730,14 +2773,45 @@
 <span class="c-white">Overall Verdict:</span>            <span class="c-emerald">[HEALTHY] [ATTESTED]</span> Perimeter defense operational.
 <span class="c-graphite">========================================================================</span>`,
 
-      // 1: ctxfw init --global
+      // 1: ctxfw benchmark
       `<span class="c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
- ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
- ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
- ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
- ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
-  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.0
- ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
+  ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
+  ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
+  ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
+  ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
+   ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
+  ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
+
+<span class="c-graphite">========================================================================</span>
+  <span class="c-cyan">CTXFW EMPIRICAL BENCHMARK // TOPOLOGICAL AST ATTENTION PROFILER</span>
+<span class="c-graphite">========================================================================</span>
+<span class="c-white">Target Root:</span>          src/ctxfw/installer.py
+<span class="c-white">Pricing Model:</span>        claude-3-5-sonnet ($3.00 / 1M input tokens)
+<span class="c-white">Simulation Base:</span>      500 agentic tool-call cycles
+<span class="c-graphite">------------------------------------------------------------------------</span>
+<span class="c-white">MODULE / ROUTE                  | DEPTH | RAW TOK | PRUNED | SAVINGS</span>
+<span class="c-graphite">------------------------------------------------------------------------</span>
+src/ctxfw/installer.py          | D0    | 52,018  | 18,970 | <span class="c-emerald">-63.5%</span>
+<span class="c-graphite">------------------------------------------------------------------------</span>
+<span class="c-white">AGGREGATE PIPELINE              | TOTAL | 52,018  | 18,970 |</span> <span class="c-emerald">-63.5%</span>
+<span class="c-graphite">========================================================================</span>
+<span class="c-emerald">[+]</span> <span class="c-white">Context Pruned per Cycle:</span>   33,048 tokens
+<span class="c-emerald">[+]</span> <span class="c-white">Projected FinOps Savings:</span>   $49.57 USD / 500 cycles
+<span class="c-emerald">[+]</span> <span class="c-white">Profiler Latency:</span>           91.66 ms
+<span class="c-graphite">------------------------------------------------------------------------</span>
+Audit generated via ctxfw v3.5.6 (Compiled Tree-Sitter AST Engine)
+Enterprise Token Proxies & Custom LLM FinOps Audits: mo@heuristicolab.com
+Repo: https://github.com/heuristicolab/ctxfw
+<span class="c-graphite">========================================================================</span>`,
+
+      // 2: ctxfw init --global
+      `<span class="c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
+  ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
+  ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
+  ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
+  ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
+   ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
+  ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
 
 <span class="c-graphite">========================================================================</span>
   <span class="c-cyan">CTXFW GLOBAL ZERO-TOUCH PROVISIONING // MULTI-IDE ARMORED INJECTION</span>
@@ -2749,7 +2823,7 @@
 <span class="c-graphite">========================================================================</span>
 <span class="c-white">Status:</span>  Multi-IDE provisioning complete. 0 third-party servers overwritten.`,
 
-      // 2: ctxfw spec verify
+      // 3: ctxfw spec verify
       `<span class="c-graphite">========================================================================</span>
   <span class="c-cyan">CTXFW SPECIFICATION SIEVE // AXIOMATIC DETERMINISM VERIFIER</span>
 <span class="c-graphite">========================================================================</span>
@@ -2769,19 +2843,19 @@
 <span class="c-white">Final Verdict:</span>              <span class="c-emerald">[PASS] READY FOR FORGE</span>
 <span class="c-graphite">========================================================================</span>`,
 
-      // 3: ctxfw --help
+      // 4: ctxfw --help
       `<span class="c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
- ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
- ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
- ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
- ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
-  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.0
- ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
+  ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
+  ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
+  ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
+  ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
+   ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
+  ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
 
 usage: ctxfw [-h] [--no-clip] [--output OUTPUT] [--stdout] [--price PRICE]
              [target_file] [project_root]
 
-ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.0)
+ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.6)
 
 <span class="c-white">Subcommands:</span>
   <span class="c-cyan">init</span>                 Initialize sovereign agentic perimeter, rules, and skills
@@ -2803,6 +2877,7 @@ options:
 
     const terminalSubtitles = [
       "PowerShell &mdash; ctxfw doctor (High-Assurance Diagnostic)",
+      "PowerShell &mdash; ctxfw benchmark src/ctxfw/installer.py (AST Profiler)",
       "PowerShell &mdash; ctxfw init --global (Idempotent Multi-IDE Injection)",
       "PowerShell &mdash; ctxfw spec verify SPEC.axioms.md (Sieve Engine)",
       "PowerShell &mdash; ctxfw --help (Unified CLI Reference)"
@@ -2904,7 +2979,9 @@ Deterministic SHA-256 attestation seal guarantees manifest immutability.
       const chkInv = document.getElementById('chkInvariants');
       const icoInv = document.getElementById('icoInvariants');
       const lblInv = document.getElementById('lblInvariants');
-      lblInv.textContent = `Invariantes Negativas ('never'): ${negCount} / 5 requeridas`;
+      lblInv.textContent = currentLang === 'en'
+        ? `Negative Invariants ('never'): ${negCount} / 5 required`
+        : `Invariantes Negativas ('never'): ${negCount} / 5 requeridas`;
       if (negCount >= 5) {
         chkInv.className = "sim-check-item valid";
         icoInv.textContent = "✓";
@@ -2917,7 +2994,9 @@ Deterministic SHA-256 attestation seal guarantees manifest immutability.
       const chkBnd = document.getElementById('chkBounds');
       const icoBnd = document.getElementById('icoBounds');
       const lblBnd = document.getElementById('lblBounds');
-      lblBnd.textContent = hasBounds ? "Cotas de Variables: Verificadas" : "Cotas de Variables: No detectadas";
+      lblBnd.textContent = currentLang === 'en'
+        ? (hasBounds ? "Variable Bounds: Verified" : "Variable Bounds: Not detected")
+        : (hasBounds ? "Cotas de Variables: Verificadas" : "Cotas de Variables: No detectadas");
       if (hasBounds) {
         chkBnd.className = "sim-check-item valid";
         icoBnd.textContent = "✓";
@@ -2930,7 +3009,9 @@ Deterministic SHA-256 attestation seal guarantees manifest immutability.
       const chkFsmEl = document.getElementById('chkFsm');
       const icoFsmEl = document.getElementById('icoFsm');
       const lblFsmEl = document.getElementById('lblFsm');
-      lblFsmEl.textContent = hasFsm ? "FSM Determinista: Verificada" : "FSM Determinista: No detectada";
+      lblFsmEl.textContent = currentLang === 'en'
+        ? (hasFsm ? "Deterministic FSM: Verified" : "Deterministic FSM: Not detected")
+        : (hasFsm ? "FSM Determinista: Verificada" : "FSM Determinista: No detectada");
       if (hasFsm) {
         chkFsmEl.className = "sim-check-item valid";
         icoFsmEl.textContent = "✓";
@@ -2943,7 +3024,9 @@ Deterministic SHA-256 attestation seal guarantees manifest immutability.
       const chkTax = document.getElementById('chkTaxonomy');
       const icoTax = document.getElementById('icoTaxonomy');
       const lblTax = document.getElementById('lblTaxonomy');
-      lblTax.textContent = hasTaxonomy ? "Taxonomía de Errores: 4 Clases Aisladas" : "Taxonomía de Errores: No detectada";
+      lblTax.textContent = currentLang === 'en'
+        ? (hasTaxonomy ? "Error Taxonomy: 4 Isolated Classes" : "Error Taxonomy: Not detected")
+        : (hasTaxonomy ? "Taxonomía de Errores: 4 Clases Aisladas" : "Taxonomía de Errores: No detectada");
       if (hasTaxonomy) {
         chkTax.className = "sim-check-item valid";
         icoTax.textContent = "✓";
