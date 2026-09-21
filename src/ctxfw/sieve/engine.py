@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 import re
 from enum import Enum
-from typing import List, Tuple
+from typing import Tuple
 from pydantic import BaseModel, ConfigDict, Field
 
 

@@ -1,6 +1,6 @@
 [project]
 name = "ctxfw"
-version = "3.5.5"
+version = "3.5.6"
 description = "Deterministic Axiomatic Gatekeeper & Context Firewall // Skunk Works Division"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -9,7 +9,6 @@ authors = [
 ]
 dependencies = [
     "pydantic>=2.0.0",
-    "pytest>=8.0.0",
     "fastapi>=0.100.0",
     "httpx>=0.24.0",
     "uvicorn>=0.20.0",
@@ -17,6 +16,14 @@ dependencies = [
     "tree-sitter-typescript",
     "tree-sitter-go",
     "tree-sitter-java",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+]
+dev = [
+    "pytest>=8.0.0",
 ]
 
 [build-system]

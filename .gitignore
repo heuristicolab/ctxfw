@@ -1,21 +1,62 @@
-# Sovereign Clean Environment
-.venv/
+# Sovereign Clean Environment — Google Engineering Standards
+# Bytecode & Caches
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
 .pytest_cache/
-*.swp
-*.db
-.env
-*.env
+.coverage
+htmlcov/
+.cache/
+
+# Environments & Dependencies
+.venv/
+env/
+venv/
 *.egg-info/
 build/
 dist/
+
+# Databases & Ephemeral Storage
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Secrets & Configuration
+.env
+*.env
+.env.*
+
+# OS Artifacts (Windows / macOS / Linux)
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+desktop.ini
+*.tmp
+*.bak
+*~
+*.swp
+
+# IDE & Editor Files
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Internal Artifacts & Scratchpads
 scratch/
 release_assets/
 .gtm/
-*.exe
-*.conf
-*.xml
 public_export/
 org_profile/
 profile_readme/
+
+# Compiled Binaries & Ephemeral Logs
+*.exe
+*.conf
+*.xml
+*.log

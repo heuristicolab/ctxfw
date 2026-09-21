@@ -6,15 +6,12 @@ in a 100% air-gapped, zero-cloud verification loop.
 from __future__ import annotations
 
 import argparse
-import json
 import sqlite3
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
-from ctxfw.core.contracts import OptimizationResultDTO
 from ctxfw.core.pruner import DeterministicContextPruner
 from ctxfw.core.topological import TopologicalContextBundleDTO
 from ctxfw.storage.cache import get_canonical_cache_path

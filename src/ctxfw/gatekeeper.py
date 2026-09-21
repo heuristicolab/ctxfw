@@ -9,7 +9,7 @@ import argparse
 from pathlib import Path
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 from ctxfw.core.contracts import (
     OptimizationRequestDTO,

@@ -7,7 +7,6 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import List
 
 from ctxfw.core.pruner import PolyglotASTPruner
 from ctxfw.core.topological import TopologicalResolver
