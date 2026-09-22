@@ -525,6 +525,16 @@
       max-height: 520px;
     }
 
+    .terminal-banner {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.05 !important;
+      letter-spacing: 0;
+      margin-bottom: 14px;
+      user-select: none;
+    }
+
     /* ANSI Colors in Terminal */
     .c-cyan { color: var(--cyan); }
     .c-emerald { color: var(--emerald); font-weight: bold; }
@@ -2829,15 +2839,13 @@
     // -------------------------------------------------------------------------
     const terminalOutputs = [
       // 0: ctxfw doctor
-      `<span class="c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
-  ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
-  ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
-  ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
-  ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
-   ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
-  ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
-
-<span class="c-graphite">========================================================================</span>
+      `<span class="terminal-banner c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
+ ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
+ ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
+ ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
+ ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
+  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
+ ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span><span class="c-graphite">========================================================================</span>
   <span class="c-cyan">CTXFW DOCTOR // HIGH-ASSURANCE HEALTH & ISOLATION DIAGNOSTIC</span>
 <span class="c-graphite">========================================================================</span>
 <span class="c-emerald">[PASS]</span>  <span class="c-white">Python Package & sys.path</span>        ctxfw v3.5.6 loaded cleanly from C:\\ctxfw\\src\\ctxfw\\__init__.py.
@@ -2851,15 +2859,13 @@
 <span class="c-graphite">========================================================================</span>`,
 
       // 1: ctxfw benchmark
-      `<span class="c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
-  ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
-  ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
-  ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
-  ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
-   ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
-  ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
-
-<span class="c-graphite">========================================================================</span>
+      `<span class="terminal-banner c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
+ ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
+ ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
+ ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
+ ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
+  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
+ ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span><span class="c-graphite">========================================================================</span>
   <span class="c-cyan">CTXFW EMPIRICAL BENCHMARK // TOPOLOGICAL AST ATTENTION PROFILER</span>
 <span class="c-graphite">========================================================================</span>
 <span class="c-white">Target Root:</span>          src/ctxfw/installer.py
@@ -2882,15 +2888,13 @@ Repo: https://github.com/heuristicolab/ctxfw
 <span class="c-graphite">========================================================================</span>`,
 
       // 2: ctxfw init --global
-      `<span class="c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
-  ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
-  ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
-  ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
-  ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
-   ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
-  ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
-
-<span class="c-graphite">========================================================================</span>
+      `<span class="terminal-banner c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
+ ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
+ ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
+ ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
+ ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
+  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
+ ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span><span class="c-graphite">========================================================================</span>
   <span class="c-cyan">CTXFW GLOBAL ZERO-TOUCH PROVISIONING // MULTI-IDE ARMORED INJECTION</span>
 <span class="c-graphite">========================================================================</span>
   <span class="c-emerald">[PASS]</span> Injected MCP server 'ctxfw' in Google Antigravity config: ~/.gemini/antigravity-ide/mcp_config.json
@@ -2901,7 +2905,13 @@ Repo: https://github.com/heuristicolab/ctxfw
 <span class="c-white">Status:</span>  Multi-IDE provisioning complete. 0 third-party servers overwritten.`,
 
       // 3: ctxfw spec verify
-      `<span class="c-graphite">========================================================================</span>
+      `<span class="terminal-banner c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
+ ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
+ ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
+ ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
+ ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
+  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
+ ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span><span class="c-graphite">========================================================================</span>
   <span class="c-cyan">CTXFW SPECIFICATION SIEVE // AXIOMATIC DETERMINISM VERIFIER</span>
 <span class="c-graphite">========================================================================</span>
 <span class="c-white">Evaluated File:</span>             C:\\ctxfw\\SPEC.axioms.md
@@ -2921,15 +2931,13 @@ Repo: https://github.com/heuristicolab/ctxfw
 <span class="c-graphite">========================================================================</span>`,
 
       // 4: ctxfw --help
-      `<span class="c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
-  ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
-  ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
-  ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
-  ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
-   ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
-  ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>
-
-usage: ctxfw [-h] [--no-clip] [--output OUTPUT] [--stdout] [--price PRICE]
+      `<span class="terminal-banner c-cyan">  ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
+ ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
+ ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
+ ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
+ ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
+  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.6
+ ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░</span>usage: ctxfw [-h] [--no-clip] [--output OUTPUT] [--stdout] [--price PRICE]
              [target_file] [project_root]
 
 ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v3.5.6)
