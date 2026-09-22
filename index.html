@@ -764,6 +764,28 @@
       margin-bottom: 16px;
     }
 
+    .litmus-panel .mini-terminal {
+      font-size: 11px;
+      padding: 12px 14px;
+      white-space: pre;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #28374f transparent;
+    }
+
+    .litmus-panel .mini-terminal::-webkit-scrollbar {
+      height: 3px;
+    }
+
+    .litmus-panel .mini-terminal::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .litmus-panel .mini-terminal::-webkit-scrollbar-thumb {
+      background: #28374f;
+      border-radius: 3px;
+    }
+
     /* LIVE INTERACTIVE SIEVE SIMULATOR */
     .simulator-wrap {
       background: var(--bg-card);
@@ -2025,12 +2047,12 @@
 
             <span class="code-label" data-i18n="litmus.s1_cmd">2. Evaluación y Bloqueo en Git</span>
             <div class="mini-terminal"><span class="c-dim">$ ctxfw spec verify TEST_BRIEF.axioms.md</span>
-<span class="c-graphite">========================================================================</span>
+<span class="c-graphite">================================================</span>
 <span class="c-white">ACI Score:</span>                  <span class="c-crimson">0.0000</span> (Requerido: >= 0.9000)
 <span class="c-white">Negative Invariants Count:</span>  <span class="c-crimson">1</span> (Piso mínimo requerido: 5)
-<span class="c-graphite">------------------------------------------------------------------------</span>
+<span class="c-graphite">------------------------------------------------</span>
 <span class="c-white">Final Verdict:</span>              <span class="c-crimson">[FAIL] SPECIFICATION QUARANTINED</span>
-<span class="c-graphite">========================================================================</span>
+<span class="c-graphite">================================================</span>
 
 <span class="c-dim">$ git commit -m "feat: draft payment system"</span>
 <span class="c-crimson">[ctxfw] [BLOCKED] Specification is QUARANTINED. Commit aborted.</span></div>
@@ -2057,13 +2079,13 @@
 
             <span class="code-label" data-i18n="litmus.s2_cmd">2. Verificación y Sello Inmutable</span>
             <div class="mini-terminal"><span class="c-dim">$ ctxfw spec verify TEST_BRIEF.axioms.md</span>
-<span class="c-graphite">========================================================================</span>
+<span class="c-graphite">================================================</span>
 <span class="c-white">ACI Score:</span>                  <span class="c-emerald">1.0000</span> [100% COVERAGE]
 <span class="c-white">Negative Invariants Count:</span>  <span class="c-emerald">5</span> [VERIFIED]
 <span class="c-white">Manifest Hash (SHA-256):</span>    <span class="c-white">2ff805b3dec69e93b3c50680e6...</span>
-<span class="c-graphite">------------------------------------------------------------------------</span>
+<span class="c-graphite">------------------------------------------------</span>
 <span class="c-white">Final Verdict:</span>              <span class="c-emerald">[PASS] READY FOR FORGE</span>
-<span class="c-graphite">========================================================================</span>
+<span class="c-graphite">================================================</span>
 
 <span class="c-dim">$ git commit -m "feat: verified payment processor"</span>
 <span class="c-emerald">[main 8e95075] feat: verified payment processor</span>
