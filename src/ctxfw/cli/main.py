@@ -357,10 +357,15 @@ def handle_init_cli(argv: list[str]) -> int:
     return 0
 
 
-def run_doctor_cli() -> int:
+def run_doctor_cli(argv: Optional[List[str]] = None) -> int:
     """Runs system health and isolation diagnostics."""
     from ctxfw.installer import render_doctor_report, run_doctor
-    report = run_doctor()
+    target: Optional[Path] = None
+    args = argv if argv is not None else sys.argv[1:]
+    plain = [a for a in args if not a.startswith("-")]
+    if plain:
+        target = Path(plain[0]).resolve()
+    report = run_doctor(project_root=target)
     return render_doctor_report(report)
 
 
@@ -501,7 +506,7 @@ def main():
             handle_init_cli(sys.argv[1:])
             return
         elif subcmd == "doctor":
-            run_doctor_cli()
+            run_doctor_cli(sys.argv[1:])
             return
         elif subcmd == "mcp":
             if len(sys.argv) > 1 and sys.argv[1] in {"-h", "--help"}:

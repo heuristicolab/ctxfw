@@ -168,6 +168,26 @@ def test_doctor_diagnostics_all_passed():
     assert check_names["Polyglot Tree-Sitter Grammars"].status in {"OK", "WARN"}
 
 
+def test_doctor_diagnostics_with_project_perimeter(tmp_path: Path):
+    """Asserts that run_doctor(project_root) audits repository perimeter (spec, mcp, git hook)."""
+    repo = tmp_path / "target_repo"
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    init_repository_perimeter(repo)
+    # create dummy .mcp.json
+    (repo / ".mcp.json").write_text("{}", encoding="utf-8")
+
+    report = run_doctor(project_root=repo)
+    assert report.all_passed is True
+
+    check_names = {c.name: c for c in report.checks}
+    assert "Project Axiomatic Spec" in check_names
+    assert check_names["Project Axiomatic Spec"].status == "OK"
+    assert "Project MCP Perimeter" in check_names
+    assert check_names["Project MCP Perimeter"].status == "OK"
+    assert "Git Pre-Commit Gatekeeper" in check_names
+    assert check_names["Git Pre-Commit Gatekeeper"].status == "OK"
+
+
 def test_render_doctor_report_output():
     """Asserts that render_doctor_report outputs formatted diagnostic table."""
     import io

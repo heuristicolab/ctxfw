@@ -1,6 +1,6 @@
 [project]
 name = "ctxfw"
-version = "3.5.6"
+version = "3.5.7"
 description = "Deterministic Axiomatic Gatekeeper & Context Firewall // Skunk Works Division"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,6 +17,13 @@ dependencies = [
     "tree-sitter-go",
     "tree-sitter-java",
 ]
+
+[project.urls]
+Homepage = "https://ctxfw.heuristicolab.com"
+Documentation = "https://github.com/heuristicolab/ctxfw#readme"
+Repository = "https://github.com/heuristicolab/ctxfw"
+Issues = "https://github.com/heuristicolab/ctxfw/issues"
+Changelog = "https://github.com/heuristicolab/ctxfw/releases"
 
 [project.optional-dependencies]
 test = [

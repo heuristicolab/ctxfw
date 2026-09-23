@@ -1,6 +1,6 @@
 """
 src/ctxfw/installer.py — Zero-Touch Industrialization & Diagnostics Engine
-Axiom Manifest Hash: 021bb7d9251ba059ed7a833f9d9bb939bed351a2d015c83cb7c3260f394c6d8d
+Axiom Manifest Hash: 334b9dc66d6ba3a1a16e116ae36cd95778199134aa97ad041baedeb0707733f6
 
 Provides zero-touch onboarding, idempotent IDE configuration injection,
 multiplatform pre-commit hook deployment, and comprehensive self-diagnostics.
@@ -18,6 +18,7 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple
 from pydantic import BaseModel, Field
 
+from ctxfw import __version__
 from ctxfw.sieve.engine import evaluate_specification
 
 
@@ -33,13 +34,13 @@ CLR_AMBER = "\033[38;5;214m"     # Warning Amber
 CLR_GRAPHITE = "\033[38;5;240m"  # Muted Graphite
 CLR_WHITE_BOLD = "\033[1;37m"    # Pure White Bold
 
-BANNER = r"""
+BANNER = rf"""
   ██████╗████████╗██╗  ██╗███████╗██╗    ██╗
  ██╔════╝╚══██╔══╝╚██╗██╔╝██╔════╝██║    ██║
  ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
  ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
  ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
-  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.5.0
+  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v{__version__}
  ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░
 """
 
@@ -76,7 +77,7 @@ def print_defense_banner(stream=None) -> None:
         f"{CLR_CYAN}\n"
         "   ____ _______  ______ _       __\n"
         "  / __ /_  __/ |/ / __/ | /| / /\n"
-        " / /_/ // /  |   / _/ | |/ |/ /  v3.5.0\n"
+        f" / /_/ // /  |   / _/ | |/ |/ /  v{__version__}\n"
         " \\____//_/  /_/|_/_/   |__/|__/\n"
         " *** HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ***\n\n"
         f"{CLR_RESET}"
@@ -688,6 +689,121 @@ def run_doctor(project_root: Optional[Path] = None) -> DoctorReport:
                 remediation="Ensure tree-sitter language packages are installed.",
             )
         )
+
+    # Project-level Perimeter Checks (if project_root is provided)
+    if project_root and Path(project_root).is_dir():
+        resolved_root = Path(project_root).resolve()
+
+        # Check 7: Project Specification Perimeter (SPEC.axioms.md)
+        spec_candidates = [
+            resolved_root / "SPEC.axioms.md",
+            resolved_root / "SPEC.md",
+            resolved_root / "SPEC_MASTER.md",
+        ]
+        active_spec = next((s for s in spec_candidates if s.is_file()), None)
+        if active_spec:
+            try:
+                spec_content = active_spec.read_text(encoding="utf-8")
+                eval_res = evaluate_specification(spec_content)
+                if eval_res.status == "VERIFIED":
+                    checks.append(
+                        DoctorCheckResult(
+                            name="Project Axiomatic Spec",
+                            status="OK",
+                            details=f"Verified {active_spec.name} (ACI: {eval_res.aci_score:.4f}, Invariants: {eval_res.negative_invariants_count}).",
+                        )
+                    )
+                else:
+                    checks.append(
+                        DoctorCheckResult(
+                            name="Project Axiomatic Spec",
+                            status="WARN",
+                            details=f"{active_spec.name} quarantined (ACI: {eval_res.aci_score:.4f}, Invariants: {eval_res.negative_invariants_count}).",
+                            remediation=f"Improve {active_spec.name} to achieve ACI >= 0.9000 and >= 5 negative invariants.",
+                        )
+                    )
+            except Exception as e:
+                checks.append(
+                    DoctorCheckResult(
+                        name="Project Axiomatic Spec",
+                        status="WARN",
+                        details=f"Failed reading {active_spec.name}: {e}",
+                        remediation="Verify file encoding and permissions.",
+                    )
+                )
+        else:
+            checks.append(
+                DoctorCheckResult(
+                    name="Project Axiomatic Spec",
+                    status="WARN",
+                    details=f"No SPEC.axioms.md found in {resolved_root.name}.",
+                    remediation=f"Initialize repository perimeter: 'ctxfw init --repo {resolved_root}'",
+                )
+            )
+
+        # Check 8: Project MCP Perimeter (.mcp.json)
+        mcp_candidates = [
+            resolved_root / ".mcp.json",
+            resolved_root / ".gemini" / "config" / "mcp_config.json",
+        ]
+        has_mcp = any(m.is_file() for m in mcp_candidates)
+        if has_mcp:
+            checks.append(
+                DoctorCheckResult(
+                    name="Project MCP Perimeter",
+                    status="OK",
+                    details=f"MCP configuration found in {resolved_root.name}.",
+                )
+            )
+        else:
+            checks.append(
+                DoctorCheckResult(
+                    name="Project MCP Perimeter",
+                    status="WARN",
+                    details=f"No local .mcp.json detected in {resolved_root.name}.",
+                    remediation="Add .mcp.json or run 'ctxfw init' to configure MCP server integration.",
+                )
+            )
+
+        # Check 9: Pre-commit Hook Attestation
+        hook_path = resolved_root / ".git" / "hooks" / "pre-commit"
+        if hook_path.is_file():
+            try:
+                hook_txt = hook_path.read_text(encoding="utf-8", errors="ignore")
+                if "ctxfw" in hook_txt or "spec verify" in hook_txt:
+                    checks.append(
+                        DoctorCheckResult(
+                            name="Git Pre-Commit Gatekeeper",
+                            status="OK",
+                            details="Active ctxfw axiomatic gatekeeper hook verified.",
+                        )
+                    )
+                else:
+                    checks.append(
+                        DoctorCheckResult(
+                            name="Git Pre-Commit Gatekeeper",
+                            status="WARN",
+                            details="Existing pre-commit hook does not reference ctxfw.",
+                            remediation="Integrate ctxfw gatekeeper via 'ctxfw init --repo .'",
+                        )
+                    )
+            except Exception as e:
+                checks.append(
+                    DoctorCheckResult(
+                        name="Git Pre-Commit Gatekeeper",
+                        status="WARN",
+                        details=f"Unable to read pre-commit hook: {e}",
+                    )
+                )
+        elif (resolved_root / ".git").is_dir():
+            checks.append(
+                DoctorCheckResult(
+                    name="Git Pre-Commit Gatekeeper",
+                    status="WARN",
+                    details="No pre-commit hook installed in .git/hooks/.",
+                    remediation="Deploy pre-commit gatekeeper: 'ctxfw init --repo .'",
+                )
+            )
 
     all_passed = not any(c.status == "FAIL" for c in checks)
     return DoctorReport(all_passed=all_passed, checks=checks)

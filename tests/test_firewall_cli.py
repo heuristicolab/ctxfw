@@ -212,9 +212,10 @@ def test_cli_main_subcommand_init_help(monkeypatch):
 
 
 def test_cli_version_flag():
-    """Asserts that `ctxfw --version` returns code 0 and prints 'ctxfw 3.5.6'."""
+    """Asserts that `ctxfw --version` returns code 0 and prints current version."""
     import subprocess
     import sys
+    from ctxfw import __version__
 
     res = subprocess.run(
         [sys.executable, "-m", "ctxfw.cli", "--version"],
@@ -222,6 +223,6 @@ def test_cli_version_flag():
         text=True,
     )
     assert res.returncode == 0
-    assert "ctxfw 3.5.6" in (res.stdout + res.stderr)
+    assert f"ctxfw {__version__}" in (res.stdout + res.stderr)
 
 

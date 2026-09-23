@@ -4,7 +4,7 @@ Hermetic Toolchain implementation adhering to Google style and POSIX/XDG standar
 """
 from __future__ import annotations
 
-__version__ = "3.5.6"
+__version__ = "3.5.7"
 
 from ctxfw.core.contracts import (
     OptimizationRequestDTO,
