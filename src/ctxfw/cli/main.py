@@ -461,7 +461,202 @@ def handle_spec_command(argv: list[str]) -> int:
         return run_spec_verify(args.file_path)
     else:
         parser.print_help()
+def handle_config_command(argv: list[str]) -> int:
+    """Handles ctxfw config [list|get|set] commands."""
+    from ctxfw.config import load_config, set_config_value
+
+    if not argv or argv[0] in {"-h", "--help"}:
+        print("usage: ctxfw config [list | get <key> | set <key> <value>]")
+        print("\nManage dynamic configuration in ~/.ctxfw/config.json.")
+        print("Examples:")
+        print("  ctxfw config list")
+        print("  ctxfw config get engine.mode")
+        print("  ctxfw config set engine.mode passthrough")
+        print("  ctxfw config set finops.roast_level cynical")
+        return 0
+
+    action = argv[0].lower()
+    if action == "list":
+        cfg = load_config()
+        print(cfg.model_dump_json(indent=2))
+        return 0
+    elif action == "get":
+        if len(argv) < 2:
+            print("Error: missing key. Usage: ctxfw config get <key>", file=sys.stderr)
+            return 1
+        key = argv[1]
+        cfg = load_config()
+        data = cfg.model_dump(mode="json")
+        parts = key.split(".")
+        try:
+            curr = data
+            for p in parts:
+                curr = curr[p]
+            print(curr)
+            return 0
+        except (KeyError, TypeError):
+            print(f"Error: key '{key}' not found in configuration.", file=sys.stderr)
+            return 1
+    elif action == "set":
+        if len(argv) < 3:
+            print("Error: missing key or value. Usage: ctxfw config set <key> <value>", file=sys.stderr)
+            return 1
+        key, value = argv[1], argv[2]
+        try:
+            set_config_value(key, value)
+            print(f"[OK] Configuration updated: {key} = {value}")
+            return 0
+        except Exception as e:
+            print(f"Error updating configuration: {e}", file=sys.stderr)
+            return 1
+    else:
+        print(f"Unknown config action: '{action}'. Expected 'list', 'get', or 'set'.", file=sys.stderr)
         return 1
+
+
+def handle_mode_command(argv: list[str]) -> int:
+    """Handles ctxfw mode [distance|passthrough] shortcut command."""
+    from ctxfw.config import load_config, set_config_value
+
+    if not argv:
+        cfg = load_config()
+        print(f"Current engine mode: {cfg.engine.mode.value}")
+        return 0
+
+    if argv[0] in {"-h", "--help"}:
+        print("usage: ctxfw mode [distance | passthrough]")
+        print("\nQuick toggle between distance (AST pruning) and passthrough (untouched code) modes.")
+        return 0
+
+    target_mode = argv[0].lower().strip()
+    if target_mode not in {"distance", "passthrough"}:
+        print(f"Error: invalid engine mode '{target_mode}'. Allowed: distance, passthrough", file=sys.stderr)
+        return 1
+
+    try:
+        set_config_value("engine.mode", target_mode)
+        print(f"[OK] Context firewall mode switched to: {target_mode}")
+        return 0
+    except Exception as e:
+        print(f"Error updating engine mode: {e}", file=sys.stderr)
+        return 1
+
+
+def generate_share_report(db_path: Optional[str] = None) -> str:
+    """
+    Generates a shareable Markdown report with telemetry and ROI.
+    Strictly enforces Invariant 4:
+    The share reporter shall never include unpruned source code,
+    private credentials, or raw file paths in the generated markdown output.
+    """
+    import re
+    import sqlite3
+    from ctxfw.storage.cache import get_canonical_cache_path
+    from ctxfw.config import load_config
+
+    cfg = load_config()
+    db_file = Path(db_path) if db_path else get_canonical_cache_path()
+
+    total_evaluated = 0
+    tokens_saved = 0
+    usd_avoided = 0.0
+    cycles = 0
+
+    if db_file.is_file():
+        try:
+            conn = sqlite3.connect(str(db_file), timeout=3.0)
+            cursor = conn.cursor()
+            try:
+                row = cursor.execute("SELECT count(*), sum(original_chars), sum(estimated_tokens_saved) FROM tokens_cache").fetchone()
+                if row and row[0]:
+                    cycles += row[0]
+                    total_evaluated += (row[1] or 0) // 4
+                    tokens_saved += row[2] or 0
+            except sqlite3.OperationalError:
+                pass
+
+            try:
+                row2 = cursor.execute("SELECT count(*), sum(tokens_orig), sum(tokens_pruned), sum(usd_avoided) FROM telemetry_ledger").fetchone()
+                if row2 and row2[0]:
+                    cycles += row2[0]
+                    total_evaluated += row2[1] or 0
+                    tokens_saved += row2[2] or 0
+                    usd_avoided += row2[3] or 0.0
+            except sqlite3.OperationalError:
+                pass
+            conn.close()
+        except Exception:
+            pass
+
+    if usd_avoided == 0.0 and tokens_saved > 0:
+        usd_avoided = (tokens_saved / 1_000_000.0) * cfg.finops.input_price_per_m
+
+    reduction_pct = (tokens_saved / max(1, total_evaluated) * 100.0) if total_evaluated > 0 else 0.0
+
+    lines = [
+        "# Context Firewall (ctxfw) // Sovereign FinOps ROI Report",
+        "",
+        "> Generated by ctxfw Sovereign Engine. 100% Local Air-Gapped Verification.",
+        "",
+        "## 1. Executive Telemetry",
+        f"- **Audit Cycles Executed:** {cycles:,}",
+        f"- **Original Tokens Evaluated:** {total_evaluated:,}",
+        f"- **Tokens Pruned / Avoided:** {tokens_saved:,}",
+        f"- **Net Context Reduction:** {reduction_pct:.2f}%",
+        f"- **Estimated Monetary Savings:** ${usd_avoided:.4f} USD",
+        "",
+        "## 2. Operational Perimeter & Compliance",
+        f"- **Active Engine Mode:** `{cfg.engine.mode.value}`",
+        f"- **Max Topological Depth:** D{cfg.engine.max_distance}",
+        "- **Air-Gap Verification:** Certified Local (Zero Cloud Telemetry Egress)",
+        "- **Code Privacy Assurance:** Zero unpruned source code blocks or confidential logic exported.",
+        "",
+    ]
+    report_text = "\n".join(lines)
+
+    # Invariant 4 Sanitization Filters:
+    # 1. Strip raw absolute paths (Windows C:\ or Unix /Users, /home)
+    report_text = re.sub(r"[A-Za-z]:\\[A-Za-z0-9_\-\\]+", "[REDACTED_LOCAL_PATH]", report_text)
+    report_text = re.sub(r"/(?:Users|home|root)/[A-Za-z0-9_\-/]+", "[REDACTED_LOCAL_PATH]", report_text)
+
+    # 2. Strip potential secret credentials
+    report_text = re.sub(r"(?:sk-[a-zA-Z0-9_\-]{15,}|ghp_[a-zA-Z0-9]{15,})", "[REDACTED_SECRET]", report_text)
+
+    # 3. Ensure no unpruned source code blocks are present
+    if "def " in report_text or "class " in report_text or "import " in report_text:
+        sanitized_lines = []
+        for line in report_text.splitlines():
+            if re.match(r"^\s*(?:def\s|class\s|import\s|from\s)", line):
+                continue
+            sanitized_lines.append(line)
+        report_text = "\n".join(sanitized_lines)
+
+    return report_text
+
+
+def handle_report_command(argv: list[str]) -> int:
+    """Handles ctxfw report [--share] [--output <file>] command."""
+    parser = argparse.ArgumentParser(
+        prog="ctxfw report",
+        description="Generate FinOps telemetry and ROI reports.",
+    )
+    parser.add_argument("--share", action="store_true", help="Generate shareable sanitized Markdown ROI report (Invariant 4)")
+    parser.add_argument("--output", "-o", type=str, default=None, help="Save report to specified output path")
+    parser.add_argument("--db", type=str, default=None, help="Path to SQLite telemetry database")
+
+    args = parser.parse_args(argv)
+
+    report_md = generate_share_report(db_path=args.db)
+
+    if args.output:
+        out_p = Path(args.output).resolve()
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        out_p.write_text(report_md, encoding="utf-8")
+        print(f"[OK] Shareable report written to {out_p}")
+    else:
+        print(report_md)
+
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -504,6 +699,22 @@ def build_parser() -> argparse.ArgumentParser:
 
     init_parser.set_defaults(func=_run_init_dispatch)
 
+    # Subcommand config
+    config_parser = subparsers.add_parser("config", help="Inspect and mutate dynamic configuration in ~/.ctxfw/config.json")
+    config_parser.add_argument("action", nargs="?", default="list", choices=["list", "get", "set"], help="Action: list, get, set")
+    config_parser.add_argument("key", nargs="?", default=None, help="Configuration key path (e.g. engine.mode)")
+    config_parser.add_argument("value", nargs="?", default=None, help="New value for configuration key")
+
+    # Subcommand mode
+    mode_parser = subparsers.add_parser("mode", help="Quick toggle between distance and passthrough modes")
+    mode_parser.add_argument("target_mode", nargs="?", default=None, choices=["distance", "passthrough"], help="Operating mode")
+
+    # Subcommand report
+    report_parser = subparsers.add_parser("report", help="Generate FinOps ROI telemetry reports")
+    report_parser.add_argument("--share", action="store_true", help="Generate shareable sanitized Markdown ROI report")
+    report_parser.add_argument("--output", "-o", type=str, default=None, help="Save report to specified output path")
+    report_parser.add_argument("--db", type=str, default=None, help="Path to SQLite telemetry database")
+
     # Subcomando benchmark
     benchmark.register_parser(subparsers)
 
@@ -523,7 +734,7 @@ def main():
         parser.parse_args(sys.argv[1:])
         return
 
-    if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "service", "spec", "doctor", "benchmark"}:
+    if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "service", "spec", "doctor", "benchmark", "config", "mode", "report"}:
         subcmd = sys.argv[1]
         if subcmd == "benchmark":
             parser = build_parser()
@@ -533,7 +744,13 @@ def main():
             return
 
         sys.argv.pop(1)
-        if subcmd == "init":
+        if subcmd == "config":
+            sys.exit(handle_config_command(sys.argv[1:]))
+        elif subcmd == "mode":
+            sys.exit(handle_mode_command(sys.argv[1:]))
+        elif subcmd == "report":
+            sys.exit(handle_report_command(sys.argv[1:]))
+        elif subcmd == "init":
             code = handle_init_cli(sys.argv[1:])
             if code != 0:
                 sys.exit(code)
@@ -624,6 +841,10 @@ __all__ = [
     "resolve_claude_desktop_config_path",
     "resolve_cursor_config_path",
     "run_init_mcp_agents",
+    "handle_config_command",
+    "handle_mode_command",
+    "handle_report_command",
+    "generate_share_report",
     "main",
 ]
 

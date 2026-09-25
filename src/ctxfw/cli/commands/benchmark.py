@@ -166,6 +166,16 @@ def _render_table(p: dict) -> None:
     print("Enterprise Token Proxies & Custom LLM FinOps Audits: contacto@heuristicolab.com")
     print("Repo: https://github.com/heuristicolab/ctxfw")
     print("=" * 80)
+    try:
+        from ctxfw.roast import generate_finops_roast
+        roast = generate_finops_roast(
+            tokens_saved=m.get("tokens_saved_per_cycle", 0),
+            usd_avoided=m.get("projected_savings_usd", 0.0),
+        )
+        if roast:
+            print(roast)
+    except Exception:
+        pass
 
 def _render_markdown(p: dict) -> None:
     print("| Target Module | Raw Tokens | Pruned Tokens | Reduction |")

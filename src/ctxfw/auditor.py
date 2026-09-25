@@ -156,6 +156,16 @@ def main():
         print(f"Air-gapped Certified:   {report.air_gapped_certified}")
         print(f"Timestamp:              {report.timestamp}")
         print("======================================================")
+        try:
+            from ctxfw.roast import generate_finops_roast
+            roast_msg = generate_finops_roast(
+                tokens_saved=report.net_tokens_saved,
+                usd_avoided=report.estimated_usd_savings,
+            )
+            if roast_msg:
+                print(roast_msg)
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

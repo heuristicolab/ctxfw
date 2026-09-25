@@ -198,13 +198,35 @@ class TopologicalContextBundleDTO(BaseModel):
 class ContextFirewallEngine:
     """Orchestrates topological dependency resolution, multi-depth AST pruning, and WAL caching."""
 
-    def __init__(self, project_root: Path | str, cache: Optional[LocalSemanticCache] = None):
+    def __init__(
+        self,
+        project_root: Path | str,
+        cache: Optional[LocalSemanticCache] = None,
+        mode: Optional[str] = None,
+    ):
         self.project_root = Path(project_root).resolve()
         self.cache = cache or LocalSemanticCache()
         self.graph = ProjectDependencyGraph(self.project_root)
+        self.mode = mode
 
-    def build_context(self, target_file: str | Path) -> TopologicalContextBundleDTO:
-        """Builds multi-depth context bundle: D0 (Full), D1 (Interface), D2+ (Nominal)."""
+    def build_context(
+        self,
+        target_file: str | Path,
+        mode: Optional[str] = None,
+    ) -> TopologicalContextBundleDTO:
+        """
+        Builds multi-depth context bundle: D0 (Full), D1 (Interface), D2+ (Nominal).
+        Enforces Invariant 3: If engine.mode is 'passthrough', AST pruning is completely
+        bypassed and raw intact source code is returned for all perimeter dependencies.
+        """
+        effective_mode = (mode or self.mode or "").lower()
+        if not effective_mode:
+            try:
+                from ctxfw.config import load_config
+                effective_mode = load_config().engine.mode.value.lower()
+            except Exception:
+                effective_mode = "distance"
+
         distances = self.graph.get_distances(target_file)
         target_path = Path(target_file)
         if target_path.is_absolute():
@@ -221,6 +243,21 @@ class ContextFirewallEngine:
                 continue
 
             code = full_path.read_text(encoding="utf-8")
+
+            # Invariant 3: Passthrough mode bypasses AST pruning for all dependencies
+            if effective_mode == "passthrough":
+                orig_c = len(code)
+                entries[rel_path] = OptimizationResultDTO(
+                    pruned_code=code,
+                    original_chars=orig_c,
+                    pruned_chars=orig_c,
+                    estimated_tokens_saved=0,
+                    savings_percentage=0.0,
+                    cache_hit=False,
+                    execution_ms=0.0,
+                    depth=PruningDepth.FULL,
+                )
+                continue
 
             if distance == 0:
                 depth = PruningDepth.FULL

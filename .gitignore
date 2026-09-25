@@ -64,3 +64,4 @@ profile_readme/
 # Local specifications & architecture specs (Zero Egress)
 specs/
 specs/**
+.cursor/

@@ -140,8 +140,8 @@ class DeterministicContextPruner:
         orig_chars = len(request.source_code)
         orig_tokens = cls.estimate_tokens(orig_chars)
 
-        # D0: FULL mode preserves 100% implementation untouched
-        if request.depth == PruningDepth.FULL:
+        # Invariant 3: passthrough mode or FULL depth preserves 100% implementation untouched
+        if request.depth == PruningDepth.FULL or (request.mode and request.mode.lower() == "passthrough"):
             elapsed_ms = (time.perf_counter() - start) * 1000
             return request.source_code, orig_chars, orig_chars, 0, 0.0, round(elapsed_ms, 3)
 

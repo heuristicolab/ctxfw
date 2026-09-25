@@ -5,7 +5,7 @@ Defines pruning depths, supported languages, and core DTOs for token optimizatio
 from __future__ import annotations
 
 from enum import Enum
-from typing import Union
+from typing import Optional, Union
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -34,6 +34,7 @@ class OptimizationRequestDTO(BaseModel):
     strip_docs: bool = Field(default=False, description="Purga total de docstrings si es True")
     depth: PruningDepth = Field(default=PruningDepth.INTERFACE, description="Profundidad de podado")
     sanitize_raises: bool = Field(default=True, description="Sanitizar argumentos de sentencias raise")
+    mode: Optional[str] = Field(default=None, description="Engine operating mode ('distance' or 'passthrough')")
 
 
 class OptimizationResultDTO(BaseModel):

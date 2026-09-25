@@ -18,6 +18,10 @@ from ctxfw.cli.main import (
     run_firewall_cli,
     run_init_mcp_agents,
     run_spec_verify,
+    handle_config_command,
+    handle_mode_command,
+    handle_report_command,
+    generate_share_report,
 )
 
 __all__ = [
@@ -35,5 +39,9 @@ __all__ = [
     "resolve_claude_desktop_config_path",
     "resolve_cursor_config_path",
     "run_init_mcp_agents",
+    "handle_config_command",
+    "handle_mode_command",
+    "handle_report_command",
+    "generate_share_report",
     "main",
 ]
