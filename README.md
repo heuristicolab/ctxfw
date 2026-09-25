@@ -3,9 +3,9 @@
 # CTXFW // CONTEXT FIREWALL
 ### High-Assurance Axiomatic Gatekeeper & In-Memory AST Pruning for Coding Agents
 
-[![PyPI - Version](https://img.shields.io/badge/PyPI-v3.5.7-blue?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/ctxfw/)
+[![PyPI - Version](https://img.shields.io/badge/PyPI-v3.6.0-blue?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/ctxfw/)
 [![Axiomatic Completeness Index](https://img.shields.io/badge/ACI-1.0000_VERIFIED-000000?style=for-the-badge&logo=shield)](https://ctxfw.heuristicolab.com)
-[![Tests](https://img.shields.io/badge/TESTS-109%2F109_PASSING-00C853?style=for-the-badge&logo=pytest)](https://pypi.org/project/ctxfw/)
+[![Tests](https://img.shields.io/badge/TESTS-124%2F124_PASSING-00C853?style=for-the-badge&logo=pytest)](https://pypi.org/project/ctxfw/)
 [![License](https://img.shields.io/badge/LICENSE-APACHE_2.0-black?style=for-the-badge)](LICENSE)
 [![Glama](https://glama.ai/mcp/servers/heuristicolab/ctxfw/badge)](https://glama.ai/mcp/servers/heuristicolab/ctxfw)
 

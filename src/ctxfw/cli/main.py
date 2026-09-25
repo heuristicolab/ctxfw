@@ -1,6 +1,6 @@
 """
-src/ctxfw/cli/main.py — Unified Command Line Interface for Context Firewall (v3.5.1)
-Axiom Manifest Hash: a403b7072c7ea6b37a804db8feec61058e552d2bb3240390098f9c747867d924
+src/ctxfw/cli/main.py — Unified Command Line Interface for Context Firewall (v3.6.0)
+Axiom Manifest Hash: a7e63ccb9b5dd0c6f6147cfd2feec447c4d41690dd76aee9e6035db56cb7c31a
 Supports direct target file clipboard invocation (`ctxfw <file>`) 
 plus explicit subcommands (`ctxfw benchmark`, `ctxfw mcp`, `ctxfw proxy`, `ctxfw ci`, `ctxfw audit`, `ctxfw init`, `ctxfw doctor`, `ctxfw spec`).
 """
@@ -20,6 +20,12 @@ from ctxfw.core.contracts import PruningDepth
 from ctxfw.core.pruner import DeterministicContextPruner
 from ctxfw.core.topological import ContextFirewallEngine, TopologicalContextBundleDTO
 from ctxfw.cli.commands import benchmark
+from ctxfw.installer import (
+    inject_agent_mcp_config,
+    resolve_claude_desktop_config_path,
+    resolve_cursor_config_path,
+    run_init_mcp_agents,
+)
 from ctxfw import __version__
 
 
@@ -170,7 +176,7 @@ def run_firewall_cli(
 
     # Terminal Dashboard Output
     sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
-    sys.stdout.write(f"  {CLR_CYAN}CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v3.5.1){CLR_RESET}\n")
+    sys.stdout.write(f"  {CLR_CYAN}CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v3.6.0){CLR_RESET}\n")
     sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
     sys.stdout.write(f"Target Module:  {bundle.root_target}\n")
     sys.stdout.write(f"Project Root:   {project_root}\n\n")
@@ -301,16 +307,18 @@ Utiliza `resolve_context_bundle`, `audit_finops_ledger` y `gatekeeper_pr_audit` 
     return target_dir
 
 
-def handle_init_cli(argv: list[str]) -> int:
-    """Handles ctxfw init subcommand with --global, --repo, and target directory options."""
-    if any(arg in {"-h", "--help"} for arg in argv):
+def handle_init_cli(argv: Optional[List[str]] = None) -> int:
+    """Handles ctxfw init subcommand with zero-config agent integration, --global, --repo, and target directory options."""
+    args = list(argv) if argv is not None else []
+    if any(arg in {"-h", "--help"} for arg in args):
         print("usage: ctxfw init [target_dir]")
         print("\nInitialize sovereign agentic perimeter, rules, and skills in target directory.")
+        print("Without arguments, performs automated, idempotent MCP integration for Claude Desktop and Cursor.")
         print("  --global             Perform zero-touch onboarding across installed IDEs")
         print("  --repo [target_dir]  Deploy canonical SPEC.axioms.md and git pre-commit verification hook")
         return 0
 
-    if "--global" in argv:
+    if "--global" in args:
         from ctxfw.installer import (
             CLR_CYAN,
             CLR_EMERALD,
@@ -329,7 +337,7 @@ def handle_init_cli(argv: list[str]) -> int:
         print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
         return 0
 
-    if "--repo" in argv:
+    if "--repo" in args:
         from ctxfw.installer import (
             CLR_CYAN,
             CLR_EMERALD,
@@ -342,7 +350,7 @@ def handle_init_cli(argv: list[str]) -> int:
         print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
         print(f"  {CLR_CYAN}CTXFW REPOSITORY ARMOR // CANONICAL AXIOMS & PRE-COMMIT SENTRY{CLR_RESET}")
         print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
-        repo_args = [a for a in argv if a != "--repo" and not a.startswith("-")]
+        repo_args = [a for a in args if a != "--repo" and not a.startswith("-")]
         target = Path(repo_args[0]).resolve() if repo_args else Path.cwd()
         handle_init_command(target)
         res = init_repository_perimeter(target)
@@ -351,10 +359,13 @@ def handle_init_cli(argv: list[str]) -> int:
         print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
         return 0
 
-    plain_args = [a for a in argv if not a.startswith("-")]
-    target = Path(plain_args[0]).resolve() if plain_args else Path.cwd()
-    handle_init_command(target)
-    return 0
+    plain_args = [a for a in args if not a.startswith("-")]
+    if plain_args:
+        target = Path(plain_args[0]).resolve()
+        handle_init_command(target)
+        return 0
+
+    return run_init_mcp_agents()
 
 
 def run_doctor_cli(argv: Optional[List[str]] = None) -> int:
@@ -473,6 +484,26 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command")
 
+    # Subcommand init
+    init_parser = subparsers.add_parser("init", help="Initialize sovereign agentic perimeter, rules, and skills")
+    init_parser.add_argument("target_dir", nargs="?", default=None, help="Target directory for workspace perimeter")
+    init_parser.add_argument("--global", dest="global_init", action="store_true", help="Perform zero-touch onboarding across installed IDEs")
+    init_parser.add_argument("--repo", nargs="?", const="", default=None, help="Deploy canonical SPEC.axioms.md and git pre-commit verification hook")
+
+    def _run_init_dispatch(parsed_args: argparse.Namespace) -> int:
+        cli_args: List[str] = []
+        if getattr(parsed_args, "global_init", False):
+            cli_args.append("--global")
+        if getattr(parsed_args, "repo", None) is not None:
+            cli_args.append("--repo")
+            if parsed_args.repo:
+                cli_args.append(parsed_args.repo)
+        if getattr(parsed_args, "target_dir", None):
+            cli_args.append(parsed_args.target_dir)
+        return handle_init_cli(cli_args)
+
+    init_parser.set_defaults(func=_run_init_dispatch)
+
     # Subcomando benchmark
     benchmark.register_parser(subparsers)
 
@@ -503,7 +534,9 @@ def main():
 
         sys.argv.pop(1)
         if subcmd == "init":
-            handle_init_cli(sys.argv[1:])
+            code = handle_init_cli(sys.argv[1:])
+            if code != 0:
+                sys.exit(code)
             return
         elif subcmd == "doctor":
             run_doctor_cli(sys.argv[1:])
@@ -587,6 +620,10 @@ __all__ = [
     "doctor_entrypoint",
     "run_spec_verify",
     "handle_spec_command",
+    "inject_agent_mcp_config",
+    "resolve_claude_desktop_config_path",
+    "resolve_cursor_config_path",
+    "run_init_mcp_agents",
     "main",
 ]
 

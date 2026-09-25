@@ -1,6 +1,6 @@
 """
 src/ctxfw/installer.py — Zero-Touch Industrialization & Diagnostics Engine
-Axiom Manifest Hash: 334b9dc66d6ba3a1a16e116ae36cd95778199134aa97ad041baedeb0707733f6
+Axiom Manifest Hash: a7e63ccb9b5dd0c6f6147cfd2feec447c4d41690dd76aee9e6035db56cb7c31a
 
 Provides zero-touch onboarding, idempotent IDE configuration injection,
 multiplatform pre-commit hook deployment, and comprehensive self-diagnostics.
@@ -360,6 +360,167 @@ def safe_merge_mcp_config(
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return True, f"Injected server '{server_name}' into {config_path}."
+
+
+# -----------------------------------------------------------------------------
+# Autonomous Agent MCP Integration (Claude Desktop & Cursor)
+# -----------------------------------------------------------------------------
+
+def resolve_claude_desktop_config_path(
+    system: Optional[str] = None,
+    home: Optional[Path] = None,
+    appdata: Optional[str] = None,
+) -> Path:
+    """
+    Deterministically resolves the Claude Desktop configuration path dynamically across platforms:
+    - macOS (Darwin): ~/Library/Application Support/Claude/claude_desktop_config.json
+    - Windows: %APPDATA%/Claude/claude_desktop_config.json
+    - Linux / Other: ~/.config/Claude/claude_desktop_config.json
+    """
+    raw_sys = system if system is not None else platform.system()
+    sys_name = raw_sys.strip().lower()
+    home_dir = (home if home is not None else Path.home()).resolve()
+
+    if sys_name == "darwin":
+        return home_dir / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+    elif sys_name == "windows":
+        appdata_val = appdata if appdata is not None else os.environ.get("APPDATA")
+        base = Path(appdata_val).resolve() if appdata_val else (home_dir / "AppData" / "Roaming")
+        return base / "Claude" / "claude_desktop_config.json"
+    else:
+        return home_dir / ".config" / "Claude" / "claude_desktop_config.json"
+
+
+def resolve_cursor_config_path(cwd: Optional[Path] = None) -> Path:
+    """
+    Resolves the workspace-scoped Cursor MCP configuration path in the current working directory:
+    .cursor/mcp.json
+    """
+    base_cwd = (cwd if cwd is not None else Path.cwd()).resolve()
+    return base_cwd / ".cursor" / "mcp.json"
+
+
+def inject_agent_mcp_config(
+    agent_name: str,
+    config_path: Path,
+    stream=None,
+) -> bool:
+    """
+    Idempotently injects the standardized ctxfw MCP entrypoint into the target agent configuration file:
+      {
+        "command": "ctxfw",
+        "args": ["mcp"]
+      }
+    - If the configuration file does not exist, initializes it with {"mcpServers": {}} using 2-space indentation.
+    - If the file exists, parses existing JSON preserving all external keys, top-level settings, and third-party MCP servers.
+    - If "ctxfw" is already defined under "mcpServers", does not overwrite; emits:
+        [~] <Agent>: ctxfw is already configured.
+    - Gracefully handles invalid/unparseable JSON reporting a clean warning to stdout/stderr without raising.
+    - Emits ANSI-styled status outputs in English:
+        [+] <Agent>: Context Firewall injected successfully into <filename>
+    """
+    out = stream if stream is not None else sys.stdout
+    target_config = {
+        "command": "ctxfw",
+        "args": ["mcp"],
+    }
+
+    if config_path.is_dir():
+        out.write(f"  {CLR_CRIMSON}[!] {agent_name}: Error - Configuration path is an existing directory, not a file: {config_path}{CLR_RESET}\n")
+        if hasattr(out, "flush"):
+            out.flush()
+        return False
+
+    data: Dict[str, Any] = {}
+    if config_path.is_file():
+        try:
+            content = config_path.read_text(encoding="utf-8-sig").strip()
+            if content:
+                parsed = json.loads(content)
+                if isinstance(parsed, dict):
+                    data = parsed
+                else:
+                    raise ValueError(f"Root JSON entity is not an object (type={type(parsed).__name__})")
+        except Exception as e:
+            out.write(f"  {CLR_AMBER}[!] {agent_name}: Warning - Failed to parse configuration file {config_path}: {e}{CLR_RESET}\n")
+            if hasattr(out, "flush"):
+                out.flush()
+            return False
+
+    if "mcpServers" not in data or not isinstance(data["mcpServers"], dict):
+        data["mcpServers"] = {}
+
+    if "ctxfw" in data["mcpServers"]:
+        out.write(f"  {CLR_AMBER}[~] {agent_name}: ctxfw is already configured.{CLR_RESET}\n")
+        if hasattr(out, "flush"):
+            out.flush()
+        return False
+
+    data["mcpServers"]["ctxfw"] = target_config
+
+    try:
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        # Atomic file write to avoid corruption during concurrent writes or sudden termination
+        payload_str = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+        temp_file = config_path.parent / f".tmp_{config_path.name}_{os.getpid()}"
+        temp_file.write_text(payload_str, encoding="utf-8")
+        os.replace(temp_file, config_path)
+    except Exception as e:
+        try:
+            if "temp_file" in locals() and temp_file.exists():
+                temp_file.unlink(missing_ok=True)
+        except Exception:
+            pass
+        out.write(f"  {CLR_CRIMSON}[!] {agent_name}: Error - Failed to write configuration file {config_path}: {e}{CLR_RESET}\n")
+        if hasattr(out, "flush"):
+            out.flush()
+        return False
+
+    out.write(f"  {CLR_EMERALD}[+] {agent_name}: Context Firewall injected successfully into {config_path}{CLR_RESET}\n")
+    if hasattr(out, "flush"):
+        out.flush()
+    return True
+
+
+def run_init_mcp_agents(
+    cwd: Optional[Path] = None,
+    home: Optional[Path] = None,
+    system: Optional[str] = None,
+    appdata: Optional[str] = None,
+    stream=None,
+) -> int:
+    """
+    Executes automated zero-friction MCP integration sweep across primary autonomous coding agents:
+    1. Claude Desktop (Cross-platform dynamic path resolution)
+    2. Cursor (Workspace scope .cursor/mcp.json)
+    """
+    out = stream if stream is not None else sys.stdout
+
+    if hasattr(out, "reconfigure"):
+        try:
+            out.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+    claude_path = resolve_claude_desktop_config_path(system=system, home=home, appdata=appdata)
+    cursor_path = resolve_cursor_config_path(cwd=cwd)
+
+    agents = [
+        ("Claude Desktop", claude_path),
+        ("Cursor", cursor_path),
+    ]
+
+    for agent_name, config_path in agents:
+        inject_agent_mcp_config(agent_name, config_path, stream=out)
+
+    try:
+        out.write(f"  {CLR_EMERALD}✔ Zero-config integration complete. Restart your agent to activate.{CLR_RESET}\n")
+    except UnicodeEncodeError:
+        out.write(f"  {CLR_EMERALD}[OK] Zero-config integration complete. Restart your agent to activate.{CLR_RESET}\n")
+
+    if hasattr(out, "flush"):
+        out.flush()
+    return 0
 
 
 def inject_sovereign_rule(rule_path: Path) -> Tuple[bool, str]:
