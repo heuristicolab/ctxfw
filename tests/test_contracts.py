@@ -8,13 +8,13 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from contracts import (
-    DeterministicContextPruner,
-    LocalSemanticCache,
+from ctxfw.core.contracts import (
     OptimizationRequestDTO,
     OptimizationResultDTO,
     PruningDepth,
 )
+from ctxfw.core.pruner import DeterministicContextPruner
+from ctxfw.storage.cache import LocalSemanticCache
 
 SAMPLE_TARGET_CODE = """
 class HardwareTransactionOrchestrator:

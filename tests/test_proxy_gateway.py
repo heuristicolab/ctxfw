@@ -11,8 +11,8 @@ import pytest
 from fastapi.testclient import TestClient
 import httpx
 
-from contracts import LocalSemanticCache
-from proxy_gateway import app, get_cache
+from ctxfw.storage.cache import LocalSemanticCache
+from ctxfw.proxy import app, get_cache
 
 
 @pytest.fixture

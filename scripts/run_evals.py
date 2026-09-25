@@ -16,14 +16,15 @@ import time
 from typing import Dict, List, Optional, Tuple
 from pydantic import BaseModel, ConfigDict, Field
 
-# Ensure repo root is available
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+_src = Path(__file__).resolve().parent.parent / "src"
+if _src.is_dir() and str(_src) not in sys.path:
+    sys.path.insert(0, str(_src))
 
-from contracts import (
-    DeterministicContextPruner,
+from ctxfw.core.contracts import (
     OptimizationRequestDTO,
     PruningDepth,
 )
+from ctxfw.core.pruner import DeterministicContextPruner
 
 
 class EvalTask(BaseModel):

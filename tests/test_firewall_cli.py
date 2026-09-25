@@ -9,7 +9,7 @@ import io
 from pathlib import Path
 import pytest
 
-from firewall_cli import copy_to_clipboard, handle_init_command, main, run_firewall_cli
+from ctxfw.cli.main import copy_to_clipboard, handle_init_command, main, run_firewall_cli
 import json
 
 

@@ -13,12 +13,12 @@ from pydantic import ValidationError
 from fastapi.testclient import TestClient
 import httpx
 
-from contracts import (
+from ctxfw.core.contracts import (
     TelemetryBatchPushDTO,
     TelemetryRecordDTO,
     TelemetryStatsDTO,
 )
-from proxy_gateway import app
+from ctxfw.proxy import app
 from ctxfw.storage.telemetry import (
     TelemetryLedger,
     get_or_create_dev_uuid,

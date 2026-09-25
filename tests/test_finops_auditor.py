@@ -9,9 +9,10 @@ import json
 from pathlib import Path
 import pytest
 
-from contracts import LocalSemanticCache, OptimizationResultDTO, PruningDepth
-from finops_auditor import FinOpsAuditor, FinOpsReportDTO
-from topological_resolver import TopologicalContextBundleDTO
+from ctxfw.core.contracts import OptimizationResultDTO, PruningDepth
+from ctxfw.storage.cache import LocalSemanticCache
+from ctxfw.auditor import FinOpsAuditor, FinOpsReportDTO
+from ctxfw.core.topological import TopologicalContextBundleDTO
 
 
 def test_audit_bundle_token_and_usd_calculation():

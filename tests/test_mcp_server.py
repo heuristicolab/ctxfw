@@ -10,8 +10,8 @@ import json
 from pathlib import Path
 import pytest
 
-from contracts import LocalSemanticCache
-from mcp_server import MCPServer
+from ctxfw.storage.cache import LocalSemanticCache
+from ctxfw.mcp import MCPServer
 
 
 @pytest.fixture

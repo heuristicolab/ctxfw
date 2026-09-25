@@ -10,7 +10,7 @@ import pytest
 import subprocess
 import sys
 
-from ci_gatekeeper import CIGatekeeper, PRE_COMMIT_CONFIG_TEMPLATE
+from ctxfw.gatekeeper import CIGatekeeper, PRE_COMMIT_CONFIG_TEMPLATE
 
 
 @pytest.fixture
@@ -119,7 +119,7 @@ def test_cli_execution_with_output_file(repo_fixture: Path, tmp_path: Path):
 
     cmd = [
         sys.executable,
-        "ci_gatekeeper.py",
+        "-m", "ctxfw.gatekeeper",
         "--project-root", str(repo_fixture),
         "--files", str(repo_fixture / "order_controller.py"),
         "--output", str(output_file),

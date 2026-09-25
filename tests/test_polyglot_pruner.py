@@ -7,13 +7,14 @@ from __future__ import annotations
 
 import pytest
 
-from contracts import (
-    DeterministicContextPruner,
-    LocalSemanticCache,
+from ctxfw.core.contracts import (
     OptimizationRequestDTO,
     PruningDepth,
+    SupportedLanguage,
 )
-from polyglot_pruner import SupportedLanguage, TreeSitterContextPruner
+from ctxfw.core.polyglot import TreeSitterContextPruner
+from ctxfw.core.pruner import DeterministicContextPruner
+from ctxfw.storage.cache import LocalSemanticCache
 
 
 SAMPLE_TYPESCRIPT_CODE = """

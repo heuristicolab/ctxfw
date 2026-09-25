@@ -8,8 +8,9 @@ from __future__ import annotations
 import pytest
 from pathlib import Path
 
-from contracts import LocalSemanticCache, PruningDepth
-from topological_resolver import (
+from ctxfw.core.contracts import PruningDepth
+from ctxfw.storage.cache import LocalSemanticCache
+from ctxfw.core.topological import (
     ContextFirewallEngine,
     ProjectDependencyGraph,
     StaticImportExtractor,
