@@ -302,12 +302,18 @@ def test_cli_config_subcommands(tmp_path: Path, monkeypatch, capsys):
     out = capsys.readouterr().out.strip()
     assert out == "passthrough"
 
-    # 3. list
+    # 3. list and show (ergonomic synonyms)
     code = handle_config_command(["list"])
     assert code == 0
-    out = capsys.readouterr().out
-    data = json.loads(out)
-    assert data["engine"]["mode"] == "passthrough"
+    out_list = capsys.readouterr().out
+    data_list = json.loads(out_list)
+    assert data_list["engine"]["mode"] == "passthrough"
+
+    code_show = handle_config_command(["show"])
+    assert code_show == 0
+    out_show = capsys.readouterr().out
+    data_show = json.loads(out_show)
+    assert data_show == data_list
 
 
 def test_cli_mode_shortcut_command(tmp_path: Path, monkeypatch, capsys):

@@ -1,5 +1,5 @@
 """
-src/ctxfw/cli/__init__.py — Unified Command Line Interface Package (v3.6.0)
+src/ctxfw/cli/__init__.py — Unified Command Line Interface Package (v3.7.0)
 Axiom Manifest Hash: a7e63ccb9b5dd0c6f6147cfd2feec447c4d41690dd76aee9e6035db56cb7c31a
 """
 from ctxfw.cli.main import (

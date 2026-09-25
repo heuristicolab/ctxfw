@@ -1,5 +1,5 @@
 """
-src/ctxfw/cli/main.py — Unified Command Line Interface for Context Firewall (v3.6.0)
+src/ctxfw/cli/main.py — Unified Command Line Interface for Context Firewall (v3.7.0)
 Axiom Manifest Hash: a7e63ccb9b5dd0c6f6147cfd2feec447c4d41690dd76aee9e6035db56cb7c31a
 Supports direct target file clipboard invocation (`ctxfw <file>`) 
 plus explicit subcommands (`ctxfw benchmark`, `ctxfw mcp`, `ctxfw proxy`, `ctxfw ci`, `ctxfw audit`, `ctxfw init`, `ctxfw doctor`, `ctxfw spec`).
@@ -176,7 +176,7 @@ def run_firewall_cli(
 
     # Terminal Dashboard Output
     sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
-    sys.stdout.write(f"  {CLR_CYAN}CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v3.6.0){CLR_RESET}\n")
+    sys.stdout.write(f"  {CLR_CYAN}CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v{__version__}){CLR_RESET}\n")
     sys.stdout.write(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}\n")
     sys.stdout.write(f"Target Module:  {bundle.root_target}\n")
     sys.stdout.write(f"Project Root:   {project_root}\n\n")
@@ -462,21 +462,22 @@ def handle_spec_command(argv: list[str]) -> int:
     else:
         parser.print_help()
 def handle_config_command(argv: list[str]) -> int:
-    """Handles ctxfw config [list|get|set] commands."""
+    """Handles ctxfw config [list|show|get|set] commands."""
     from ctxfw.config import load_config, set_config_value
 
     if not argv or argv[0] in {"-h", "--help"}:
-        print("usage: ctxfw config [list | get <key> | set <key> <value>]")
+        print("usage: ctxfw config [list | show | get <key> | set <key> <value>]")
         print("\nManage dynamic configuration in ~/.ctxfw/config.json.")
         print("Examples:")
         print("  ctxfw config list")
+        print("  ctxfw config show")
         print("  ctxfw config get engine.mode")
         print("  ctxfw config set engine.mode passthrough")
         print("  ctxfw config set finops.roast_level cynical")
         return 0
 
     action = argv[0].lower()
-    if action == "list":
+    if action in {"list", "show"}:
         cfg = load_config()
         print(cfg.model_dump_json(indent=2))
         return 0
@@ -510,7 +511,7 @@ def handle_config_command(argv: list[str]) -> int:
             print(f"Error updating configuration: {e}", file=sys.stderr)
             return 1
     else:
-        print(f"Unknown config action: '{action}'. Expected 'list', 'get', or 'set'.", file=sys.stderr)
+        print(f"Unknown config action: '{action}'. Expected 'list', 'show', 'get', or 'set'.", file=sys.stderr)
         return 1
 
 
@@ -701,7 +702,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Subcommand config
     config_parser = subparsers.add_parser("config", help="Inspect and mutate dynamic configuration in ~/.ctxfw/config.json")
-    config_parser.add_argument("action", nargs="?", default="list", choices=["list", "get", "set"], help="Action: list, get, set")
+    config_parser.add_argument("action", nargs="?", default="list", choices=["list", "show", "get", "set"], help="Action: list, show, get, set")
     config_parser.add_argument("key", nargs="?", default=None, help="Configuration key path (e.g. engine.mode)")
     config_parser.add_argument("value", nargs="?", default=None, help="New value for configuration key")
 

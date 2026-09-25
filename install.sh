@@ -7,7 +7,7 @@
 # ==============================================================================
 set -euo pipefail
 
-VERSION="v3.6.0"
+VERSION="v3.7.0"
 BIN_NAME="ctxfw"
 CONFIG_DIR="${HOME}/.ctxfw"
 VENV_DIR="${CONFIG_DIR}/venv"
@@ -101,7 +101,7 @@ cat << 'EOF'
  ██║        ██║    ╚███╔╝ █████╗  ██║ █╗ ██║
  ██║        ██║    ██╔██╗ ██╔══╝  ██║███╗██║
  ╚██████╗   ██║   ██╔╝ ██╗██║     ╚███╔███╔╝
-  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.6.0
+  ╚═════╝   ╚═╝   ╚═╝  ╚═╝╚═╝      ╚══╝╚══╝  v3.7.0
  ░░░ HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE ░░░
 EOF
 echo -e "${RESET}"
@@ -219,9 +219,9 @@ VENV_PIP="${VENV_DIR}/bin/pip"
 VENV_BIN="${VENV_DIR}/bin/${BIN_NAME}"
 
 # Install or upgrade ctxfw inside isolated sandbox
-echo -e "${GRAPHITE}      Installing ctxfw==3.6.0 from PyPI into isolated runtime...${RESET}"
+echo -e "${GRAPHITE}      Installing ctxfw==3.7.0 from PyPI into isolated runtime...${RESET}"
 "$VENV_PIP" install --upgrade --quiet pip setuptools wheel 2>/dev/null || true
-"$VENV_PIP" install --upgrade "ctxfw>=3.6.0"
+"$VENV_PIP" install --upgrade "ctxfw>=3.7.0"
 
 if [ ! -x "$VENV_BIN" ]; then
     echo -e "${AMBER}[FAIL] ctxfw binary was not created in ${VENV_DIR}/bin.${RESET}"
@@ -303,7 +303,7 @@ echo -e "${WHITE}[DIAGNOSTIC]${RESET} Executing ctxfw doctor self-test..."
 
 echo ""
 echo -e "${CYAN}========================================================================${RESET}"
-echo -e "  ${WHITE}CTXFW v3.6.0 INSTALLATION COMPLETE // PERIMETER SECURED${RESET}"
+echo -e "  ${WHITE}CTXFW v3.7.0 INSTALLATION COMPLETE // PERIMETER SECURED${RESET}"
 echo -e "  ${GRAPHITE}Binary:        ${INSTALL_DIR}/${BIN_NAME}${RESET}"
 echo -e "  ${GRAPHITE}Sandbox:       ${VENV_DIR}${RESET}"
 echo -e "  ${GRAPHITE}Claude Config: ${CLAUDE_CONFIG}${RESET}"

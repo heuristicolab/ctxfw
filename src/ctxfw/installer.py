@@ -21,6 +21,8 @@ from pydantic import BaseModel, Field
 from ctxfw import __version__
 from ctxfw.sieve.engine import evaluate_specification
 
+VERSION: str = __version__
+
 
 # -----------------------------------------------------------------------------
 # Tactical ANSI Color Palette (Zero-Dependency) & Skunk Works Branding

@@ -1,10 +1,10 @@
 """
-ctxfw — Sovereign Context Firewall & Token Optimization Engine (v3.4.0)
+ctxfw — Sovereign Context Firewall & Token Optimization Engine (v3.7.0)
 Hermetic Toolchain implementation adhering to Google style and POSIX/XDG standards.
 """
 from __future__ import annotations
 
-__version__ = "3.6.0"
+__version__ = "3.7.0"
 
 from ctxfw.core.contracts import (
     OptimizationRequestDTO,
