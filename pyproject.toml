@@ -5,7 +5,7 @@ description = "Deterministic Axiomatic Gatekeeper & Context Firewall // Skunk Wo
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-  { name = "Heuristico LAB // Skunk Works Division", email = "contacto@heuristicolab.com" }
+  { name = "Heuristico LAB // Skunk Works Division", email = "mo@heuristicolab.com" }
 ]
 dependencies = [
     "pydantic>=2.0.0",
