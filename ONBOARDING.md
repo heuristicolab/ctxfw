@@ -2,7 +2,7 @@
 ### HEURISTICO LAB // SKUNK WORKS DIVISION // DEFENSE GRADE
 **Document ID:** `ONB-v3.5.0-BILINGUAL`  
 **Security Classification:** `RESTRICTED BETA`  
-**Sovereign Node:** `https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b`
+**Repository:** `https://github.com/heuristicolab/ctxfw`
 
 ---
 
@@ -22,8 +22,8 @@ Install the distribution wheel in your environment:
 # Standalone Wheel Installation:
 pip install ctxfw-3.5.0-py3-none-any.whl
 
-# Or install directly via sovereign Git remote:
-pipx install git+https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b.git@v3.5.0
+# Or install directly via GitHub remote:
+pipx install git+https://github.com/heuristicolab/ctxfw.git
 ```
 
 Verify binary registration in your system path:
@@ -154,8 +154,8 @@ Instala el paquete distribuible directamente en tu entorno:
 # Instalación directa del Wheel:
 pip install ctxfw-3.5.0-py3-none-any.whl
 
-# O instalación directa desde el repositorio soberano:
-pipx install git+https://git.metaversemexico.mx/heuristicolab/arch-ord-2026-4f003b.git@v3.5.0
+# O instalación directa desde GitHub:
+pipx install git+https://github.com/heuristicolab/ctxfw.git
 ```
 
 Verifica la disponibilidad global del ejecutable:
