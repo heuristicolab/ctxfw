@@ -60,3 +60,7 @@ profile_readme/
 *.conf
 *.xml
 *.log
+
+# Local specifications & architecture specs (Zero Egress)
+specs/
+specs/**
