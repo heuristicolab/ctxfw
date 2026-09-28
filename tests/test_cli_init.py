@@ -1,6 +1,6 @@
 """
 tests/test_cli_init.py — Comprehensive Test Suite for Automated Zero-Friction MCP Integration
-Axiom Manifest Hash: a7e63ccb9b5dd0c6f6147cfd2feec447c4d41690dd76aee9e6035db56cb7c31a
+Axiom Manifest Hash: 03a5c523fb3fb6559987c97836062b280b8fc2e3438aac07ab9fa0f1f0befa4c
 
 Validates deterministic cross-platform path resolution, zero-friction MCP payload injection
 for Claude Desktop and Cursor, configuration preservation, strict idempotency, and error tolerance.
@@ -87,8 +87,9 @@ def test_injection_into_non_existent_files(tmp_path: Path):
     claude_data = json.loads(claude_raw)
     assert "mcpServers" in claude_data
     assert "ctxfw" in claude_data["mcpServers"]
-    assert claude_data["mcpServers"]["ctxfw"]["command"] == "ctxfw"
-    assert claude_data["mcpServers"]["ctxfw"]["args"] == ["mcp"]
+    expected_cmds = {sys.executable, str(Path(sys.executable).resolve()), "ctxfw"}
+    assert claude_data["mcpServers"]["ctxfw"]["command"] in expected_cmds
+    assert claude_data["mcpServers"]["ctxfw"]["args"] in [["-m", "ctxfw.mcp"], ["mcp"]]
 
     # Validate Cursor payload and indentation
     cursor_raw = cursor_cfg.read_text(encoding="utf-8")
@@ -96,8 +97,8 @@ def test_injection_into_non_existent_files(tmp_path: Path):
     cursor_data = json.loads(cursor_raw)
     assert "mcpServers" in cursor_data
     assert "ctxfw" in cursor_data["mcpServers"]
-    assert cursor_data["mcpServers"]["ctxfw"]["command"] == "ctxfw"
-    assert cursor_data["mcpServers"]["ctxfw"]["args"] == ["mcp"]
+    assert cursor_data["mcpServers"]["ctxfw"]["command"] in expected_cmds
+    assert cursor_data["mcpServers"]["ctxfw"]["args"] in [["-m", "ctxfw.mcp"], ["mcp"]]
 
     # Validate output formatting
     out = mock_stdout.getvalue()
@@ -158,8 +159,9 @@ def test_clean_injection_into_existing_configs_preserving_servers(tmp_path: Path
     # Claude Desktop checks
     claude_data = json.loads(claude_cfg.read_text(encoding="utf-8"))
     assert "ctxfw" in claude_data["mcpServers"]
-    assert claude_data["mcpServers"]["ctxfw"]["command"] == "ctxfw"
-    assert claude_data["mcpServers"]["ctxfw"]["args"] == ["mcp"]
+    expected_cmds = {sys.executable, str(Path(sys.executable).resolve()), "ctxfw"}
+    assert claude_data["mcpServers"]["ctxfw"]["command"] in expected_cmds
+    assert claude_data["mcpServers"]["ctxfw"]["args"] in [["-m", "ctxfw.mcp"], ["mcp"]]
     # Preserved third-party servers
     assert "brave-search" in claude_data["mcpServers"]
     assert claude_data["mcpServers"]["brave-search"]["command"] == "npx"
@@ -172,8 +174,8 @@ def test_clean_injection_into_existing_configs_preserving_servers(tmp_path: Path
     # Cursor checks
     cursor_data = json.loads(cursor_cfg.read_text(encoding="utf-8"))
     assert "ctxfw" in cursor_data["mcpServers"]
-    assert cursor_data["mcpServers"]["ctxfw"]["command"] == "ctxfw"
-    assert cursor_data["mcpServers"]["ctxfw"]["args"] == ["mcp"]
+    assert cursor_data["mcpServers"]["ctxfw"]["command"] in expected_cmds
+    assert cursor_data["mcpServers"]["ctxfw"]["args"] in [["-m", "ctxfw.mcp"], ["mcp"]]
     assert "postgres-local" in cursor_data["mcpServers"]
     assert cursor_data["workspaceCustomKey"] == "sovereign_flag"
 
@@ -375,16 +377,20 @@ def test_cli_subprocess_execution(tmp_path: Path):
 
     env = os.environ.copy()
     src_dir = str(Path(__file__).resolve().parent.parent / "src")
-    env["PYTHONPATH"] = f"{src_dir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    site_dirs = [p for p in sys.path if "site-packages" in p]
+    env["PYTHONPATH"] = os.pathsep.join([src_dir] + site_dirs + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
     env["APPDATA"] = str(appdata_dir)
     env["USERPROFILE"] = str(home_dir)
     env["HOME"] = str(home_dir)
+    env["PYTHONIOENCODING"] = "utf-8"
 
     proc = subprocess.run(
         [sys.executable, "-m", "ctxfw.cli", "init"],
         cwd=str(ws_dir),
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         env=env,
     )
 

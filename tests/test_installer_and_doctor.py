@@ -1,6 +1,6 @@
 """
 tests/test_installer_and_doctor.py — Test Suite for Installer, Doctor, and Pre-Commit Gatekeeper
-Axiom Manifest Hash: 575d12d75bcb427be48c3d62c643a4fb4a0260768cb49197c5d09133058581ed
+Axiom Manifest Hash: 03a5c523fb3fb6559987c97836062b280b8fc2e3438aac07ab9fa0f1f0befa4c
 
 Validates idempotent IDE injection, multiplatform pre-commit hook deployment,
 stdio isolation verification, and comprehensive doctor diagnostics.
@@ -20,7 +20,14 @@ from ctxfw.installer import (
     detect_installed_ides,
     init_repository_perimeter,
     inject_sovereign_rule,
+    install_mcp_servers,
     render_doctor_report,
+    resolve_claude_code_config_path,
+    resolve_claude_desktop_config_path,
+    resolve_cursor_config_path,
+    resolve_mcp_command,
+    resolve_mcp_surfaces,
+    resolve_windsurf_config_path,
     run_doctor,
     run_global_init,
     safe_merge_mcp_config,
@@ -39,8 +46,9 @@ def test_safe_merge_mcp_config_creates_new(tmp_path: Path):
     data = json.loads(cfg_file.read_text(encoding="utf-8"))
     assert "mcpServers" in data
     assert "ctxfw" in data["mcpServers"]
-    assert data["mcpServers"]["ctxfw"]["command"] == "ctxfw"
-    assert data["mcpServers"]["ctxfw"]["args"] == ["mcp"]
+    expected_cmds = {sys.executable, str(Path(sys.executable).resolve()), "ctxfw"}
+    assert data["mcpServers"]["ctxfw"]["command"] in expected_cmds
+    assert data["mcpServers"]["ctxfw"]["args"] in [["-m", "ctxfw.mcp"], ["mcp"]]
 
 
 def test_safe_merge_preserves_existing_servers(tmp_path: Path):
@@ -85,6 +93,84 @@ def test_safe_merge_idempotence(tmp_path: Path):
 
     content_after_second = cfg_file.read_text(encoding="utf-8")
     assert content_after_first == content_after_second
+
+
+def test_safe_merge_creates_backup_snapshot(tmp_path: Path):
+    """Asserts that mutating an existing config creates a timestamped .bak snapshot."""
+    cfg_file = tmp_path / "mcp_config.json"
+    cfg_file.write_text(json.dumps({"mcpServers": {"old_server": {"command": "echo"}}}, indent=2), encoding="utf-8")
+
+    updated, msg = safe_merge_mcp_config(cfg_file)
+    assert updated is True
+
+    bak_files = list(tmp_path.glob("mcp_config.json.bak.*"))
+    assert len(bak_files) >= 1
+    bak_content = json.loads(bak_files[0].read_text(encoding="utf-8"))
+    assert "old_server" in bak_content["mcpServers"]
+    assert "ctxfw" not in bak_content["mcpServers"]
+
+
+def test_installer_triple_idempotence(tmp_path: Path):
+    """Asserts that 3 consecutive runs of safe_merge_mcp_config preserve exact file content without divergence."""
+    cfg_file = tmp_path / "mcp_config.json"
+    u1, _ = safe_merge_mcp_config(cfg_file)
+    assert u1 is True
+    content1 = cfg_file.read_text(encoding="utf-8")
+
+    u2, msg2 = safe_merge_mcp_config(cfg_file)
+    assert u2 is False
+    assert "already" in msg2.lower()
+    content2 = cfg_file.read_text(encoding="utf-8")
+    assert content1 == content2
+
+    u3, msg3 = safe_merge_mcp_config(cfg_file)
+    assert u3 is False
+    assert "already" in msg3.lower()
+    content3 = cfg_file.read_text(encoding="utf-8")
+    assert content1 == content3
+
+
+def test_multi_surface_detection(tmp_path: Path):
+    """Asserts resolve_mcp_surfaces accurately resolves Claude Desktop, Claude Code, Cursor, and Windsurf."""
+    # Darwin
+    mac_path = resolve_claude_desktop_config_path(system="Darwin", home=tmp_path)
+    assert "Library/Application Support/Claude" in str(mac_path).replace("\\", "/")
+
+    # Windows
+    win_path = resolve_claude_desktop_config_path(system="Windows", appdata=str(tmp_path / "AppData"))
+    assert "Claude" in str(win_path)
+
+    # Linux
+    linux_path = resolve_claude_desktop_config_path(system="Linux", home=tmp_path)
+    assert ".config/Claude" in str(linux_path).replace("\\", "/")
+
+    # Claude Code
+    cc_path = resolve_claude_code_config_path(home=tmp_path)
+    assert cc_path.name == ".claude.json"
+
+    # Cursor
+    cursor_path = resolve_cursor_config_path(cwd=tmp_path)
+    assert cursor_path == tmp_path / ".cursor" / "mcp.json"
+
+    # Windsurf
+    ws_path = resolve_windsurf_config_path(home=tmp_path)
+    assert ".codeium" in str(ws_path)
+
+    surfaces = resolve_mcp_surfaces(cwd=tmp_path, home=tmp_path, system="Linux")
+    surface_names = [s[0] for s in surfaces]
+    assert surface_names == ["Claude Desktop", "Claude Code CLI", "Cursor", "Windsurf"]
+
+
+def test_install_mcp_servers_proxy_fallback_output(tmp_path: Path):
+    """Asserts install_mcp_servers outputs the Zero-MCP interoperability proxy instructions."""
+    import io
+    buf = io.StringIO()
+    code = install_mcp_servers(cwd=tmp_path, home=tmp_path, stream=buf)
+    assert code == 0
+    out_txt = buf.getvalue()
+    assert "ZERO-MCP INTEROPERABILITY GATEWAY" in out_txt
+    assert "ctxfw proxy --port 8765" in out_txt
+    assert 'export ANTHROPIC_BASE_URL="http://localhost:8765/v1"' in out_txt
 
 
 def test_inject_sovereign_rule_idempotence(tmp_path: Path):

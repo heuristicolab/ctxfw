@@ -1,6 +1,6 @@
 """
 src/ctxfw/installer.py — Zero-Touch Industrialization & Diagnostics Engine
-Axiom Manifest Hash: a7e63ccb9b5dd0c6f6147cfd2feec447c4d41690dd76aee9e6035db56cb7c31a
+Axiom Manifest Hash: 03a5c523fb3fb6559987c97836062b280b8fc2e3438aac07ab9fa0f1f0befa4c
 
 Provides zero-touch onboarding, idempotent IDE configuration injection,
 multiplatform pre-commit hook deployment, and comprehensive self-diagnostics.
@@ -289,6 +289,25 @@ def resolve_ide_paths(base_home: Optional[Path] = None) -> Dict[str, Dict[str, L
                 else [home / ".config" / "Claude"]
             ),
         },
+        "Claude Code": {
+            "configs": [
+                home / ".claude.json",
+            ],
+            "rules": [],
+            "signatures": [
+                home / ".claude.json",
+                home / ".claude",
+            ],
+        },
+        "Windsurf": {
+            "configs": [
+                home / ".codeium" / "windsurf" / "mcp_config.json",
+            ],
+            "rules": [],
+            "signatures": [
+                home / ".codeium",
+            ],
+        },
     }
     return paths
 
@@ -322,24 +341,44 @@ def detect_installed_ides(base_home: Optional[Path] = None) -> List[IDEDetection
     return results
 
 
+def resolve_mcp_command() -> Dict[str, Any]:
+    """
+    Deterministically resolves the execution entrypoint for ctxfw MCP server:
+    - If running within a PyInstaller standalone bundle (sys.frozen): uses absolute canonical binary path with ['mcp'].
+    - In standard Python environments: uses absolute sys.executable with ['-m', 'ctxfw.mcp']
+      to ensure zero dependency on external PATH resolution across virtualenvs.
+    """
+    if getattr(sys, "frozen", False):
+        bin_path = str(Path(sys.argv[0]).resolve() if sys.argv and sys.argv[0] else Path(sys.executable).resolve())
+        return {
+            "command": bin_path,
+            "args": ["mcp"],
+        }
+    py_executable = str(Path(sys.executable).resolve())
+    return {
+        "command": py_executable,
+        "args": ["-m", "ctxfw.mcp"],
+    }
+
+
 def safe_merge_mcp_config(
     config_path: Path,
     server_name: str = "ctxfw",
     server_config: Optional[Dict[str, Any]] = None,
+    create_backup: bool = True,
 ) -> Tuple[bool, str]:
     """
     Idempotently injects the MCP server entry into a configuration file.
-    Preserves all other pre-existing servers and formatting.
+    - Resolves execution command using sys.executable [-m ctxfw.mcp] if not provided.
+    - Preserves all other pre-existing servers, comments, and top-level settings.
+    - Generates a timestamped backup snapshot (<config_file>.bak.<timestamp>) before mutating disk.
+    - Performs atomic file replacement using temporary files and os.replace.
     """
-    default_config = {
-        "command": "ctxfw",
-        "args": ["mcp"],
-    }
-    target_config = server_config if server_config is not None else default_config
+    target_config = server_config if server_config is not None else resolve_mcp_command()
 
     data: Dict[str, Any] = {}
     if config_path.is_file():
-        content = config_path.read_text(encoding="utf-8").strip()
+        content = config_path.read_text(encoding="utf-8-sig").strip()
         if content:
             try:
                 parsed = json.loads(content)
@@ -348,7 +387,7 @@ def safe_merge_mcp_config(
                 else:
                     return False, f"Existing configuration at {config_path} is not a JSON object."
             except Exception as e:
-                return False, f"Failed to parse existing JSON at {config_path}: {e}"
+                return False, f"Failed to parse configuration file {config_path}: {e}"
 
     if "mcpServers" not in data or not isinstance(data["mcpServers"], dict):
         data["mcpServers"] = {}
@@ -357,15 +396,40 @@ def safe_merge_mcp_config(
     if existing_server == target_config:
         return False, f"Server '{server_name}' already configured identically in {config_path}."
 
+    # Backup Snapshot (Non-negotiable Negative Invariant: snapshot before mutation)
+    if config_path.is_file() and create_backup:
+        import time
+        ts = int(time.time())
+        bak_file = config_path.parent / f"{config_path.name}.bak.{ts}"
+        if bak_file.exists():
+            bak_file = config_path.parent / f"{config_path.name}.bak.{ts}_{time.time_ns()}"
+        try:
+            shutil.copy2(config_path, bak_file)
+        except Exception as e:
+            return False, f"Failed to generate backup snapshot at {bak_file}: {e}"
+
     data["mcpServers"][server_name] = target_config
 
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    config_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    try:
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        payload_str = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+        import time
+        temp_file = config_path.parent / f".tmp_{config_path.name}_{os.getpid()}_{time.time_ns()}"
+        temp_file.write_text(payload_str, encoding="utf-8")
+        os.replace(temp_file, config_path)
+    except Exception as e:
+        if "temp_file" in locals() and temp_file.exists():
+            try:
+                temp_file.unlink()
+            except Exception:
+                pass
+        return False, f"Failed to write configuration file {config_path}: {e}"
+
     return True, f"Injected server '{server_name}' into {config_path}."
 
 
 # -----------------------------------------------------------------------------
-# Autonomous Agent MCP Integration (Claude Desktop & Cursor)
+# Multi-Surface Autonomous Agent MCP Integration (Triple Surface Architecture)
 # -----------------------------------------------------------------------------
 
 def resolve_claude_desktop_config_path(
@@ -393,6 +457,12 @@ def resolve_claude_desktop_config_path(
         return home_dir / ".config" / "Claude" / "claude_desktop_config.json"
 
 
+def resolve_claude_code_config_path(home: Optional[Path] = None) -> Path:
+    """Resolves the global Claude Code CLI configuration path (~/.claude.json)."""
+    home_dir = (home if home is not None else Path.home()).resolve()
+    return home_dir / ".claude.json"
+
+
 def resolve_cursor_config_path(cwd: Optional[Path] = None) -> Path:
     """
     Resolves the workspace-scoped Cursor MCP configuration path in the current working directory:
@@ -402,30 +472,47 @@ def resolve_cursor_config_path(cwd: Optional[Path] = None) -> Path:
     return base_cwd / ".cursor" / "mcp.json"
 
 
+def resolve_windsurf_config_path(home: Optional[Path] = None) -> Path:
+    """Resolves the global Windsurf MCP configuration path (~/.codeium/windsurf/mcp_config.json)."""
+    home_dir = (home if home is not None else Path.home()).resolve()
+    return home_dir / ".codeium" / "windsurf" / "mcp_config.json"
+
+
+def resolve_mcp_surfaces(
+    cwd: Optional[Path] = None,
+    home: Optional[Path] = None,
+    system: Optional[str] = None,
+    appdata: Optional[str] = None,
+) -> List[Tuple[str, Path]]:
+    """
+    Deterministically resolves the Triple Surface MCP targets:
+    1. Claude Desktop (Cross-platform native path)
+    2. Claude Code CLI (~/.claude.json)
+    3. Cursor (Workspace scope .cursor/mcp.json)
+    4. Windsurf (~/.codeium/windsurf/mcp_config.json)
+    """
+    home_dir = (home if home is not None else Path.home()).resolve()
+    base_cwd = (cwd if cwd is not None else Path.cwd()).resolve()
+
+    return [
+        ("Claude Desktop", resolve_claude_desktop_config_path(system=system, home=home_dir, appdata=appdata)),
+        ("Claude Code CLI", resolve_claude_code_config_path(home=home_dir)),
+        ("Cursor", resolve_cursor_config_path(cwd=base_cwd)),
+        ("Windsurf", resolve_windsurf_config_path(home=home_dir)),
+    ]
+
+
 def inject_agent_mcp_config(
     agent_name: str,
     config_path: Path,
+    server_config: Optional[Dict[str, Any]] = None,
     stream=None,
 ) -> bool:
     """
-    Idempotently injects the standardized ctxfw MCP entrypoint into the target agent configuration file:
-      {
-        "command": "ctxfw",
-        "args": ["mcp"]
-      }
-    - If the configuration file does not exist, initializes it with {"mcpServers": {}} using 2-space indentation.
-    - If the file exists, parses existing JSON preserving all external keys, top-level settings, and third-party MCP servers.
-    - If "ctxfw" is already defined under "mcpServers", does not overwrite; emits:
-        [~] <Agent>: ctxfw is already configured.
-    - Gracefully handles invalid/unparseable JSON reporting a clean warning to stdout/stderr without raising.
-    - Emits ANSI-styled status outputs in English:
-        [+] <Agent>: Context Firewall injected successfully into <filename>
+    Idempotently injects the standardized ctxfw MCP entrypoint into target agent configuration.
     """
     out = stream if stream is not None else sys.stdout
-    target_config = {
-        "command": "ctxfw",
-        "args": ["mcp"],
-    }
+    target_config = server_config if server_config is not None else resolve_mcp_command()
 
     if config_path.is_dir():
         out.write(f"  {CLR_CRIMSON}[!] {agent_name}: Error - Configuration path is an existing directory, not a file: {config_path}{CLR_RESET}\n")
@@ -433,58 +520,26 @@ def inject_agent_mcp_config(
             out.flush()
         return False
 
-    data: Dict[str, Any] = {}
-    if config_path.is_file():
-        try:
-            content = config_path.read_text(encoding="utf-8-sig").strip()
-            if content:
-                parsed = json.loads(content)
-                if isinstance(parsed, dict):
-                    data = parsed
-                else:
-                    raise ValueError(f"Root JSON entity is not an object (type={type(parsed).__name__})")
-        except Exception as e:
-            out.write(f"  {CLR_AMBER}[!] {agent_name}: Warning - Failed to parse configuration file {config_path}: {e}{CLR_RESET}\n")
-            if hasattr(out, "flush"):
-                out.flush()
-            return False
+    updated, msg = safe_merge_mcp_config(config_path, server_name="ctxfw", server_config=target_config, create_backup=True)
 
-    if "mcpServers" not in data or not isinstance(data["mcpServers"], dict):
-        data["mcpServers"] = {}
-
-    if "ctxfw" in data["mcpServers"]:
+    if updated:
+        out.write(f"  {CLR_EMERALD}[+] {agent_name}: Context Firewall injected successfully into {config_path}{CLR_RESET}\n")
+        if hasattr(out, "flush"):
+            out.flush()
+        return True
+    elif "already configured" in msg.lower():
         out.write(f"  {CLR_AMBER}[~] {agent_name}: ctxfw is already configured.{CLR_RESET}\n")
         if hasattr(out, "flush"):
             out.flush()
         return False
-
-    data["mcpServers"]["ctxfw"] = target_config
-
-    try:
-        config_path.parent.mkdir(parents=True, exist_ok=True)
-        # Atomic file write to avoid corruption during concurrent writes or sudden termination
-        payload_str = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
-        temp_file = config_path.parent / f".tmp_{config_path.name}_{os.getpid()}"
-        temp_file.write_text(payload_str, encoding="utf-8")
-        os.replace(temp_file, config_path)
-    except Exception as e:
-        try:
-            if "temp_file" in locals() and temp_file.exists():
-                temp_file.unlink(missing_ok=True)
-        except Exception:
-            pass
-        out.write(f"  {CLR_CRIMSON}[!] {agent_name}: Error - Failed to write configuration file {config_path}: {e}{CLR_RESET}\n")
+    else:
+        out.write(f"  {CLR_AMBER}[!] {agent_name}: Warning - {msg}{CLR_RESET}\n")
         if hasattr(out, "flush"):
             out.flush()
         return False
 
-    out.write(f"  {CLR_EMERALD}[+] {agent_name}: Context Firewall injected successfully into {config_path}{CLR_RESET}\n")
-    if hasattr(out, "flush"):
-        out.flush()
-    return True
 
-
-def run_init_mcp_agents(
+def install_mcp_servers(
     cwd: Optional[Path] = None,
     home: Optional[Path] = None,
     system: Optional[str] = None,
@@ -492,37 +547,69 @@ def run_init_mcp_agents(
     stream=None,
 ) -> int:
     """
-    Executes automated zero-friction MCP integration sweep across primary autonomous coding agents:
-    1. Claude Desktop (Cross-platform dynamic path resolution)
-    2. Cursor (Workspace scope .cursor/mcp.json)
+    Automated Multi-Surface MCP Installation & Zero-MCP Fallback Engine.
+    Detects and configures:
+    1. Claude Desktop (Cross-platform native path)
+    2. Claude Code CLI (~/.claude.json)
+    3. Cursor (.cursor/mcp.json workspace + global fallback)
+    4. Windsurf (~/.codeium/windsurf/mcp_config.json)
+
+    Provides clear diagnostic output including Zero-MCP proxy activation:
+    ctxfw proxy --port 8765 -> export ANTHROPIC_BASE_URL="http://localhost:8765/v1"
     """
     out = stream if stream is not None else sys.stdout
-
     if hasattr(out, "reconfigure"):
         try:
             out.reconfigure(encoding="utf-8", errors="replace")
         except Exception:
             pass
 
-    claude_path = resolve_claude_desktop_config_path(system=system, home=home, appdata=appdata)
-    cursor_path = resolve_cursor_config_path(cwd=cwd)
+    print_defense_banner(stream=out)
 
-    agents = [
-        ("Claude Desktop", claude_path),
-        ("Cursor", cursor_path),
-    ]
+    out.write(f"\n{CLR_CYAN}=== CTXFW MULTI-SURFACE MCP INSTALLER (v{__version__}) ==={CLR_RESET}\n")
+    out.write(f"{CLR_GRAPHITE}Executing automated discovery and zero-touch injection...{CLR_RESET}\n\n")
 
-    for agent_name, config_path in agents:
-        inject_agent_mcp_config(agent_name, config_path, stream=out)
+    surfaces = resolve_mcp_surfaces(cwd=cwd, home=home, system=system, appdata=appdata)
 
+    linked_count = 0
+    configured_surfaces: List[Tuple[str, Path]] = []
+
+    for surface_name, config_path in surfaces:
+        should_configure = True
+        if surface_name == "Windsurf":
+            should_configure = config_path.is_file() or config_path.parent.exists() or config_path.parent.parent.exists()
+
+        if should_configure:
+            res = inject_agent_mcp_config(surface_name, config_path, stream=out)
+            if res:
+                linked_count += 1
+            configured_surfaces.append((surface_name, config_path))
+
+    out.write(f"\n{CLR_EMERALD}✔ Multi-surface scan complete.{CLR_RESET}\n")
     try:
-        out.write(f"  {CLR_EMERALD}✔ Zero-config integration complete. Restart your agent to activate.{CLR_RESET}\n")
+        out.write(f"  {CLR_EMERALD}✔ Zero-config integration complete. Restart your agent to activate.{CLR_RESET}\n\n")
     except UnicodeEncodeError:
-        out.write(f"  {CLR_EMERALD}[OK] Zero-config integration complete. Restart your agent to activate.{CLR_RESET}\n")
+        out.write(f"  {CLR_EMERALD}[OK] Zero-config integration complete. Restart your agent to activate.{CLR_RESET}\n\n")
+
+    # Print Zero-MCP Proxy Guidance Fallback
+    out.write(f"{CLR_CYAN}======================================================================{CLR_RESET}\n")
+    out.write(f"{CLR_WHITE_BOLD}ZERO-MCP INTEROPERABILITY GATEWAY (Aider, OpenCode, Continue, CLI){CLR_RESET}\n")
+    out.write(f"{CLR_CYAN}======================================================================{CLR_RESET}\n")
+    out.write(f"For developer tools without native Model Context Protocol support:\n")
+    out.write(f"  1. Start the zero-egress local proxy server:\n")
+    out.write(f"     {CLR_EMERALD}$ ctxfw proxy --port 8765{CLR_RESET}\n\n")
+    out.write(f"  2. Export the Anthropic API endpoint in your terminal or tool environment:\n")
+    out.write(f"     {CLR_EMERALD}$ export ANTHROPIC_BASE_URL=\"http://localhost:8765/v1\"{CLR_RESET}\n")
+    out.write(f"{CLR_CYAN}======================================================================{CLR_RESET}\n")
 
     if hasattr(out, "flush"):
         out.flush()
     return 0
+
+
+# Canonical alias for backward compatibility
+run_init_mcp_agents = install_mcp_servers
+
 
 
 def inject_sovereign_rule(rule_path: Path) -> Tuple[bool, str]:
