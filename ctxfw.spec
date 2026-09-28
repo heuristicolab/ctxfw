@@ -11,7 +11,6 @@ from PyInstaller.utils.hooks import collect_all, collect_submodules, collect_dat
 block_cipher = None
 
 datas = [
-    ('schema.sql', '.'),
     ('src/ctxfw/storage/schema.sql', 'ctxfw/storage'),
 ]
 binaries = []
