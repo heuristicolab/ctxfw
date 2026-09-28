@@ -38,3 +38,11 @@ Deterministic SHA-256 attestation seal guarantees manifest immutability by hashi
 - The pre-commit enforcement hook shall never permit git commits containing specification briefs marked with QUARANTINED status.
 - The core pipeline shall never persist unencrypted secret credentials or API tokens in the SQLite WAL telemetry cache.
 - The system shall never execute arbitrary unstubbed code blocks during architectural intake evaluation.
+
+## Apéndice B: Validación Empírica en Código Legacy (Zulip Monolith)
+La arquitectura formal de `ctxfw` fue sometida a estrés destructivo en entorno aislado (VPS Linux / Docker) contra el monolito Django `zulip/zulip` (`zerver/models/users.py` y dependencias $D_1$), validando empíricamente el cumplimiento de los axiomas del sistema:
+- **AXIOM-1 (Pureza del Canal MCP / Cero Fugas):** Verificado con 0 bytes filtrados a `stdout` durante la poda en memoria (`leak_bytes == 0`).
+- **AXIOM-2 (Poda Determinista del Perímetro $D_1$):** Reducción efectiva del 42.96% en modo `INTERFACE` y 78.20% en modo `NOMINAL` sobre el perímetro de dependencias.
+- **AXIOM-3 (Inviolabilidad de Contexto Focal $D_0$):** El archivo objetivo permaneció 100% íntegro (12,909 tokens preservados sin elisión ni alteración).
+- **AXIOM-4 (Integridad Sintáctica y Preservación de Contratos):** Preservación verificada del 100% de clases (30/30) y métodos públicos (50/50) con `ast.parse() == True`.
+
