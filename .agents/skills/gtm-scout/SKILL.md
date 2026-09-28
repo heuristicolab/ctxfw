@@ -48,16 +48,16 @@ Your objective is to execute an exhaustive, high-signal market mapping to identi
    - Slack and community hubs: MLOps Community, Latent Space Slack, AI Engineering Foundation.
    - Core topics: Inference cost reduction, LLM context window optimization, deterministic guardrails.
 
-## 5. Rules of Engagement ("No Quemar la Marca")
-- **Regla del "Show, Don't Sell"**: Nunca pedir compra ni adopción forzada. Mostrar la terminal ejecutando `ctxfw benchmark`, exhibir la reducción verificada de 49,000 a 20,000 tokens y dejar que el dolor del costo de API haga el trabajo.
-- **Regla de Cero Fricción**: Verificación local en menos de 10 segundos:
+## 5. Rules of Engagement ("Do Not Burn the Brand")
+- **"Show, Don't Sell" Doctrine**: Never solicit purchases or forced adoption. Display the terminal running `ctxfw benchmark`, showcase the verified reduction from 49,000 to 20,000 tokens, and let direct API billing pain drive conversion.
+- **Zero-Friction Rule**: Local verification in under 10 seconds:
   ```bash
   pip install ctxfw && ctxfw doctor
   ```
-- **Apalancamiento de Grado A de Glama**: Presentar la herramienta como infraestructura auditada con aislamiento formal en contenedor Debian y paso de test suite completa, no como un proyecto experimental no probado.
+- **Glama Grade A Leverage**: Position the tool as audited infrastructure with formal Debian container isolation and a 100% passing test suite, rather than an unverified experimental side-project.
 
-## 6. Cuatro Fases de Distribución Estratégica
-- **Fase 1: Asalto de Guerrilla (Semana 1)**: Primeros 100 usuarios activos locales y feedback en Cursor Forum (#Showcase), Discord de Anthropic (`#mcp-servers`), y r/LocalLLaMA con posts técnicos detallados.
-- **Fase 2: El Frente Hacker News (Semana 2)**: Lanzamiento de `Show HN: Ctxfw – Deterministic AST context firewall for coding agents` sin adjetivos corporativos, con cobertura en los primeros 120 minutos.
-- **Fase 3: Infiltración en Newsletters y Curadores Dev-Tools (Semanas 3-4)**: Envío directo a Swyx, Console.dev, TLDR con reproductores en terminal.
-- **Fase 4: B2B Inbound & Enterprise AI FinOps (Semana 5+)**: Whitepaper *"The $80K Prompt Leak"* en el blog de Heurístico LAB, conversión de leads enterprise y despliegues locales air-gapped.
+## 6. Four Strategic Distribution Phases
+- **Phase 1: Grassroots Outpost (Week 1)**: First 100 active local users and high-signal feedback across Cursor Forum (#Showcase), Anthropic Discord (`#mcp-servers`), and r/LocalLLaMA with in-depth technical breakdowns.
+- **Phase 2: The Hacker News Vanguard (Week 2)**: Launch `Show HN: Ctxfw – Deterministic AST context firewall for coding agents` devoid of corporate fluff, executing full live coverage during the initial 120-minute window.
+- **Phase 3: Dev-Tools Curation & Newsletter Infiltration (Weeks 3-4)**: Direct submissions to Swyx, Console.dev, TLDR featuring reproducible terminal snippets.
+- **Phase 4: B2B Inbound & Enterprise AI FinOps (Week 5+)**: Publish the technical whitepaper *"The $80K Prompt Leak"* on Heurístico Lab's engineering blog, driving inbound enterprise conversion and air-gapped on-prem deployments.

@@ -1,3 +1,3 @@
-# Leyes Perimetrales del Cortafuegos (ctxfw)
-1. **Cero Lecturas en Bruto:** Ningún archivo de dependencia directa ($D_1$) o transitiva ($D_{2+}$) puede ser consumido sin poda topológica previa.
-2. **Soberanía Local:** La propiedad intelectual y los contratos de Pydantic no abandonan el perímetro de ejecución sin optimización previa.
+# Context Firewall Perimeter Laws (ctxfw)
+1. **Zero Raw Ingestion:** No direct ($D_1$) or transitive ($D_{2+}$) dependency file shall be consumed without prior topological AST pruning.
+2. **Local Sovereignty:** Intellectual property and Pydantic contracts shall never leave the local execution perimeter without prior optimization.

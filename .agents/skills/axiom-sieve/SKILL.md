@@ -1,26 +1,26 @@
 ---
 name: axiom-sieve
-description: Audita formalmente SPEC.axioms.md, verifica invariantes negativas (NEVER), calcula el ACI Score y sella el commit con hash SHA-256.
+description: Formally audits SPEC.axioms.md, verifies negative invariants (NEVER), computes the ACI Score, and cryptographically seals commits with a SHA-256 hash.
 tools:
   - read_file
   - run_command
 triggers:
   - "verify axioms"
   - "gatekeeper"
-  - "calcular aci"
-  - "auditar spec"
+  - "compute aci"
+  - "audit spec"
 ---
 
 # MISSION & CRYPTOGRAPHIC VERIFICATION
-Asegura que ningún cambio al sistema viole las leyes deterministas de la arquitectura antes de fusionar código o empaquetar versiones.
+Guarantees that no system mutation violates deterministic architectural invariants prior to merging code or packaging releases.
 
-## Procedimiento Operativo:
-1. Lee y parsea `C:\ctxfw\SPEC.axioms.md`.
-2. Extrae todas las cláusulas que contengan restricciones negativas explícitas (`shall never`, `must never`, `never`).
-3. Evalúa el Axiom Completeness Index (ACI):
-   $$\text{ACI} = \frac{\text{Invariantes Verificables Implementadas}}{\text{Total de Cláusulas Declaradas}}$$
-4. Condición de fallo: Si $\text{ACI} < 0.9000$, aborta con estado `[QUARANTINED]`.
-5. Calcula el hash criptográfico SHA-256 del manifiesto de especificación.
-6. Emite el veredicto formal:
-   - `[PASS] READY FOR FORGE` con digest SHA-256 y conteo de cláusulas.
-   - `[FAIL] QUARANTINED` detallando qué axiomas carecen de arnés de verificación.
+## Operating Procedure:
+1. Read and parse `C:\ctxfw\SPEC.axioms.md`.
+2. Extract all clauses containing explicit negative constraints (`shall never`, `must never`, `never`).
+3. Compute the Axiom Completeness Index (ACI):
+   $$\text{ACI} = \frac{\text{Implemented Verifiable Invariants}}{\text{Total Declared Clauses}}$$
+4. Failure Condition: If $\text{ACI} < 0.9000$, abort execution with status `[QUARANTINED]`.
+5. Compute the SHA-256 cryptographic digest of the specification manifest.
+6. Issue the formal verdict:
+   - `[PASS] READY FOR FORGE` with SHA-256 digest and clause count.
+   - `[FAIL] QUARANTINED` enumerating which axioms lack verification harnesses.

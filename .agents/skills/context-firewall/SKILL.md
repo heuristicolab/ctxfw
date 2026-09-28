@@ -4,4 +4,4 @@ description: Autonomous AST/CST token optimization and topological dependency pr
 ---
 
 # Context Firewall (ctxfw) Skill
-Utiliza `resolve_context_bundle`, `audit_finops_ledger` y `gatekeeper_pr_audit` para mantener la disciplina de tokens.
+Utilize `resolve_context_bundle`, `audit_finops_ledger`, and `gatekeeper_pr_audit` to enforce strict token discipline.
