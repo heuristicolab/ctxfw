@@ -1,15 +1,38 @@
 # CTXFW // High-Assurance FinOps & AST Boundary for LLMs
 
-> Deterministic context pruning and sovereignty boundary for frontier AI systems (Claude Fable, GPT-6, DeepSeek).
+> Deterministic context pruning and sovereignty boundary for frontier AI systems (Claude Code, Cursor, Windsurf, Aider).
 
 ## Overview
-CTXFW (Context Framework) is an in-memory, deterministic AST pruning firewall and FinOps gateway. It intercepts recursive context payloads before API dispatch, eliminating up to 72.4% of redundant AST tokens while guaranteeing 100% interface contract validity via Tree-sitter.
+CTXFW (Context Framework) is an in-memory, deterministic AST pruning firewall and FinOps gateway. It intercepts recursive context payloads before API dispatch, eliminating up to 72.4% of redundant AST tokens while guaranteeing 100% interface contract validity via Tree-sitter and native compiler ASTs.
 
 ## Core Capabilities
-- **Deterministic Tree-sitter AST Pruning:** Strips internal method implementations while preserving strict cryptographic interface contracts.
-- **FinOps Reduction:** Reduces recurring inference expenditure across engineering squads by an audited 72.4%.
-- **Zero-Trust Memory Sandbox:** Operates entirely in volatile RAM. No AST tokens or source schemas are ever stored on disk or transferred to third-party aduanas.
-- **Axiom Completeness Index (ACI):** Evaluates mathematical invariants and contract integrity at O(1) latency.
+- **Deterministic Tree-sitter AST Pruning:** Strips internal method implementations while preserving strict interface contracts, typing, and docstrings.
+- **FinOps Reduction:** Reduces recurring inference expenditure across engineering squads by an audited 43% to 67%+ on peripheral dependencies.
+- **Zero-Trust Memory Sandbox:** Operates entirely in volatile RAM. Zero AST tokens, source schemas, or proprietary logic are ever stored or transferred to third-party endpoints.
+- **Axiom Completeness Index (ACI):** Evaluates mathematical invariants and contract integrity at O(1) latency (activation threshold: ACI >= 0.9000).
+- **Triple Surface Multi-Platform Onboarding:** Automatic zero-touch discovery and injection for Claude Code CLI, Claude Desktop, Cursor, and Windsurf with timestamped `.bak` snapshot backups.
+
+## Canonical Empirical Benchmarks
+- **Empirical Validation Trilogy Dossier:** [`docs/benchmarks/TRILOGY_EMPIRICAL_BENCHMARK.md`](docs/benchmarks/TRILOGY_EMPIRICAL_BENCHMARK.md)
+  - **Zulip Monolith:** -42.96% D1 perimeter reduction (Interface Mode), -78.20% (Nominal Mode), 44.1 ms latency, 0 bytes stdio leak.
+  - **PostHog Data Platform:** -59.53% D1 perimeter reduction (Interface Mode), 50.2 ms latency, 0 bytes stdio leak.
+  - **Apache Airflow Monorepo:** -66.90% D1 perimeter reduction (Interface Mode), -90.26% (Nominal Mode), 40,428 net bloat tokens pruned, 138.2 ms latency, 437,351 tokens/second throughput.
+
+## Releases & Version History
+- **Current Canonical Version:** `v3.7.1`
+- **Release Dossier:** [`docs/RELEASE_NOTES_v3.7.1.md`](docs/RELEASE_NOTES_v3.7.1.md)
+  - Features: Triple Surface Architecture, zero-failure explicit interpreter resolution (`sys.executable`), timestamped atomic backups (`.bak.<timestamp>`), and Zero-MCP proxy fallback.
+
+## Interoperability & Integration Endpoints
+- **Native MCP Stdio Engine:**
+  - Command: `ctxfw mcp` (stdio transport via JSON-RPC 2.0).
+  - Automated Setup: `ctxfw init` (detects Claude Desktop, Claude Code, Cursor, Windsurf).
+- **Zero-MCP Reverse Proxy Gateway:**
+  - Command: `ctxfw proxy --port 8765`
+  - Fallback endpoint for non-MCP agents (Aider, OpenCode Interpreter, Continue.dev):
+    - `export ANTHROPIC_BASE_URL="http://localhost:8765/v1"`
+    - `export OPENAI_BASE_URL="http://localhost:8765/v1"`
+  - Zero-egress local loopback processing with < 5 ms warm cache overhead.
 
 ## Architecture & Deployment Tiers
 1. **Tier 0: Perimeter Audit ($1,500 USD):** 24h turn-around static context and token leakage audit.
@@ -19,4 +42,4 @@ CTXFW (Context Framework) is an in-memory, deterministic AST pruning firewall an
 
 ## API & Endpoints
 - Documentation & Live Sensor: https://ctxfw.heuristicolab.com
-- Architectural Inquiries: mike.marin@heuristicolab.com
+- Architectural Inquiries: mo@heuristicolab.com

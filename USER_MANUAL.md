@@ -2,7 +2,7 @@
 ### Target System: `ord-2026-4f003b` | Heuristico LAB Sovereign Core
 
 [![Security Review](https://img.shields.io/badge/Security-Air--Gapped%20Certified-00ff66?style=flat-square)]()
-[![Spec Version](https://img.shields.io/badge/Version-3.3.0-blue?style=flat-square)]()
+[![Spec Version](https://img.shields.io/badge/Version-3.7.1-blue?style=flat-square)]()
 [![Compliance](https://img.shields.io/badge/Compliance-NDA%20%26%20IP%20Shield-purple?style=flat-square)]()
 
 ---
@@ -40,38 +40,59 @@ The Context Firewall architecture establishes strict sovereign isolation between
 
 ---
 
-## 2. Ingress Interface 1: Model Context Protocol (MCP) Server (HU-09)
+## 2. Multi-Surface MCP & Zero-MCP Proxy Setup (HU-09 // v3.7.1 Industrial Architecture)
 
-The MCP Server exposes context compaction capabilities to AI agents over standard I/O (`sys.stdin` / `sys.stdout`) using JSON-RPC 2.0 (MCP Protocol Version `2024-11-05`).
+The Context Firewall exposes deterministic context compaction capabilities to autonomous coding agents across standard I/O (`sys.stdin` / `sys.stdout`) using JSON-RPC 2.0 (MCP Protocol Version `2024-11-05`), as well as transparent HTTP reverse proxy routing.
 
-### A. Cursor Configuration (`.cursor/mcp.json`)
-Place in project root or global Cursor settings:
+### A. Automated Multi-Surface Installation (`ctxfw init` / `ctxfw install`)
+
+Executing `ctxfw init` (or `ctxfw install`) automatically scans, detects, and configures up to 4 autonomous coding environments without manual JSON editing:
+
+1. **Claude Code CLI**:
+   - Location: `~/.claude.json`
+2. **Claude Desktop** (Dynamic Cross-Platform Resolution):
+   - **macOS (Darwin)**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json` (fallback: `~\AppData\Roaming\Claude\...`)
+   - **Linux / POSIX**: `~/.config/Claude/claude_desktop_config.json`
+3. **Cursor IDE**:
+   - Location: `.cursor/mcp.json` (scoped to current workspace).
+4. **Windsurf IDE**:
+   - Location: `~/.codeium/windsurf/mcp_config.json` (configured when `.codeium` signature exists).
+
+#### Safety & Non-Destructive Invariants:
+- **Timestamped Backup Snapshot (`.bak.<timestamp>`)**: Automatically creates an immutable snapshot of existing configuration files before applying any changes.
+- **100% Third-Party Server Preservation**: Preserves all existing MCP servers, external keys, and top-level settings intact.
+- **Zero-Failure Execution**: Resolves `sys.executable` with `["-m", "ctxfw.mcp"]` (or canonical absolute binary path if running within a PyInstaller standalone executable), eliminating ambient `$PATH` and virtualenv resolution failures.
+- **3x Idempotency**: Multiple consecutive invocations guarantee byte-for-byte convergence without duplicating keys or generating spurious diffs.
+
 ```json
 {
   "mcpServers": {
-    "context-firewall": {
-      "command": "python",
-      "args": ["C:/sandbox/arch-ord-2026-4f003b/mcp_server.py"]
+    "ctxfw": {
+      "command": "C:\\Program Files\\Python310\\python.exe",
+      "args": ["-m", "ctxfw.mcp"]
     }
   }
 }
 ```
 
-### B. Claude Desktop Configuration (`claude_desktop_config.json`)
-Location on Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-Location on macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-```json
-{
-  "mcpServers": {
-    "context-firewall": {
-      "command": "python",
-      "args": ["C:/sandbox/arch-ord-2026-4f003b/mcp_server.py"]
-    }
-  }
-}
+### B. High-Assurance Diagnostics (`ctxfw doctor`)
+
+Verify environmental attestation, stdio stream isolation, and local cache health across 6 diagnostic sentries:
+
+```bash
+ctxfw doctor
 ```
 
-### Exposed MCP Tools
+The 6 automated health checks comprise:
+1. **Python Package & sys.path**: Validates `ctxfw` package integrity, version attestation (`v3.7.1`), and clean module importability.
+2. **MCP stdio Stream Isolation**: Asserts 100% pure JSON-RPC on stdout and verifies diagnostic logs are strictly isolated to stderr to prevent agent JSON-RPC parsing failures.
+3. **Global CLI Executable (PATH)**: Verifies that the `ctxfw` binary is registered and resolvable in the system PATH.
+4. **Axiomatic Sieve Engine**: Executes formal verification of specifications against negative invariants ($N \ge 5$) and domain bounds, confirming ACI $\ge$ 0.9000.
+5. **SQLite WAL Cache & Concurrency**: Confirms Write-Ahead Logging (`PRAGMA journal_mode=WAL`) and 5000ms busy timeout for safe multi-process concurrent access.
+6. **Polyglot Tree-Sitter Grammars**: Verifies initialization of TypeScript, Go, and Java CST parsers alongside the Python standard library `ast`.
+
+### C. Exposed MCP Tools
 - `prune_file`:
   - `path` (string, required): Path to source file.
   - `depth` (string, default `"interface"`): `"full"`, `"interface"`, or `"nominal"`.
@@ -80,6 +101,42 @@ Location on macOS: `~/Library/Application Support/Claude/claude_desktop_config.j
 - `resolve_context_bundle`:
   - `target_file` (string, required): Active editing buffer (Distance 0).
   - `project_root` (string, optional): Root directory for dependency resolution.
+- `evaluate_spec_axioms`:
+  - `brief` (string, required): Architecture or feature specification in markdown.
+  - Validates negative invariants, bounds, state machines, and error taxonomies, returning an ACI score and manifest hash.
+
+### D. Zero-MCP Reverse Proxy Gateway (Aider, OpenCode, Continue, CLI)
+
+For AI coding tools and CLI workflows that do not natively support the Model Context Protocol, `ctxfw` provides a local zero-egress reverse proxy:
+
+```bash
+# 1. Start the local reverse proxy daemon
+ctxfw proxy --port 8765
+```
+
+#### Client Configuration:
+- **Aider CLI**:
+  ```bash
+  export ANTHROPIC_BASE_URL="http://localhost:8765/v1"
+  aider --model claude-3-7-sonnet-20250219
+  ```
+- **OpenCode Interpreter / Shell Agents**:
+  ```bash
+  export OPENAI_BASE_URL="http://localhost:8765/v1"
+  ```
+- **Continue.dev (`~/.continue/config.json`)**:
+  ```json
+  {
+    "models": [
+      {
+        "title": "CTXFW Proxied Sonnet",
+        "provider": "anthropic",
+        "model": "claude-3-7-sonnet-20250219",
+        "apiBase": "http://localhost:8765/v1"
+      }
+    ]
+  }
+  ```
 
 ---
 
@@ -89,7 +146,9 @@ Transparent reverse proxy intercepting LLM requests, compacting structured markd
 
 ### Starting the Gateway
 ```bash
-python proxy_gateway.py --port 8080 --host 0.0.0.0 --upstream https://api.openai.com
+ctxfw proxy --port 8765 --host 127.0.0.1
+# or with custom upstream:
+ctxfw proxy --port 8765 --upstream https://api.openai.com
 ```
 
 ### A. Python Client Integration (OpenAI SDK)

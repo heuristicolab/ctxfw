@@ -3,9 +3,9 @@
 # CTXFW // CONTEXT FIREWALL
 ### High-Assurance Axiomatic Gatekeeper & In-Memory AST Pruning for Coding Agents
 
-[![PyPI - Version](https://img.shields.io/badge/PyPI-v3.7.0-blue?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/ctxfw/)
+[![PyPI - Version](https://img.shields.io/badge/PyPI-v3.7.1-blue?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/ctxfw/)
 [![Axiomatic Completeness Index](https://img.shields.io/badge/ACI-1.0000_VERIFIED-000000?style=for-the-badge&logo=shield)](https://ctxfw.heuristicolab.com)
-[![Tests](https://img.shields.io/badge/TESTS-141%2F141_PASSING-00C853?style=for-the-badge&logo=pytest)](https://pypi.org/project/ctxfw/)
+[![Tests](https://img.shields.io/badge/TESTS-145%2F145_PASSING-00C853?style=for-the-badge&logo=pytest)](https://pypi.org/project/ctxfw/)
 [![License](https://img.shields.io/badge/LICENSE-APACHE_2.0-black?style=for-the-badge)](LICENSE)
 [![Glama](https://glama.ai/mcp/servers/heuristicolab/ctxfw/badge)](https://glama.ai/mcp/servers/heuristicolab/ctxfw)
 
@@ -59,34 +59,66 @@ Empirical context reduction metrics generated via `ctxfw.resolve_context_bundle`
 - **$D_1$ Direct Deps (e.g. `gatekeeper.py`, `mcp.py`)**: Implementation truncated to typed stubs (`...`). Token savings: **73% – 86%**.
 - **$D_{2+}$ Transitive Deps (e.g. `polyglot.py`)**: Nominal symbols only. Token savings: **91.9%**.
 
+### The Empirical Validation Trilogy (Multi-Repository Destructive A/B)
+
+Audited on remote Linux environments (`root@217.21.78.30`, Ubuntu 24.04 LTS, Docker ephemeral) against major production codebases under zero-network conditions. Full forensic dossier: [`docs/benchmarks/TRILOGY_EMPIRICAL_BENCHMARK.md`](docs/benchmarks/TRILOGY_EMPIRICAL_BENCHMARK.md).
+
+| Target Repository | Architectural Archetype | Active Focal $D_0$ | Peripheral Perimeter $D_1$ | Raw Context ($D_0 + D_1$) | Pruned Context ($D_0 + D_1^*$) | $D_1$ Perimeter Savings | Aggregate Context Savings | MCP Leaks | Syntactic AST Pass | Latency / Throughput |
+| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **[`zulip/zulip`](https://github.com/zulip/zulip)** | Coupled Django Monolith | `users.py` (12.9k tok) | `realms.py`, `clients.py`, `prereg_users.py` (16.8k tok) | **29,689** | **22,481** | **-42.96%** *(Interface)*<br>**-78.20%** *(Nominal)* | **-24.28%** *(Interface)*<br>**-44.20%** *(Nominal)* | **0 B** | `100% PASS` | 44.1 ms<br>~380k tok/s |
+| **[`PostHog/posthog`](https://github.com/PostHog/posthog)** | Modern COSS / Data OS | `team.py` (14.3k tok) | `organization.py`, `user.py`, `project.py` (20.6k tok) | **34,894** | **22,637** | **-59.53%** *(Interface)* | **-35.13%** *(Interface)* | **0 B** | `100% PASS` | 50.2 ms<br>~410k tok/s |
+| **[`apache/airflow`](https://github.com/apache/airflow)** | Async Orchestration Monorepo | `dag.py` (9.4k tok) | `baseoperator.py`, `taskinstance.py`, `dagrun.py` (60.4k tok) | **69,861** | **29,433** | **-66.90%** *(Interface)*<br>**-90.26%** *(Nominal)* | **-57.87%** *(Interface)*<br>**-78.08%** *(Nominal)* | **0 B** | `100% PASS` | **138.2 ms**<br>**437,351 tok/s** |
+
+**Key Empirical Highlights:**
+- **Compression Scaling ($43\% \to 60\% \to 67\%$)**: Larger real-world codebases yield greater perimeter reduction ($60.4\text{k} \to 20.0\text{k}$ tokens in Airflow D1, eliminating **40,428 bloat tokens net**).
+- **Throughput & Speed**: Slices ASTs at **437,351 tokens/second** with **< 140 ms** processing latency.
+- **Zero Focal Degradation (AXIOM-3)**: 100% byte-for-byte preservation of the user's active file under edit ($D_0$).
+- **Zero Stdio Pollution (AXIOM-1)**: Pure isolated JSON-RPC stdio without leaked debug logs (`leak_bytes == 0`).
+
 ---
 
-## Installation
+## Installation & Multi-Surface Setup
 
-### 1. PyPI (Official Package)
-Install via `pip` or isolated environment manager:
+### 1. PyPI Installation
 ```bash
-pip install ctxfw
-```
-Or for global CLI availability using `pipx`:
-```bash
+pip install --upgrade ctxfw
+# or via pipx for dedicated binary isolation:
 pipx install ctxfw
 ```
 
-### 2. Native MCP Stdio Configuration
-Register the stdio server directly in your IDE or client configuration (`claude_desktop_config.json`, Cursor, Windsurf, or Antigravity):
-```json
-{
-  "mcpServers": {
-    "ctxfw": {
-      "command": "ctxfw",
-      "args": ["mcp"]
-    }
-  }
-}
+### 2. Triple Surface MCP Auto-Configuration (v3.7.1)
+Run `ctxfw init` with zero arguments to perform automated zero-touch discovery and idempotent injection across your installed coding surfaces:
+```bash
+ctxfw init
 ```
 
-### 3. Verified MCP Registry (Glama)
+**Auto-Detected Surfaces (Triple Surface Architecture):**
+1. **Claude Code CLI**: Injects directly into `~/.claude.json`.
+2. **Claude Desktop**: Dynamic cross-platform detection:
+   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - Windows: `%APPDATA%/Claude/claude_desktop_config.json`
+   - Linux / POSIX: `~/.config/Claude/claude_desktop_config.json`
+3. **Cursor IDE**: Injects into `.cursor/mcp.json` in workspace scope.
+4. **Windsurf IDE**: Injects into `~/.codeium/windsurf/mcp_config.json` when the `.codeium` directory signature is present.
+
+**Inviolable Safety & Reliability Invariants:**
+- **Atomic Backup Snapshot (`.bak.<timestamp>`)**: Before mutating any pre-existing configuration file, creates a timestamped immutable backup.
+- **Non-Destructive Merge**: Preserves 100% of pre-existing third-party MCP servers, top-level settings, and custom keys.
+- **Zero-Failure Execution**: Dynamically resolves the interpreter to `sys.executable` with `["-m", "ctxfw.mcp"]` (or canonical absolute binary path if frozen via PyInstaller), completely eliminating ambient `$PATH` and virtualenv resolution failures.
+- **3x Idempotency**: Multiple runs produce zero configuration drift and zero duplicated keys.
+
+### 3. Zero-MCP Interoperability Gateway (Aider, OpenCode, Continue, CLI)
+For AI developer tools and terminal agents lacking native Model Context Protocol support:
+```bash
+# 1. Start the zero-egress local proxy server:
+ctxfw proxy --port 8765
+
+# 2. Point your tool's Anthropic or OpenAI endpoint to localhost:
+export ANTHROPIC_BASE_URL="http://localhost:8765/v1"
+export OPENAI_BASE_URL="http://localhost:8765/v1"
+```
+
+### 4. Verified MCP Registry (Glama)
 CTXFW is indexed and verified with Grade A compliance on the official Glama MCP registry:
 
 [![Glama](https://glama.ai/mcp/servers/heuristicolab/ctxfw/badge)](https://glama.ai/mcp/servers/heuristicolab/ctxfw)
@@ -107,7 +139,7 @@ ctxfw doctor
 ========================================================================
   CTXFW DOCTOR // HIGH-ASSURANCE HEALTH & ISOLATION DIAGNOSTIC
 ========================================================================
-[PASS]   Python Package & sys.path        ctxfw v3.5.0 loaded cleanly.
+[PASS]   Python Package & sys.path        ctxfw v3.7.1 loaded cleanly.
 [PASS]   MCP stdio Stream Isolation       100% pure JSON-RPC on stdout. Diagnostic logs isolated to stderr.
 [PASS]   Global CLI Executable (PATH)     Binary 'ctxfw' found in PATH.
 [PASS]   Axiomatic Sieve Engine           Evaluation verified (ACI: 1.0000, Invariants: 5).
