@@ -1,8 +1,8 @@
 """
-src/ctxfw/cli/main.py — Unified Command Line Interface for Context Firewall (v3.7.0)
-Axiom Manifest Hash: a7e63ccb9b5dd0c6f6147cfd2feec447c4d41690dd76aee9e6035db56cb7c31a
+src/ctxfw/cli/main.py — Unified Command Line Interface for Context Firewall (v3.8.0)
+Axiom Manifest Hash: 4a35e336c0621f5b76a6abb20d975bc896c15592b5da2098f2454adc6a4d66a6
 Supports direct target file clipboard invocation (`ctxfw <file>`) 
-plus explicit subcommands (`ctxfw benchmark`, `ctxfw mcp`, `ctxfw proxy`, `ctxfw ci`, `ctxfw audit`, `ctxfw init`, `ctxfw doctor`, `ctxfw spec`).
+plus explicit subcommands (`ctxfw benchmark`, `ctxfw mcp`, `ctxfw proxy`, `ctxfw ci`, `ctxfw audit`, `ctxfw init`, `ctxfw install`, `ctxfw doctor`, `ctxfw spec`).
 """
 from __future__ import annotations
 
@@ -22,9 +22,12 @@ from ctxfw.core.topological import ContextFirewallEngine, TopologicalContextBund
 from ctxfw.cli.commands import benchmark
 from ctxfw.installer import (
     inject_agent_mcp_config,
+    install_claude_surfaces,
+    install_mcp_servers,
     resolve_claude_desktop_config_path,
     resolve_cursor_config_path,
     run_init_mcp_agents,
+    safe_merge_claude_code_config,
 )
 from ctxfw import __version__
 
@@ -314,9 +317,14 @@ def handle_init_cli(argv: Optional[List[str]] = None) -> int:
         print("usage: ctxfw init [target_dir]")
         print("\nInitialize sovereign agentic perimeter, rules, and skills in target directory.")
         print("Without arguments, performs automated, idempotent MCP integration for Claude Desktop and Cursor.")
+        print("  --claude             Zero-touch installation for Claude Code CLI (~/.claude.json) and Claude Desktop")
         print("  --global             Perform zero-touch onboarding across installed IDEs")
         print("  --repo [target_dir]  Deploy canonical SPEC.axioms.md and git pre-commit verification hook")
         return 0
+
+    if "--claude" in args:
+        from ctxfw.installer import install_claude_surfaces
+        return install_claude_surfaces()
 
     if "--global" in args:
         from ctxfw.installer import (
@@ -366,6 +374,49 @@ def handle_init_cli(argv: Optional[List[str]] = None) -> int:
         return 0
 
     return run_init_mcp_agents()
+
+
+def handle_install_cli(argv: Optional[List[str]] = None) -> int:
+    """Handles ctxfw install subcommand with --claude, --global, and multi-surface injection."""
+    args = list(argv) if argv is not None else []
+    if any(arg in {"-h", "--help"} for arg in args):
+        print("usage: ctxfw install [--claude] [--global]")
+        print("\nInstall and wire Context Firewall into agentic IDEs & CLI environments.")
+        print("Without arguments, performs automated, idempotent MCP integration across all detected IDEs.")
+        print("  --claude             Zero-touch installation for Claude Code CLI (~/.claude.json) and Claude Desktop")
+        print("  --global             Perform zero-touch onboarding across installed IDEs")
+        return 0
+
+    if "--claude" in args:
+        from ctxfw.installer import install_claude_surfaces
+        return install_claude_surfaces()
+
+    if "--global" in args:
+        from ctxfw.installer import (
+            CLR_CYAN,
+            CLR_EMERALD,
+            CLR_GRAPHITE,
+            CLR_RESET,
+            print_defense_banner,
+            run_global_init,
+        )
+        print_defense_banner()
+        print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
+        print(f"  {CLR_CYAN}CTXFW GLOBAL ZERO-TOUCH PROVISIONING // MULTI-IDE ARMORED INJECTION{CLR_RESET}")
+        print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
+        res = run_global_init()
+        for act in res["actions"]:
+            print(f"  {CLR_EMERALD}[PASS]{CLR_RESET} {act}")
+        print(f"{CLR_GRAPHITE}========================================================================{CLR_RESET}")
+        return 0
+
+    from ctxfw.installer import install_mcp_servers
+    return install_mcp_servers()
+
+
+def install_entrypoint() -> None:
+    """Dedicated entrypoint for ctxfw-install console script."""
+    sys.exit(handle_install_cli(sys.argv[1:]))
 
 
 def run_doctor_cli(argv: Optional[List[str]] = None) -> int:
@@ -666,6 +717,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="ctxfw",
         description=f"ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v{__version__})\n\n"
                     "Subcommands:\n"
+                    "  install              Install Context Firewall into agentic IDEs & CLI environments\n"
                     "  init                 Initialize sovereign agentic perimeter, rules, and skills\n"
                     "  doctor               Run health, stdio isolation, and environment diagnostics\n"
                     "  mcp                  Start stdio Model Context Protocol server\n"
@@ -680,14 +732,32 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command")
 
+    # Subcommand install
+    install_parser = subparsers.add_parser("install", help="Install Context Firewall into agentic IDEs & CLI environments")
+    install_parser.add_argument("--claude", action="store_true", help="Zero-touch installation for Claude Code CLI (~/.claude.json) and Claude Desktop")
+    install_parser.add_argument("--global", dest="global_install", action="store_true", help="Perform zero-touch onboarding across installed IDEs")
+
+    def _run_install_dispatch(parsed_args: argparse.Namespace) -> int:
+        cli_args: List[str] = []
+        if getattr(parsed_args, "claude", False):
+            cli_args.append("--claude")
+        if getattr(parsed_args, "global_install", False):
+            cli_args.append("--global")
+        return handle_install_cli(cli_args)
+
+    install_parser.set_defaults(func=_run_install_dispatch)
+
     # Subcommand init
     init_parser = subparsers.add_parser("init", help="Initialize sovereign agentic perimeter, rules, and skills")
     init_parser.add_argument("target_dir", nargs="?", default=None, help="Target directory for workspace perimeter")
+    init_parser.add_argument("--claude", action="store_true", help="Zero-touch installation for Claude Code CLI (~/.claude.json) and Claude Desktop")
     init_parser.add_argument("--global", dest="global_init", action="store_true", help="Perform zero-touch onboarding across installed IDEs")
     init_parser.add_argument("--repo", nargs="?", const="", default=None, help="Deploy canonical SPEC.axioms.md and git pre-commit verification hook")
 
     def _run_init_dispatch(parsed_args: argparse.Namespace) -> int:
         cli_args: List[str] = []
+        if getattr(parsed_args, "claude", False):
+            cli_args.append("--claude")
         if getattr(parsed_args, "global_init", False):
             cli_args.append("--global")
         if getattr(parsed_args, "repo", None) is not None:
@@ -735,7 +805,7 @@ def main():
         parser.parse_args(sys.argv[1:])
         return
 
-    if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "service", "spec", "doctor", "benchmark", "config", "mode", "report"}:
+    if len(sys.argv) > 1 and sys.argv[1] in {"mcp", "proxy", "ci", "audit", "init", "install", "service", "spec", "doctor", "benchmark", "config", "mode", "report"}:
         subcmd = sys.argv[1]
         if subcmd == "benchmark":
             parser = build_parser()
@@ -751,6 +821,11 @@ def main():
             sys.exit(handle_mode_command(sys.argv[1:]))
         elif subcmd == "report":
             sys.exit(handle_report_command(sys.argv[1:]))
+        elif subcmd == "install":
+            code = handle_install_cli(sys.argv[1:])
+            if code != 0:
+                sys.exit(code)
+            return
         elif subcmd == "init":
             code = handle_init_cli(sys.argv[1:])
             if code != 0:
@@ -791,6 +866,7 @@ def main():
         prog="ctxfw",
         description=f"ctxfw -- Sovereign Context Firewall & Token Optimization Engine (v{__version__})\n\n"
                     "Subcommands:\n"
+                    "  install              Install Context Firewall into agentic IDEs & CLI environments\n"
                     "  init                 Initialize sovereign agentic perimeter, rules, and skills\n"
                     "  doctor               Run health, stdio isolation, and environment diagnostics\n"
                     "  mcp                  Start stdio Model Context Protocol server\n"
@@ -834,11 +910,15 @@ __all__ = [
     "handle_init_command",
     "handle_init_cli",
     "init_entrypoint",
+    "handle_install_cli",
+    "install_entrypoint",
     "run_doctor_cli",
     "doctor_entrypoint",
     "run_spec_verify",
     "handle_spec_command",
     "inject_agent_mcp_config",
+    "install_claude_surfaces",
+    "safe_merge_claude_code_config",
     "resolve_claude_desktop_config_path",
     "resolve_cursor_config_path",
     "run_init_mcp_agents",

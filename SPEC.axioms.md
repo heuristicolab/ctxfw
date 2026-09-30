@@ -49,5 +49,41 @@ The formal architecture of `ctxfw` was subjected to destructive A/B stress testi
 - **AXIOM-3 (Inviolability of Focal Context $D_0$):** Target active files (`users.py`, `team.py`, `dag.py`) remained 100% byte-for-byte intact without elision, mutation, or semantic corruption.
 - **AXIOM-4 (Syntactic Integrity & Contract Preservation):** Preserved 100% of class definitions, method signatures, decorators, and type annotations with verified AST compilation (`ast.parse() == True`) and zero hallucinations across all evaluated targets.
 
+## Appendix C: Claude Code Zero-Touch Injection & Sovereign Plugin Engine
+<!-- Axiom Manifest Hash: 4a35e336c0621f5b76a6abb20d975bc896c15592b5da2098f2454adc6a4d66a6 -->
+<!-- Axiom Completeness Index (ACI): 1.0000 | Status: VERIFIED | Bounds: 6/6 -->
 
+### C.1 Domain Entities & Bounded Variables
+Deterministic runtime bounds governing the Claude Code and Claude Desktop injection engine:
+- Variable `config_backup_retention_count`: integer bounded >= 1 and <= 10 backups.
+- Variable `atomic_write_timeout_ms`: integer bounded >= 50 and <= 5000 milliseconds.
+- Variable `max_claude_json_payload_bytes`: integer bounded >= 1024 and <= 5242880 bytes (5 MB).
+- Variable `claude_mcp_handshake_timeout_ms`: integer bounded >= 100 and <= 10000 milliseconds.
+- Variable `permission_whitelist_entries_count`: integer bounded >= 1 and <= 32 entries.
+- Variable `aci_verification_threshold`: float bounded >= 0.9000 and <= 1.0000 completeness index.
+Bounds: 6 / 6
 
+### C.2 Deterministic State Machine (FSM)
+Lifecycle states and transition map $\delta(S, E)$ governing configuration mutation:
+- States: `INSPECT`, `BACKUP`, `MUTATE_STAGED`, `VERIFIED_ATOMIC`, `ROLLED_BACK`
+- State transition $\delta(\text{INSPECT}, \text{CONFIG_VALID}) \to \text{BACKUP}$
+- State transition $\delta(\text{INSPECT}, \text{CONFIG_CORRUPT}) \to \text{ROLLED_BACK}$
+- State transition $\delta(\text{BACKUP}, \text{SNAPSHOT_CREATED}) \to \text{MUTATE_STAGED}$
+- State transition $\delta(\text{MUTATE_STAGED}, \text{VALIDATE_PASS}) \to \text{VERIFIED_ATOMIC}$
+- State transition $\delta(\text{MUTATE_STAGED}, \text{VALIDATE_FAIL}) \to \text{ROLLED_BACK}$
+- Terminal State: `VERIFIED_ATOMIC` commits via atomic filesystem rename; `ROLLED_BACK` restores snapshot without side effects.
+
+### C.3 Error Taxonomy & Quarantine
+Formal error taxonomy isolating fault domains during IDE injection:
+- Class 1 (Transient Fault): Filesystem write lock or temporary access collision -> Exponential backoff and retry (max 3 retries).
+- Class 2 (Deterministic Input Fault): Malformed JSON in existing ~/.claude.json or invalid schema -> Abort mutation, preserve file intact, emit forensic report to stderr.
+- Class 3 (Business & Specification Violation): Invariant count < 5 or ACI score < 0.9000 -> Rejection to quarantine sink without touching target configurations.
+- Class 4 (Security & Isolation Violation): Path traversal attempt outside user profile, credential leakage in arguments, or non-local binary resolution -> Process abort, immediate security quarantine, stderr alert.
+
+### C.4 Negative Invariants (Floor of 5 Required)
+- The installer shall never overwrite, strip, or corrupt unmanaged third-party MCP servers or configuration keys in ~/.claude.json.
+- The installer shall never execute non-atomic writes directly to user IDE configuration files without creating a pre-mutation backup.
+- The installer shall never configure MCP server commands referencing non-local or unverified remote executable URIs.
+- The installer shall never transmit telemetry, user prompts, file paths, or authentication tokens outside the local host during installation.
+- The injected Claude Code plugin shall never bypass the deterministic AST pruning pipeline or emit unpruned context when strict firewall mode is enabled.
+- The configuration engine shall never proceed with file mutation if the existing configuration fails deterministic JSON syntax validation.

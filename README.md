@@ -3,9 +3,9 @@
 # CTXFW // CONTEXT FIREWALL
 ### High-Assurance Axiomatic Gatekeeper & In-Memory AST Pruning for Coding Agents
 
-[![PyPI - Version](https://img.shields.io/badge/PyPI-v3.7.1-blue?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/ctxfw/)
+[![PyPI - Version](https://img.shields.io/badge/PyPI-v3.8.0-blue?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/ctxfw/)
 [![Axiomatic Completeness Index](https://img.shields.io/badge/ACI-1.0000_VERIFIED-000000?style=for-the-badge&logo=shield)](https://ctxfw.heuristicolab.com)
-[![Tests](https://img.shields.io/badge/TESTS-148%2F148_PASSING-00C853?style=for-the-badge&logo=pytest)](https://pypi.org/project/ctxfw/)
+[![Tests](https://img.shields.io/badge/TESTS-153%2F153_PASSING-00C853?style=for-the-badge&logo=pytest)](https://pypi.org/project/ctxfw/)
 [![License](https://img.shields.io/badge/LICENSE-APACHE_2.0-black?style=for-the-badge)](LICENSE)
 [![Glama](https://glama.ai/mcp/servers/heuristicolab/ctxfw/badge)](https://glama.ai/mcp/servers/heuristicolab/ctxfw)
 
@@ -86,9 +86,13 @@ pip install --upgrade ctxfw
 pipx install ctxfw
 ```
 
-### 2. Triple Surface MCP Auto-Configuration (v3.7.1)
-Run `ctxfw init` with zero arguments to perform automated zero-touch discovery and idempotent injection across your installed coding surfaces:
+### 2. Multi-Surface MCP Auto-Configuration (v3.8.0)
+Run `ctxfw init` or dedicated installation command `ctxfw install --claude` for automated zero-touch discovery and idempotent injection across your installed coding surfaces:
 ```bash
+# Targeted Claude Code CLI & Claude Desktop auto-installation:
+ctxfw install --claude
+
+# Or full multi-surface discovery (Claude, Cursor, Windsurf):
 ctxfw init
 ```
 
@@ -139,7 +143,7 @@ ctxfw doctor
 ========================================================================
   CTXFW DOCTOR // HIGH-ASSURANCE HEALTH & ISOLATION DIAGNOSTIC
 ========================================================================
-[PASS]   Python Package & sys.path        ctxfw v3.7.1 loaded cleanly.
+[PASS]   Python Package & sys.path        ctxfw v3.8.0 loaded cleanly.
 [PASS]   MCP stdio Stream Isolation       100% pure JSON-RPC on stdout. Diagnostic logs isolated to stderr.
 [PASS]   Global CLI Executable (PATH)     Binary 'ctxfw' found in PATH.
 [PASS]   Axiomatic Sieve Engine           Evaluation verified (ACI: 1.0000, Invariants: 5).

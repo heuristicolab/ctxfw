@@ -1,11 +1,11 @@
 """
-ctxfw — Sovereign Context Firewall & Token Optimization Engine (v3.7.1)
-Axiom Manifest Hash: 03a5c523fb3fb6559987c97836062b280b8fc2e3438aac07ab9fa0f1f0befa4c
+ctxfw — Sovereign Context Firewall & Token Optimization Engine (v3.8.0)
+Axiom Manifest Hash: 4a35e336c0621f5b76a6abb20d975bc896c15592b5da2098f2454adc6a4d66a6
 Hermetic Toolchain implementation adhering to Google style and POSIX/XDG standards.
 """
 from __future__ import annotations
 
-__version__ = "3.7.1"
+__version__ = "3.8.0"
 
 from ctxfw.core.contracts import (
     OptimizationRequestDTO,

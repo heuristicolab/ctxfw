@@ -1,6 +1,6 @@
 """
 tests/test_installer_and_doctor.py — Test Suite for Installer, Doctor, and Pre-Commit Gatekeeper
-Axiom Manifest Hash: 03a5c523fb3fb6559987c97836062b280b8fc2e3438aac07ab9fa0f1f0befa4c
+Axiom Manifest Hash: 4a35e336c0621f5b76a6abb20d975bc896c15592b5da2098f2454adc6a4d66a6
 
 Validates idempotent IDE injection, multiplatform pre-commit hook deployment,
 stdio isolation verification, and comprehensive doctor diagnostics.
@@ -8,6 +8,7 @@ stdio isolation verification, and comprehensive doctor diagnostics.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import stat
 import subprocess
@@ -15,11 +16,13 @@ import sys
 import pytest
 
 from ctxfw.installer import (
+    CANONICAL_CLAUDE_ALLOWED_TOOLS,
     CANONICAL_SPEC_TEMPLATE,
     PRE_COMMIT_HOOK_SCRIPT,
     detect_installed_ides,
     init_repository_perimeter,
     inject_sovereign_rule,
+    install_claude_surfaces,
     install_mcp_servers,
     render_doctor_report,
     resolve_claude_code_config_path,
@@ -28,12 +31,14 @@ from ctxfw.installer import (
     resolve_mcp_command,
     resolve_mcp_surfaces,
     resolve_windsurf_config_path,
+    rotate_backups,
     run_doctor,
     run_global_init,
+    safe_merge_claude_code_config,
     safe_merge_mcp_config,
 )
 from ctxfw.sieve.engine import evaluate_specification
-from ctxfw.cli import handle_init_cli, run_doctor_cli
+from ctxfw.cli import build_parser, handle_init_cli, handle_install_cli, run_doctor_cli
 
 
 def test_safe_merge_mcp_config_creates_new(tmp_path: Path):
@@ -318,3 +323,153 @@ def test_cli_doctor_subcommand(monkeypatch):
     code = run_doctor_cli()
     assert code == 0
     assert "CTXFW DOCTOR" in mock_stdout.getvalue()
+
+
+def test_claude_safe_merge_preserves_auth_and_servers(tmp_path: Path):
+    """
+    Asserts that safe_merge_claude_code_config strictly preserves unmanaged keys:
+    oauthAccount, env, pre-existing third-party mcpServers, and existing allowedTools.
+    """
+    cfg_file = tmp_path / ".claude.json"
+    initial_content = {
+        "oauthAccount": {"email": "user@example.com", "token": "secret_oauth_token"},
+        "env": {"DEBUG": "1"},
+        "mcpServers": {
+            "postgres": {
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://localhost/mydb"],
+            }
+        },
+        "allowedTools": ["Bash", "Edit"],
+    }
+    cfg_file.write_text(json.dumps(initial_content, indent=2), encoding="utf-8")
+
+    updated, msg = safe_merge_claude_code_config(cfg_file)
+    assert updated is True
+
+    data = json.loads(cfg_file.read_text(encoding="utf-8"))
+    assert data["oauthAccount"] == {"email": "user@example.com", "token": "secret_oauth_token"}
+    assert data["env"] == {"DEBUG": "1"}
+    assert "postgres" in data["mcpServers"]
+    assert "ctxfw" in data["mcpServers"]
+    assert "Bash" in data["allowedTools"]
+    assert "Edit" in data["allowedTools"]
+    for canonical in CANONICAL_CLAUDE_ALLOWED_TOOLS:
+        assert canonical in data["allowedTools"]
+
+
+def test_claude_atomic_rollback_on_io_failure(tmp_path: Path, monkeypatch):
+    """
+    Asserts that an IO error (e.g. disk full ENOSPC) during os.replace cleanly rolls back,
+    leaves the original configuration file intact, removes temporary files, and leaves backup.
+    """
+    cfg_file = tmp_path / ".claude.json"
+    original_data = {"mcpServers": {"old": {"command": "echo"}}, "auth": "intact"}
+    cfg_file.write_text(json.dumps(original_data, indent=2), encoding="utf-8")
+
+    def mock_replace(src, dst):
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr("os.replace", mock_replace)
+
+    updated, msg = safe_merge_claude_code_config(cfg_file)
+    assert updated is False
+    assert "failed to write" in msg.lower() or "no space" in msg.lower()
+
+    # Original file is intact
+    current_data = json.loads(cfg_file.read_text(encoding="utf-8"))
+    assert current_data == original_data
+
+    # No leftover .tmp files
+    tmp_files = list(tmp_path.glob(".tmp_*"))
+    assert len(tmp_files) == 0
+
+    # Backup file exists
+    bak_files = list(tmp_path.glob(".claude.json.bak.*"))
+    assert len(bak_files) >= 1
+
+
+def test_claude_rejects_malformed_json_without_mutation(tmp_path: Path):
+    """
+    Asserts that corrupt or malformed JSON in ~/.claude.json causes immediate abort (Class 2 fault),
+    returning False and refusing to mutate, overwrite, or truncate the file.
+    """
+    cfg_file = tmp_path / ".claude.json"
+    corrupt_text = '{"mcpServers": { "unclosed_bracket": '
+    cfg_file.write_text(corrupt_text, encoding="utf-8")
+
+    updated, msg = safe_merge_claude_code_config(cfg_file)
+    assert updated is False
+    assert "failed to parse" in msg.lower() or "not a json object" in msg.lower()
+
+    # Original file content is completely untouched
+    assert cfg_file.read_text(encoding="utf-8") == corrupt_text
+
+    # No temp files created
+    assert len(list(tmp_path.glob(".tmp_*"))) == 0
+
+
+def test_claude_backup_snapshot_retention_rotation(tmp_path: Path):
+    """
+    Asserts that rotate_backups boundedly prunes backup snapshots to at most max_backups (e.g. 5),
+    deleting the oldest snapshots and keeping the most recent.
+    """
+    cfg_file = tmp_path / ".claude.json"
+    cfg_file.write_text(json.dumps({"version": 0}), encoding="utf-8")
+
+    # Create 12 artificial historical backups with distinct timestamps
+    import time
+    base_time = time.time() - 1000
+    for i in range(12):
+        bak_file = tmp_path / f".claude.json.bak.{int(base_time) + i}"
+        bak_file.write_text(json.dumps({"version": i}), encoding="utf-8")
+        os.utime(bak_file, (base_time + i, base_time + i))
+
+    assert len(list(tmp_path.glob(".claude.json.bak.*"))) == 12
+
+    # Call rotate_backups with limit of 5
+    rotate_backups(cfg_file, max_backups=5)
+
+    remaining_baks = sorted(
+        list(tmp_path.glob(".claude.json.bak.*")),
+        key=lambda p: p.stat().st_mtime,
+    )
+    assert len(remaining_baks) == 5
+    # The surviving ones must be the newest ones (versions 7, 8, 9, 10, 11)
+    oldest_surviving = json.loads(remaining_baks[0].read_text(encoding="utf-8"))
+    assert oldest_surviving["version"] == 7
+    newest_surviving = json.loads(remaining_baks[-1].read_text(encoding="utf-8"))
+    assert newest_surviving["version"] == 11
+
+
+def test_cli_install_claude_flag_dispatch(tmp_path: Path, monkeypatch):
+    """
+    Asserts that ctxfw install --claude triggers install_claude_surfaces,
+    targeting Claude Code CLI and Claude Desktop while isolating Cursor and Windsurf.
+    """
+    import io
+    mock_stdout = io.StringIO()
+    monkeypatch.setattr("sys.stdout", mock_stdout)
+
+    home_dir = tmp_path / "mock_home"
+    home_dir.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home_dir))
+    monkeypatch.setenv("USERPROFILE", str(home_dir))
+
+    # Test via handle_install_cli directly with mock
+    def mock_install_claude_surfaces(home=None, system=None, appdata=None, stream=None):
+        out = stream or sys.stdout
+        out.write("MOCK CLAUDE ONBOARDING EXECUTED\n")
+        return 0
+
+    monkeypatch.setattr("ctxfw.installer.install_claude_surfaces", mock_install_claude_surfaces)
+
+    code = handle_install_cli(["--claude"])
+    assert code == 0
+    assert "MOCK CLAUDE ONBOARDING EXECUTED" in mock_stdout.getvalue()
+
+    # Also test CLI argument routing via build_parser
+    parser = build_parser()
+    args = parser.parse_args(["install", "--claude"])
+    assert args.command == "install"
+    assert args.claude is True

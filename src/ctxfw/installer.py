@@ -1,6 +1,6 @@
 """
 src/ctxfw/installer.py — Zero-Touch Industrialization & Diagnostics Engine
-Axiom Manifest Hash: 03a5c523fb3fb6559987c97836062b280b8fc2e3438aac07ab9fa0f1f0befa4c
+Axiom Manifest Hash: 4a35e336c0621f5b76a6abb20d975bc896c15592b5da2098f2454adc6a4d66a6
 
 Provides zero-touch onboarding, idempotent IDE configuration injection,
 multiplatform pre-commit hook deployment, and comprehensive self-diagnostics.
@@ -361,18 +361,143 @@ def resolve_mcp_command() -> Dict[str, Any]:
     }
 
 
+def rotate_backups(config_path: Path, max_backups: int = 5) -> None:
+    """
+    Deterministically rotates backup snapshots (<config_path.name>.bak.*),
+    preserving at most max_backups (bounded >= 1 and <= 10).
+    Deletes the oldest snapshots by file modification time (st_mtime).
+    """
+    bounded_max = max(1, min(10, max_backups))
+    parent = config_path.parent
+    if not parent.is_dir():
+        return
+
+    pattern = f"{config_path.name}.bak.*"
+    backups = sorted(
+        [p for p in parent.glob(pattern) if p.is_file()],
+        key=lambda p: (p.stat().st_mtime, p.name),
+    )
+    if len(backups) > bounded_max:
+        to_delete = backups[: len(backups) - bounded_max]
+        for old_bak in to_delete:
+            try:
+                old_bak.unlink()
+            except Exception:
+                pass
+
+
+CANONICAL_CLAUDE_ALLOWED_TOOLS: List[str] = [
+    "mcp__ctxfw__prune_file",
+    "mcp__ctxfw__resolve_context_bundle",
+    "mcp__ctxfw__evaluate_spec_axioms",
+]
+
+
+def safe_merge_claude_code_config(
+    config_path: Path,
+    server_config: Optional[Dict[str, Any]] = None,
+    create_backup: bool = True,
+    max_backups: int = 5,
+) -> Tuple[bool, str]:
+    """
+    Idempotently injects ctxfw MCP server and pre-approved tools into Claude Code (~/.claude.json).
+    - Preserves all unmanaged keys (auth tokens, third-party MCP servers, existing allowedTools).
+    - Refuses mutation if existing file contains invalid JSON (Class 2 deterministic fault).
+    - Creates backup snapshot before mutation and rotates backups (bounded 1..10).
+    - Uses temporary sibling file and atomic os.replace for guaranteed transactional commit.
+    - Sets secure user-only file permissions (0o600) on POSIX platforms.
+    """
+    target_config = server_config if server_config is not None else resolve_mcp_command()
+
+    data: Dict[str, Any] = {}
+    if config_path.is_file():
+        content = config_path.read_text(encoding="utf-8-sig").strip()
+        if content:
+            try:
+                parsed = json.loads(content)
+                if isinstance(parsed, dict):
+                    data = parsed
+                else:
+                    return False, f"Existing configuration at {config_path} is not a JSON object."
+            except Exception as e:
+                return False, f"Failed to parse configuration file {config_path}: {e}"
+
+    if "mcpServers" not in data or not isinstance(data["mcpServers"], dict):
+        data["mcpServers"] = {}
+
+    if "allowedTools" not in data or not isinstance(data["allowedTools"], list):
+        data["allowedTools"] = []
+
+    existing_server = data["mcpServers"].get("ctxfw")
+    existing_tools = set(data["allowedTools"])
+    all_tools_present = all(tool in existing_tools for tool in CANONICAL_CLAUDE_ALLOWED_TOOLS)
+
+    if existing_server == target_config and all_tools_present:
+        return False, f"Claude Code is already configured identically in {config_path}."
+
+    if config_path.is_file() and create_backup:
+        import time
+        ts = int(time.time())
+        bak_file = config_path.parent / f"{config_path.name}.bak.{ts}"
+        if bak_file.exists():
+            bak_file = config_path.parent / f"{config_path.name}.bak.{ts}_{time.time_ns()}"
+        try:
+            shutil.copy2(config_path, bak_file)
+            rotate_backups(config_path, max_backups=max_backups)
+        except Exception as e:
+            return False, f"Failed to generate backup snapshot at {bak_file}: {e}"
+
+    data["mcpServers"]["ctxfw"] = target_config
+
+    for tool in CANONICAL_CLAUDE_ALLOWED_TOOLS:
+        if tool not in data["allowedTools"]:
+            data["allowedTools"].append(tool)
+
+    temp_file: Optional[Path] = None
+    try:
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        payload_str = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+        json.loads(payload_str)
+
+        import time
+        temp_file = config_path.parent / f".tmp_{config_path.name}_{os.getpid()}_{time.time_ns()}"
+        with open(temp_file, "w", encoding="utf-8") as f:
+            f.write(payload_str)
+            f.flush()
+            os.fsync(f.fileno())
+
+        os.replace(temp_file, config_path)
+
+        if platform.system() != "Windows":
+            try:
+                os.chmod(config_path, 0o600)
+            except Exception:
+                pass
+    except Exception as e:
+        if temp_file is not None and temp_file.exists():
+            try:
+                temp_file.unlink()
+            except Exception:
+                pass
+        return False, f"Failed to write configuration file {config_path}: {e}"
+
+    return True, f"Injected ctxfw and pre-approved tools into {config_path}."
+
+
 def safe_merge_mcp_config(
     config_path: Path,
     server_name: str = "ctxfw",
     server_config: Optional[Dict[str, Any]] = None,
     create_backup: bool = True,
+    max_backups: int = 5,
 ) -> Tuple[bool, str]:
     """
     Idempotently injects the MCP server entry into a configuration file.
     - Resolves execution command using sys.executable [-m ctxfw.mcp] if not provided.
     - Preserves all other pre-existing servers, comments, and top-level settings.
     - Generates a timestamped backup snapshot (<config_file>.bak.<timestamp>) before mutating disk.
-    - Performs atomic file replacement using temporary files and os.replace.
+    - Rotates backup snapshots maintaining bounded retention (1..10 backups).
+    - Performs atomic file replacement using temporary files, fsync, and os.replace.
     """
     target_config = server_config if server_config is not None else resolve_mcp_command()
 
@@ -405,20 +530,28 @@ def safe_merge_mcp_config(
             bak_file = config_path.parent / f"{config_path.name}.bak.{ts}_{time.time_ns()}"
         try:
             shutil.copy2(config_path, bak_file)
+            rotate_backups(config_path, max_backups=max_backups)
         except Exception as e:
             return False, f"Failed to generate backup snapshot at {bak_file}: {e}"
 
     data["mcpServers"][server_name] = target_config
 
+    temp_file: Optional[Path] = None
     try:
         config_path.parent.mkdir(parents=True, exist_ok=True)
         payload_str = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+        json.loads(payload_str)
+
         import time
         temp_file = config_path.parent / f".tmp_{config_path.name}_{os.getpid()}_{time.time_ns()}"
-        temp_file.write_text(payload_str, encoding="utf-8")
+        with open(temp_file, "w", encoding="utf-8") as f:
+            f.write(payload_str)
+            f.flush()
+            os.fsync(f.fileno())
+
         os.replace(temp_file, config_path)
     except Exception as e:
-        if "temp_file" in locals() and temp_file.exists():
+        if temp_file is not None and temp_file.exists():
             try:
                 temp_file.unlink()
             except Exception:
@@ -520,7 +653,10 @@ def inject_agent_mcp_config(
             out.flush()
         return False
 
-    updated, msg = safe_merge_mcp_config(config_path, server_name="ctxfw", server_config=target_config, create_backup=True)
+    if "Claude Code" in agent_name:
+        updated, msg = safe_merge_claude_code_config(config_path, server_config=target_config, create_backup=True)
+    else:
+        updated, msg = safe_merge_mcp_config(config_path, server_name="ctxfw", server_config=target_config, create_backup=True)
 
     if updated:
         out.write(f"  {CLR_EMERALD}[+] {agent_name}: Context Firewall injected successfully into {config_path}{CLR_RESET}\n")
@@ -537,6 +673,62 @@ def inject_agent_mcp_config(
         if hasattr(out, "flush"):
             out.flush()
         return False
+
+
+def install_claude_surfaces(
+    home: Optional[Path] = None,
+    system: Optional[str] = None,
+    appdata: Optional[str] = None,
+    stream=None,
+) -> int:
+    """
+    Zero-Touch Onboarding specifically for Claude Code CLI and Claude Desktop.
+    Guarantees isolation: does NOT touch Cursor, Windsurf, or external IDEs.
+    """
+    out = stream if stream is not None else sys.stdout
+    if hasattr(out, "reconfigure"):
+        try:
+            out.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+    print_defense_banner(stream=out)
+
+    out.write(f"\n{CLR_CYAN}=== CTXFW CLAUDE ONBOARDING ENGINE (v{__version__}) ==={CLR_RESET}\n")
+    out.write(f"{CLR_GRAPHITE}Executing isolated zero-touch injection for Claude Code CLI & Desktop...{CLR_RESET}\n\n")
+
+    home_dir = (home if home is not None else Path.home()).resolve()
+
+    claude_code_path = resolve_claude_code_config_path(home=home_dir)
+    claude_desktop_path = resolve_claude_desktop_config_path(system=system, home=home_dir, appdata=appdata)
+
+    # 1. Claude Code CLI (~/.claude.json)
+    updated_cli, msg_cli = safe_merge_claude_code_config(claude_code_path)
+    if updated_cli:
+        out.write(f"  {CLR_EMERALD}[+] Claude Code CLI: Context Firewall & pre-approved tools injected successfully into {claude_code_path}{CLR_RESET}\n")
+    elif "already configured" in msg_cli.lower():
+        out.write(f"  {CLR_AMBER}[~] Claude Code CLI: ctxfw is already configured in {claude_code_path}.{CLR_RESET}\n")
+    else:
+        out.write(f"  {CLR_CRIMSON}[!] Claude Code CLI: Error - {msg_cli}{CLR_RESET}\n")
+
+    # 2. Claude Desktop (claude_desktop_config.json)
+    updated_dt, msg_dt = safe_merge_mcp_config(claude_desktop_path, server_name="ctxfw", create_backup=True)
+    if updated_dt:
+        out.write(f"  {CLR_EMERALD}[+] Claude Desktop: Context Firewall injected successfully into {claude_desktop_path}{CLR_RESET}\n")
+    elif "already configured" in msg_dt.lower():
+        out.write(f"  {CLR_AMBER}[~] Claude Desktop: ctxfw is already configured in {claude_desktop_path}.{CLR_RESET}\n")
+    else:
+        out.write(f"  {CLR_CRIMSON}[!] Claude Desktop: Error - {msg_dt}{CLR_RESET}\n")
+
+    out.write(f"\n{CLR_EMERALD}✔ Claude surfaces installation complete.{CLR_RESET}\n")
+    try:
+        out.write(f"  {CLR_WHITE_BOLD}Launch 'claude' in any repository; AST firewall active with zero interactive prompts.{CLR_RESET}\n\n")
+    except UnicodeEncodeError:
+        out.write(f"  Launch 'claude' in any repository; AST firewall active with zero interactive prompts.\n\n")
+
+    if hasattr(out, "flush"):
+        out.flush()
+    return 0
 
 
 def install_mcp_servers(

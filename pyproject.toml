@@ -1,6 +1,6 @@
 [project]
 name = "ctxfw"
-version = "3.7.1"
+version = "3.8.0"
 description = "Deterministic Axiomatic Gatekeeper & Context Firewall // Skunk Works Division"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -40,6 +40,7 @@ build-backend = "setuptools.build_meta"
 [project.scripts]
 ctxfw = "ctxfw.cli:main"
 ctxfw-init = "ctxfw.cli:init_entrypoint"
+ctxfw-install = "ctxfw.cli:install_entrypoint"
 ctxfw-mcp = "ctxfw.mcp:main"
 ctxfw-proxy = "ctxfw.proxy:main"
 ctxfw-ci = "ctxfw.gatekeeper:main"

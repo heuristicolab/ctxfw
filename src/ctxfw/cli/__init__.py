@@ -1,6 +1,6 @@
 """
-src/ctxfw/cli/__init__.py — Unified Command Line Interface Package (v3.7.0)
-Axiom Manifest Hash: a7e63ccb9b5dd0c6f6147cfd2feec447c4d41690dd76aee9e6035db56cb7c31a
+src/ctxfw/cli/__init__.py — Unified Command Line Interface Package (v3.8.0)
+Axiom Manifest Hash: 4a35e336c0621f5b76a6abb20d975bc896c15592b5da2098f2454adc6a4d66a6
 """
 from ctxfw.cli.main import (
     build_parser,
@@ -8,9 +8,13 @@ from ctxfw.cli.main import (
     doctor_entrypoint,
     handle_init_cli,
     handle_init_command,
+    handle_install_cli,
+    install_entrypoint,
     handle_spec_command,
     init_entrypoint,
     inject_agent_mcp_config,
+    install_claude_surfaces,
+    safe_merge_claude_code_config,
     main,
     resolve_claude_desktop_config_path,
     resolve_cursor_config_path,
@@ -31,11 +35,15 @@ __all__ = [
     "handle_init_command",
     "handle_init_cli",
     "init_entrypoint",
+    "handle_install_cli",
+    "install_entrypoint",
     "run_doctor_cli",
     "doctor_entrypoint",
     "run_spec_verify",
     "handle_spec_command",
     "inject_agent_mcp_config",
+    "install_claude_surfaces",
+    "safe_merge_claude_code_config",
     "resolve_claude_desktop_config_path",
     "resolve_cursor_config_path",
     "run_init_mcp_agents",
