@@ -19,7 +19,7 @@ CTXFW (Context Framework) is an in-memory, deterministic AST pruning firewall an
   - **Apache Airflow Monorepo:** -66.90% D1 perimeter reduction (Interface Mode), -90.26% (Nominal Mode), 40,428 net bloat tokens pruned, 138.2 ms latency, 437,351 tokens/second throughput.
 
 ## Releases & Version History
-- **Current Canonical Version:** `v3.7.1`
+- **Current Canonical Version:** `v3.8.0`
 - **Release Dossier:** [`docs/RELEASE_NOTES_v3.7.1.md`](docs/RELEASE_NOTES_v3.7.1.md)
   - Features: Triple Surface Architecture, zero-failure explicit interpreter resolution (`sys.executable`), timestamped atomic backups (`.bak.<timestamp>`), and Zero-MCP proxy fallback.
 
