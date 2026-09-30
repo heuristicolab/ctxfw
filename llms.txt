@@ -20,8 +20,8 @@ CTXFW (Context Framework) is an in-memory, deterministic AST pruning firewall an
 
 ## Releases & Version History
 - **Current Canonical Version:** `v3.8.0`
-- **Release Dossier:** [`docs/RELEASE_NOTES_v3.7.1.md`](docs/RELEASE_NOTES_v3.7.1.md)
-  - Features: Triple Surface Architecture, zero-failure explicit interpreter resolution (`sys.executable`), timestamped atomic backups (`.bak.<timestamp>`), and Zero-MCP proxy fallback.
+- **Release Dossier:** [`docs/RELEASE_NOTES_v3.8.0.md`](docs/RELEASE_NOTES_v3.8.0.md)
+  - Features: Zero-touch atomic Claude Code CLI & Desktop installer (`ctxfw install --claude`), non-destructive deep merging, bounded backups, pre-approved permissions, and ACI 1.0000 seal.
 
 ## Interoperability & Integration Endpoints
 - **Native MCP Stdio Engine:**
