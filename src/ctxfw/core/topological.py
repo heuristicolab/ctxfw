@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import ast
 from collections import deque
+import hashlib
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 from pydantic import BaseModel, ConfigDict, Field
 
 from ctxfw.config import ContextDepthLevel, CtxfwConfigDTO, load_depth_config
@@ -133,6 +134,7 @@ class ProjectDependencyGraph:
     def __init__(self, project_root: Path | str):
         self.project_root = Path(project_root).resolve()
         self.adjacency: Dict[str, Set[str]] = {}
+        self._distance_cache: Dict[str, Dict[str, int]] = {}
         self._build_graph()
 
     def _normalize_rel(self, path: Path) -> str:
@@ -157,6 +159,9 @@ class ProjectDependencyGraph:
         else:
             target_rel = (self.project_root / target_path).resolve().relative_to(self.project_root).as_posix()
 
+        if target_rel in self._distance_cache:
+            return self._distance_cache[target_rel]
+
         distances: Dict[str, int] = {target_rel: 0}
         queue = deque([target_rel])
 
@@ -169,6 +174,7 @@ class ProjectDependencyGraph:
                     distances[neighbor] = curr_dist + 1
                     queue.append(neighbor)
 
+        self._distance_cache[target_rel] = distances
         return distances
 
 
@@ -407,6 +413,16 @@ class ContextFirewallEngine:
                     if len(parts) > 1:
                         allowed_subsystems.add(parts[0])
 
+            valid_candidates: List[str] = []
+            for rel_path in d3_candidate_modules:
+                if depth_cfg.subsystem_clamping and allowed_subsystems:
+                    parts = rel_path.split("/")
+                    if len(parts) > 1 and parts[0] not in allowed_subsystems:
+                        continue
+                valid_candidates.append(rel_path)
+
+            cached_d3 = self.cache.get_d3_symbols_batch(valid_candidates)
+
             d3_lines: List[str] = [
                 "### AMBIENT MANIFEST [D3] (Zero-Syntax Symbol Index)",
                 "# Compact symbol index for 3-hop transitive dependencies. Bodies and signatures omitted.",
@@ -414,24 +430,40 @@ class ContextFirewallEngine:
             total_symbols_count = 0
             parsed_count = 0
             total_chars = sum(len(line) + 1 for line in d3_lines)
+            records_to_cache: List[Tuple[str, str, float, List[str]]] = []
 
-            for rel_path in d3_candidate_modules:
-                if depth_cfg.subsystem_clamping and allowed_subsystems:
-                    parts = rel_path.split("/")
-                    if len(parts) > 1 and parts[0] not in allowed_subsystems:
-                        continue
-
-                # AXIOM-18: throttle synchronous parsing to max 20 modules
-                if parsed_count >= 20:
-                    break
-
+            for rel_path in valid_candidates:
                 full_path = self.project_root / rel_path
                 if not full_path.is_file():
                     continue
 
-                code = full_path.read_text(encoding="utf-8", errors="replace")
-                parsed_count += 1
-                symbols = D3SymbolExtractor.extract_from_code(code)
+                try:
+                    stat_info = full_path.stat()
+                    current_mtime = stat_info.st_mtime
+                except OSError:
+                    continue
+
+                hit = False
+                symbols: List[str] = []
+                if rel_path in cached_d3:
+                    cached_mtime, cached_sha, cached_symbols = cached_d3[rel_path]
+                    if abs(cached_mtime - current_mtime) < 1e-4:
+                        symbols = cached_symbols
+                        hit = True
+
+                if not hit:
+                    # AXIOM-18: throttle synchronous inline re-parsing to max 20 modules
+                    if parsed_count >= 20:
+                        if depth_cfg.stale_reads_on_herd and rel_path in cached_d3:
+                            symbols = cached_d3[rel_path][2]
+                        else:
+                            break
+                    else:
+                        code = full_path.read_text(encoding="utf-8", errors="replace")
+                        parsed_count += 1
+                        symbols = D3SymbolExtractor.extract_from_code(code)
+                        sha = hashlib.sha256(code.encode("utf-8")).hexdigest()
+                        records_to_cache.append((rel_path, sha, current_mtime, symbols))
 
                 remaining_budget = depth_cfg.distractor_budget - total_symbols_count
                 if remaining_budget <= 0:
@@ -450,6 +482,9 @@ class ContextFirewallEngine:
                 d3_lines.append(line)
                 total_symbols_count += len(symbols)
                 total_chars += len(line) + 1
+
+            if records_to_cache:
+                self.cache.set_d3_symbols_batch(records_to_cache)
 
             if len(d3_lines) > 2:
                 ambient_manifest_str = "\n".join(d3_lines)
@@ -484,7 +519,11 @@ class TopologicalResolver:
         self.graph = ProjectDependencyGraph(self.root_dir)
 
     def resolve(self, target_file: Path | str) -> TopologicalManifest:
-        target_path = Path(target_file).resolve()
+        target_path = Path(target_file)
+        if not target_path.is_absolute():
+            target_path = (self.root_dir / target_path).resolve()
+        else:
+            target_path = target_path.resolve()
         distances = self.graph.get_distances(target_path)
         deps: List[DependencyNode] = []
         for rel_path, dist in sorted(distances.items(), key=lambda x: (x[1], x[0])):

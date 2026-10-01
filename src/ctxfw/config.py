@@ -90,6 +90,9 @@ class CtxfwConfigDTO(BaseModel):
     )
 
 
+_CANONICAL_DEPTH_CONFIG = CtxfwConfigDTO()
+
+
 def load_depth_config(
     project_root: Optional[Path | str] = None,
     custom_config_path: Optional[Path | str] = None,
@@ -111,9 +114,9 @@ def load_depth_config(
     # 1. Attempt to load from workspace or custom config file
     candidate_paths: list[Path] = []
     if custom_config_path:
-        candidate_paths.append(Path(custom_config_path).resolve())
+        candidate_paths.append(Path(custom_config_path))
     else:
-        root_dir = Path(project_root).resolve() if project_root else Path.cwd().resolve()
+        root_dir = Path(project_root) if project_root else Path.cwd()
         candidate_paths.extend([
             root_dir / ".ctxfwrc",
             root_dir / ".ctxfw.json",
@@ -134,6 +137,17 @@ def load_depth_config(
             except Exception as e:
                 sys.stderr.write(f"[ctxfw] Warning: failed to parse config at {cand} ({e}). Falling back.\\n")
                 break
+
+    # Fast-path for default canonical environment (zero disk overhead)
+    if (
+        not raw_cfg
+        and "CTXFW_DEPTH" not in os.environ
+        and "CTXFW_DISTRACTOR_BUDGET" not in os.environ
+        and "CTXFW_AMBIENT_MANIFEST" not in os.environ
+        and "CTXFW_SUBSYSTEM_CLAMPING" not in os.environ
+        and "CTXFW_STALE_READS_ON_HERD" not in os.environ
+    ):
+        return _CANONICAL_DEPTH_CONFIG
 
     # Sanitize max_depth from file if present
     if "max_depth" in raw_cfg:

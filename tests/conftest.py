@@ -15,6 +15,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     failed = len(terminalreporter.stats.get("failed", []))
     errors = len(terminalreporter.stats.get("error", []))
     total_failed = failed + errors
+    if passed + total_failed < 50:
+        return
 
     session_start = getattr(terminalreporter, "_sessionstarttime", time.time())
     duration = round(time.time() - session_start, 4)
