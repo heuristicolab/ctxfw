@@ -1,7 +1,9 @@
 """
-src/ctxfw/core/topological.py — Topological Dependency Graph & Context Firewall Engine (v3.4.0)
-Resolves internal project call graphs, assigns semantic distances (D0, D1, D2+),
-and dispatches multi-depth AST pruning with SQLite WAL caching.
+src/ctxfw/core/topological.py — Topological Dependency Graph & Context Firewall Engine (v4.0.0-dev)
+manifest_hash: 837e90a0d2d97f569f7190da2652d4e578efadf86b71d4a5c3020c6e16bf5bd3
+
+Resolves internal project call graphs, assigns semantic distances (D0, D1, D2, D3),
+and dispatches multi-depth AST pruning and D3 ambient cartography with SQLite WAL caching.
 """
 from __future__ import annotations
 
@@ -11,6 +13,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set
 from pydantic import BaseModel, ConfigDict, Field
 
+from ctxfw.config import ContextDepthLevel, CtxfwConfigDTO, load_depth_config
 from ctxfw.core.contracts import (
     OptimizationRequestDTO,
     OptimizationResultDTO,
@@ -169,12 +172,84 @@ class ProjectDependencyGraph:
         return distances
 
 
+def _rel_path_to_module_name(rel_path: str) -> str:
+    """Converts relative POSIX file path to canonical Python module dot path."""
+    p = rel_path.replace("\\", "/")
+    if p.endswith("/__init__.py"):
+        p = p[:-12]
+    elif p.endswith(".py"):
+        p = p[:-3]
+    return p.replace("/", ".")
+
+
+class D3SymbolExtractor(ast.NodeVisitor):
+    """
+    Extracts public symbols for D3 Ambient Manifest.
+    Identifies classes (:C), functions (:F), and constants (:K).
+    Detects dynamic namespaces (PEP 562 __getattr__, dynamic __all__) and flags
+    them with '[DYNAMIC_UNBOUND:?]' per AXIOM-17.
+    """
+    def __init__(self):
+        self.symbols: List[str] = []
+        self.is_dynamic: bool = False
+
+    def visit_FunctionDef(self, node: ast.FunctionDef):
+        if node.name in ("__getattr__", "__dir__"):
+            self.is_dynamic = True
+        elif not node.name.startswith("_"):
+            self.symbols.append(f"{node.name}:F")
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
+        if not node.name.startswith("_"):
+            self.symbols.append(f"{node.name}:F")
+
+    def visit_ClassDef(self, node: ast.ClassDef):
+        if not node.name.startswith("_"):
+            self.symbols.append(f"{node.name}:C")
+
+    def visit_Assign(self, node: ast.Assign):
+        self._check_assign(node.targets, node.value)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign):
+        self._check_assign([node.target], node.value)
+
+    def _check_assign(self, targets: List[ast.AST], value: Optional[ast.AST]):
+        for target in targets:
+            if isinstance(target, ast.Name):
+                name = target.id
+                if name == "__all__":
+                    if not isinstance(value, (ast.List, ast.Tuple)):
+                        self.is_dynamic = True
+                    else:
+                        for elt in value.elts:
+                            if not isinstance(elt, ast.Constant) or not isinstance(elt.value, str):
+                                self.is_dynamic = True
+                elif name.isupper() and not name.startswith("_"):
+                    self.symbols.append(f"{name}:K")
+
+    @classmethod
+    def extract_from_code(cls, code: str) -> List[str]:
+        try:
+            tree = ast.parse(code)
+        except SyntaxError:
+            return ["[DYNAMIC_UNBOUND:?]"]
+
+        visitor = cls()
+        visitor.visit(tree)
+        res: List[str] = []
+        if visitor.is_dynamic:
+            res.append("[DYNAMIC_UNBOUND:?]")
+        res.extend(sorted(set(visitor.symbols)))
+        return res
+
+
 class TopologicalContextBundleDTO(BaseModel):
     """Contrato inmutable de paquete de contexto topológico optimizado."""
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     root_target: str
     entries: Dict[str, OptimizationResultDTO] = Field(..., description="Módulos optimizados indexados por ruta relativa")
+    ambient_manifest: Optional[str] = Field(default=None, description="D3 Ambient Symbol Cartography manifest if enabled")
 
     def to_dict(self) -> Dict[str, str]:
         """Maps relative file path to pruned source code string."""
@@ -191,6 +266,9 @@ class TopologicalContextBundleDTO(BaseModel):
             depth_tag = res.depth.value.upper()
             sections.append(f"### File: {rel_path} [{depth_tag}]")
             sections.append(f"```python\n{res.pruned_code}\n```")
+            sections.append("")
+        if self.ambient_manifest:
+            sections.append(self.ambient_manifest)
             sections.append("")
         return "\n".join(sections)
 
@@ -213,11 +291,14 @@ class ContextFirewallEngine:
         self,
         target_file: str | Path,
         mode: Optional[str] = None,
+        depth_config: Optional[CtxfwConfigDTO] = None,
     ) -> TopologicalContextBundleDTO:
         """
-        Builds multi-depth context bundle: D0 (Full), D1 (Interface), D2+ (Nominal).
+        Builds multi-depth context bundle: D0 (Full), D1 (Interface), D2 (Nominal), D3 (Ambient).
         Enforces Invariant 3: If engine.mode is 'passthrough', AST pruning is completely
         bypassed and raw intact source code is returned for all perimeter dependencies.
+        Enforces AXIOM-17 through AXIOM-21 for depth bounds, dynamic namespace quarantine,
+        throttled warmup, and subsystem boundary clamping.
         """
         effective_mode = (mode or self.mode or "").lower()
         if not effective_mode:
@@ -226,6 +307,8 @@ class ContextFirewallEngine:
                 effective_mode = load_config().engine.mode.value.lower()
             except Exception:
                 effective_mode = "distance"
+
+        depth_cfg = depth_config or load_depth_config(self.project_root)
 
         distances = self.graph.get_distances(target_file)
         target_path = Path(target_file)
@@ -237,10 +320,27 @@ class ContextFirewallEngine:
         entries: Dict[str, OptimizationResultDTO] = {}
         sorted_modules = sorted(distances.items(), key=lambda item: (item[1], item[0]))
 
+        d3_candidate_modules: List[str] = []
+
         for rel_path, distance in sorted_modules:
             full_path = self.project_root / rel_path
             if not full_path.is_file():
                 continue
+
+            # Filtering based on depth_cfg.max_depth
+            if depth_cfg.max_depth == ContextDepthLevel.PURE_PASSTHROUGH and distance > 0:
+                continue
+            if depth_cfg.max_depth == ContextDepthLevel.DIRECT_INTERFACE and distance > 1:
+                continue
+            if depth_cfg.max_depth == ContextDepthLevel.AMBIENT_CARTOGRAPHY:
+                if distance == 3:
+                    d3_candidate_modules.append(rel_path)
+                    continue
+                elif distance > 3:
+                    # AXIOM-20: strictly reject > 3
+                    continue
+            elif depth_cfg.ambient_manifest and distance == 3:
+                d3_candidate_modules.append(rel_path)
 
             code = full_path.read_text(encoding="utf-8")
 
@@ -298,9 +398,66 @@ class ContextFirewallEngine:
                 self.cache.set(cache_key, dto)
                 entries[rel_path] = dto
 
+        ambient_manifest_str: Optional[str] = None
+        if d3_candidate_modules and (depth_cfg.ambient_manifest or depth_cfg.max_depth == ContextDepthLevel.AMBIENT_CARTOGRAPHY):
+            allowed_subsystems: Set[str] = set()
+            if depth_cfg.subsystem_clamping:
+                for ep in entries.keys():
+                    parts = ep.split("/")
+                    if len(parts) > 1:
+                        allowed_subsystems.add(parts[0])
+
+            d3_lines: List[str] = [
+                "### AMBIENT MANIFEST [D3] (Zero-Syntax Symbol Index)",
+                "# Compact symbol index for 3-hop transitive dependencies. Bodies and signatures omitted.",
+            ]
+            total_symbols_count = 0
+            parsed_count = 0
+            total_chars = sum(len(line) + 1 for line in d3_lines)
+
+            for rel_path in d3_candidate_modules:
+                if depth_cfg.subsystem_clamping and allowed_subsystems:
+                    parts = rel_path.split("/")
+                    if len(parts) > 1 and parts[0] not in allowed_subsystems:
+                        continue
+
+                # AXIOM-18: throttle synchronous parsing to max 20 modules
+                if parsed_count >= 20:
+                    break
+
+                full_path = self.project_root / rel_path
+                if not full_path.is_file():
+                    continue
+
+                code = full_path.read_text(encoding="utf-8", errors="replace")
+                parsed_count += 1
+                symbols = D3SymbolExtractor.extract_from_code(code)
+
+                remaining_budget = depth_cfg.distractor_budget - total_symbols_count
+                if remaining_budget <= 0:
+                    break
+
+                if len(symbols) > remaining_budget:
+                    symbols = symbols[:remaining_budget]
+
+                mod_name = _rel_path_to_module_name(rel_path)
+                line = f"{mod_name}: [{', '.join(symbols)}]"
+                manifest_tokens = DeterministicContextPruner.estimate_tokens(total_chars + len(line) + 1)
+                # AXIOM-19: Max 1,000 net tokens ceiling
+                if manifest_tokens > 1000:
+                    break
+
+                d3_lines.append(line)
+                total_symbols_count += len(symbols)
+                total_chars += len(line) + 1
+
+            if len(d3_lines) > 2:
+                ambient_manifest_str = "\n".join(d3_lines)
+
         return TopologicalContextBundleDTO(
             root_target=target_rel,
             entries=entries,
+            ambient_manifest=ambient_manifest_str,
         )
 
 

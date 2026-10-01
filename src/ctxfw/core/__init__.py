@@ -11,6 +11,7 @@ from ctxfw.core.polyglot import TreeSitterContextPruner
 from ctxfw.core.pruner import DeterministicContextPruner, _MethodBodyStripper
 from ctxfw.core.topological import (
     ContextFirewallEngine,
+    D3SymbolExtractor,
     ProjectDependencyGraph,
     StaticImportExtractor,
     TopologicalContextBundleDTO,
@@ -28,4 +29,5 @@ __all__ = [
     "ProjectDependencyGraph",
     "TopologicalContextBundleDTO",
     "ContextFirewallEngine",
+    "D3SymbolExtractor",
 ]

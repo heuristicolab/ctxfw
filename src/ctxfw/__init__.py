@@ -13,10 +13,16 @@ from ctxfw.core.contracts import (
     PruningDepth,
     SupportedLanguage,
 )
+from ctxfw.config import (
+    ContextDepthLevel,
+    CtxfwConfigDTO,
+    load_depth_config,
+)
 from ctxfw.core.polyglot import TreeSitterContextPruner
 from ctxfw.core.pruner import DeterministicContextPruner, _MethodBodyStripper
 from ctxfw.core.topological import (
     ContextFirewallEngine,
+    D3SymbolExtractor,
     ProjectDependencyGraph,
     StaticImportExtractor,
     TopologicalContextBundleDTO,
@@ -37,6 +43,10 @@ __all__ = [
     "ProjectDependencyGraph",
     "TopologicalContextBundleDTO",
     "ContextFirewallEngine",
+    "D3SymbolExtractor",
+    "ContextDepthLevel",
+    "CtxfwConfigDTO",
+    "load_depth_config",
     "LocalSemanticCache",
     "get_canonical_cache_path",
     "handle_init_command",
