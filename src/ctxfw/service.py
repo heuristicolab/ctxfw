@@ -245,7 +245,7 @@ def handle_service_command(args: list[str]) -> int:
 
     if opts.action == "generate":
         if system == "Windows":
-            print("[*] Windows Service Command (Ejecutar como Administrador):")
+            print("[*] Windows Service Command (Run as Administrator):")
             print(f"    {WindowsServiceManager.generate_install_command()}")
         else:
             print("[*] systemd Unit File Content:")

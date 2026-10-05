@@ -1,54 +1,54 @@
-# REPORTE FORENSE DE BENCHMARKING EMPÍRICO Y CONTROL DE REGRESIÓN: D3 AMBIENT MANIFEST
+# EMPIRICAL BENCHMARKING & REGRESSION AUDIT REPORT: D3 AMBIENT MANIFEST
 <!-- Heurístico LAB // Skunk Works Division // Quality Assurance & Governance -->
-<!-- Protocolo: CTXFW Axiomatic Gateway (Status: VERIFIED, ACI: 1.0000) -->
+<!-- Protocol: CTXFW Axiomatic Gateway (Status: VERIFIED, ACI: 1.0000) -->
 <!-- Attestation Manifest Hash: 837e90a0d2d97f569f7190da2652d4e578efadf86b71d4a5c3020c6e16bf5bd3 -->
-<!-- Target: Decisión GO / NO-GO para Release Candidate v3.9.0 -->
-<!-- Fecha: 2026-10-01 | Rama: experiment/depth-configurator | Baseline: v3.8.0 (commit 4b98c78) -->
+<!-- Target: GO / NO-GO Decision for Release Candidate v3.9.0 -->
+<!-- Date: 2026-10-01 | Branch: experiment/depth-configurator | Baseline: v3.8.0 (commit 4b98c78) -->
 
 ---
 
-## 1. RESUMEN EJECUTIVO Y DICTAMEN DE SOBERANÍA
+## 1. EXECUTIVE SUMMARY & SOVEREIGN VERDICT
 
-### Dictamen Final de Ingeniería:
-# **GO (Apto para release v3.9.0 // Aprobado para integración en `main`)**
+### Final Engineering Verdict:
+# **GO (Approved for v3.9.0 Release // Approved for integration into `main`)**
 
 > [!NOTE]
-> **ATTESTATION DE CONFORMIDAD PLENA:**  
-> Tras la implementación y verificación de las directivas de remediación de arquitectura **R-1** (indexación por lotes SQLite WAL y aceleración L1 write-through) y **R-2** (expansión exhaustiva de pruebas unitarias a nivel bytecode con 180/180 tests en verde), la arquitectura $D_3$ satisface el **100% de los criterios de aceptación contractuales** (`CA-01`, `CA-02`, `CA-03`, `CA-04`).
+> **FULL COMPLIANCE ATTESTATION:**  
+> Following the implementation and verification of architectural remediation directives **R-1** (SQLite WAL batch indexing and L1 write-through acceleration) and **R-2** (comprehensive bytecode-level unit test expansion with 180/180 green tests), the $D_3$ architecture satisfies **100% of contractual acceptance criteria** (`CA-01`, `CA-02`, `CA-03`, `CA-04`).
 >
-> 1. **Latencia Interactiva SLA (CA-01):** La resolución $D_3$ se redujo de 246.22 ms a **10.415 ms** en P95 (58.3% por debajo del techo inviolable de $\le 25\text{ ms}$).
-> 2. **Cobertura de Pruebas (CA-04):** [`src/ctxfw/config.py`](file:///C:/ctxfw/src/ctxfw/config.py) alcanza **99.1%** y [`src/ctxfw/core/topological.py`](file:///C:/ctxfw/src/ctxfw/core/topological.py) alcanza **96.1%**, registrando una cobertura combinada del **97.1%** (superando el umbral contractual del $\ge 95\%$).
+> 1. **Interactive SLA Latency (CA-01):** $D_3$ resolution was reduced from 246.22 ms to **10.415 ms** at P95 (58.3% below the inviolable ceiling of $\le 25\text{ ms}$).
+> 2. **Test Coverage (CA-04):** [`src/ctxfw/config.py`](file:///C:/ctxfw/src/ctxfw/config.py) reaches **99.1%** and [`src/ctxfw/core/topological.py`](file:///C:/ctxfw/src/ctxfw/core/topological.py) reaches **96.1%**, recording a combined coverage of **97.1%** (exceeding the contractual threshold of $\ge 95\%$).
 
 ---
 
-## 2. GUÍA DE HIPÓTESIS Y VERIFICACIÓN EMPÍRICA
+## 2. HYPOTHESIS GUIDE & EMPIRICAL VERIFICATION
 
-| ID | Hipótesis Técnica Formulada | Estado Empírico | Evidencia Cuantitativa Clave |
+| ID | Formulated Technical Hypothesis | Empirical Status | Key Quantitative Evidence |
 | :---: | :--- | :---: | :--- |
-| **H-01** | *La resolución de grafos D3 en memoria cumple con la cota interactiva $t_{P95} \le 25\text{ ms}$.* | **CONFIRMADA (VALIDADA)** | Medido: **10.415 ms** P95 (P50: **8.496 ms**, Media: **8.529 ms**). Batch indexing en SQLite WAL y L1 memory cache eliminaron el cuello de botella. |
-| **H-02** | *El clamping `distractor_budget: 150` corta deterministamente los símbolos sin desbordar el prompt.* | **CONFIRMADA (VALIDADA)** | Medido: 35 símbolos inyectados y 269 tokens de manifiesto (muy por debajo del techo inviolable de 1,000 tokens de AXIOM-19). |
-| **H-03** | *La actualización a v3.9.0 no introduce regresión de rendimiento ni sobrecosto en clientes default sin `.ctxfwrc`.* | **CONFIRMADA (VALIDADA)** | Medido: Overhead de inicialización de **0.2156 ms** (P95), **0 operaciones** de disco SQLite en startup, consumo RAM de 0.13 MB e identidad AST 100%. |
-| **H-04** | *El sistema ofrece degradación grácil y caída limpia ante archivos corruptos o bloqueos de base de datos.* | **CONFIRMADA (VALIDADA)** | 5/5 escenarios hostiles superados sin tracebacks fatales; recuperación de cerrojo `SQLITE_BUSY` en **9.576 ms**. |
-| **H-05** | *El código de la rama está listo para merge directo a `main` y despliegue a PyPI.* | **CONFIRMADA (VALIDADA)** | 180 / 180 pruebas unitarias pasando (100% green), suite completa libre de regresiones. |
+| **H-01** | *In-memory D3 graph resolution satisfies interactive bound $t_{P95} \le 25\text{ ms}$.* | **CONFIRMED (VALIDATED)** | Measured: **10.415 ms** P95 (P50: **8.496 ms**, Mean: **8.529 ms**). Batch indexing in SQLite WAL and L1 memory cache eliminated the bottleneck. |
+| **H-02** | *`distractor_budget: 150` clamping deterministically truncates symbols without prompt overflow.* | **CONFIRMED (VALIDATED)** | Measured: 35 symbols injected and 269 manifest tokens (well below the inviolable ceiling of 1,000 tokens of AXIOM-19). |
+| **H-03** | *Upgrading to v3.9.0 introduces zero performance regression or overhead for default clients lacking `.ctxfwrc`.* | **CONFIRMED (VALIDATED)** | Measured: Initialization overhead of **0.2156 ms** (P95), **0 disk operations** on startup, RAM usage of 0.13 MB, and 100% AST identity. |
+| **H-04** | *The engine delivers graceful degradation and clean fail-open upon encountering corrupted files or database locks.* | **CONFIRMED (VALIDATED)** | 5/5 hostile scenarios cleared without fatal tracebacks; lock contention recovery (`SQLITE_BUSY`) in **9.576 ms**. |
+| **H-05** | *Branch code is ready for direct merge to `main` and PyPI release packaging.* | **CONFIRMED (VALIDATED)** | 180 / 180 unit tests passing (100% green), entire suite free of regressions. |
 
 ---
 
-## 3. ARQUITECTURA DEL FLUJO Y TOPOLOGÍA DE RESOLUCIÓN
+## 3. FLOW ARCHITECTURE & RESOLUTION TOPOLOGY
 
 ```mermaid
 flowchart TD
-    A[Inicio Request / Entrypoint] --> B{Existe .ctxfwrc?}
-    B -- No --> C[Modo Default v3.8.0 D2 / D1]
+    A[Start Request / Entrypoint] --> B{Does .ctxfwrc exist?}
+    B -- No --> C[Default Mode v3.8.0 D2 / D1]
     C --> C1[Init Overhead: 0.21 ms P95]
-    C1 --> C2[AST Pruning Nominal]
-    C2 --> C3[Salida Idéntica v3.8.0]
+    C1 --> C2[Nominal AST Pruning]
+    C2 --> C3[Identical Output v3.8.0]
     
-    B -- Sí / ENV Override --> D[Parsear CtxfwConfigDTO]
-    D --> E{Validar Profundidad Max}
-    E -- D > 3 --> F[AXIOM-20: Clamp a D2]
-    E -- D <= 3 --> G[Construir ProjectDependencyGraph]
+    B -- Yes / ENV Override --> D[Parse CtxfwConfigDTO]
+    D --> E{Validate Max Depth}
+    E -- D > 3 --> F[AXIOM-20: Clamp to D2]
+    E -- D <= 3 --> G[Construct ProjectDependencyGraph]
     
-    G --> H{Nivel de Profundidad}
+    G --> H{Depth Level}
     H -- D0 --> I[Pass-through Target: 4.1 ms P50]
     H -- D1 --> J[Direct Interface: 5.4 ms P50]
     H -- D2 --> K[Transitive Nominal: 9.8 ms P50]
@@ -56,115 +56,115 @@ flowchart TD
     
     L --> M[SQLite WAL + L1 Write-Through Cache]
     M --> N[Batch Query: P50: 8.50 ms | P95: 10.41 ms]
-    N --> P[CONFORME: Latencia P95 <= 25.0 ms]
+    N --> P[COMPLIANT: Latency P95 <= 25.0 ms]
     
-    subgraph Defensas de Seguridad
+    subgraph Security Defenses
         Q[PEP 562 __getattr__] --> Q1[AXIOM-17: DYNAMIC_UNBOUND:?]
-        R[Subsystem Clamping] --> R1[AXIOM-19: Poda de Periféricos]
-        S[distractor_budget: 150] --> S1[Corte en 35 símbolos / 269 tokens]
+        R[Subsystem Clamping] --> R1[AXIOM-19: Peripheral Pruning]
+        S[distractor_budget: 150] --> S1[Truncation at 35 symbols / 269 tokens]
     end
 ```
 
 ---
 
-## 4. MEDICIONES NUMÉRICAS DETALLADAS
+## 4. DETAILED NUMERICAL MEASUREMENTS
 
-### A. Tabla Comparativa de Latencia y Overhead (100 iteraciones)
+### A. Comparative Latency & Overhead Matrix (100 iterations)
 
-| Modo / Nivel | Latencia Media | P50 (Mediana) | P95 | P99 | Delta vs Baseline v3.8.0 | Veredicto Operacional |
+| Mode / Level | Mean Latency | P50 (Median) | P95 | P99 | Delta vs Baseline v3.8.0 | Operational Verdict |
 | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **$D_0$ (Pass-through)** | 4.263 ms | 4.137 ms | 5.525 ms | 6.194 ms | **-56.0%** | **ÓPTIMO** (Zero overhead) |
-| **$D_1$ (Direct Interface)** | 5.475 ms | 5.389 ms | 6.808 ms | 7.319 ms | **-43.5%** | **CONFORME** (Contratos directos) |
-| **$D_2$ (Transitive Nominal)** | 9.667 ms | 9.795 ms | 12.123 ms | 13.967 ms | **0.0%** | **NOMINAL** (Baseline actual) |
-| **$D_3$ (Ambient Manifest)** | 8.529 ms | 8.496 ms | **10.415 ms** | 12.143 ms | **-14.1% vs D2** | ✅ **ÓPTIMO: CUMPLE CA-01 ($\le 25$ ms)** |
+| **$D_0$ (Pass-through)** | 4.263 ms | 4.137 ms | 5.525 ms | 6.194 ms | **-56.0%** | **OPTIMAL** (Zero overhead) |
+| **$D_1$ (Direct Interface)** | 5.475 ms | 5.389 ms | 6.808 ms | 7.319 ms | **-43.5%** | **COMPLIANT** (Direct contracts) |
+| **$D_2$ (Transitive Nominal)** | 9.667 ms | 9.795 ms | 12.123 ms | 13.967 ms | **0.0%** | **NOMINAL** (Current baseline) |
+| **$D_3$ (Ambient Manifest)** | 8.529 ms | 8.496 ms | **10.415 ms** | 12.143 ms | **-14.1% vs D2** | ✅ **OPTIMAL: SATISFIES CA-01 ($\le 25$ ms)** |
 
-#### Rendimiento Bajo Concurrencia Simulada (SQLite WAL):
-- **Hilos Concurrentes**: 8 hilos ejecutando lectura y escritura simultánea.
-- **Throughput Medido**: **528.6 ops/segundo** (400 transacciones completadas en 0.76 s).
-- **Latencia Media por Operación WAL**: `7.537 ms`.
-- **Errores de Concurrencia**: **0 errores** (Zero lock contention failure).
+#### Performance Under Simulated Concurrency (SQLite WAL):
+- **Concurrent Threads**: 8 threads executing simultaneous reads and writes.
+- **Measured Throughput**: **528.6 ops/second** (400 transactions completed in 0.76 s).
+- **Mean Latency per WAL Operation**: `7.537 ms`.
+- **Concurrency Errors**: **0 errors** (Zero lock contention failure).
 
-#### Comportamiento ante Bloqueo (`SQLITE_BUSY`):
-- **Simulación de Bloqueo**: `BEGIN EXCLUSIVE` activo durante transacción concurrente.
-- **Respuesta**: Interceptado limpiamente por `busy_timeout` tras **172.2 ms** sin caída de proceso (`OperationalError: database is locked`).
-- **Tiempo de Recuperación de Caché**: **9.576 ms** una vez liberado el cerrojo.
+#### Behavior Under Contention (`SQLITE_BUSY`):
+- **Contention Simulation**: `BEGIN EXCLUSIVE` held during concurrent transaction.
+- **Response**: Intercepted cleanly by `busy_timeout` after **172.2 ms** without process termination (`OperationalError: database is locked`).
+- **Cache Recovery Time**: **9.576 ms** once the lock is released.
 
 ---
 
-### B. Tabla de Carga de Contexto (Tokens) y Clamping
+## 5. CONTEXT PAYLOAD (TOKENS) & CLAMPING
 
-| Nivel de Profundidad | Módulos Procesados | Tokens Totales Inyectados | Tokens Manifiesto D3 | Símbolos Activos | Overhead en Prompt (%) |
+| Depth Level | Processed Modules | Total Injected Tokens | D3 Manifest Tokens | Active Symbols | Prompt Overhead (%) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **$D_0$ (Pass-through)** | 1 | 144 | 0 | 0 | **-71.9%** (vs D1) |
-| **$D_1$ (Direct Interface)** | 6 | 512 | 0 | 0 | **0.0%** (Referencia base) |
+| **$D_1$ (Direct Interface)** | 6 | 512 | 0 | 0 | **0.0%** (Baseline reference) |
 | **$D_2$ (Transitive Nominal)** | 26 | 1,555 | 0 | 0 | **+203.7%** (vs D1) |
 | **$D_3$ (Ambient Cartography)** | 11 (+1 index) | 1,001 | 269 | 35 | **+95.5%** (vs D1) |
 
-#### Eficacia del Clamping de Distractores (`distractor_budget`):
-- **Presupuesto 50**: Entregados: **35 símbolos** | Manifiesto: **269 tokens** | **[CONFORME]**
-- **Presupuesto 150**: Entregados: **35 símbolos** | Manifiesto: **269 tokens** | **[CONFORME]**
-- **Presupuesto 300**: Entregados: **35 símbolos** | Manifiesto: **269 tokens** | **[CONFORME]**
-- **Techo Inviolable de Tokens (AXIOM-19)**: En ningún caso el manifiesto ambiental superó los 1,000 tokens netos ni desbordó la ventana del LLM.
+#### Distractor Clamping Efficacy (`distractor_budget`):
+- **Budget 50**: Delivered: **35 symbols** | Manifest: **269 tokens** | **[COMPLIANT]**
+- **Budget 150**: Delivered: **35 symbols** | Manifest: **269 tokens** | **[COMPLIANT]**
+- **Budget 300**: Delivered: **35 symbols** | Manifest: **269 tokens** | **[COMPLIANT]**
+- **Inviolable Token Ceiling (AXIOM-19)**: In no case did the ambient manifest exceed 1,000 net tokens or overflow the LLM context window.
 
-#### Relación Señal / Ruido en $D_3$:
-- **Total Símbolos Candidatos en Espacio $D_3$**: 56 símbolos exportables.
-- **Símbolos Relevantes Retenidos (Topological Call-Chain)**: 35 símbolos (**62.5%**).
-- **Símbolos Periféricos Podados (Noise Elimination)**: 21 símbolos (**37.5%**).
+#### Signal-to-Noise Ratio in $D_3$:
+- **Total Candidate Symbols in $D_3$ Space**: 56 exportable symbols.
+- **Relevant Symbols Retained (Topological Call-Chain)**: 35 symbols (**62.5%**).
+- **Peripheral Symbols Pruned (Noise Elimination)**: 21 symbols (**37.5%**).
 
 ---
 
-### C. Prueba de Cero Regresión en Modo Default (Backward Compatibility)
+## 6. ZERO REGRESSION IN DEFAULT MODE (BACKWARD COMPATIBILITY)
 
-1. **Overhead de Inicialización (`load_depth_config`)**:
+1. **Initialization Overhead (`load_depth_config`)**:
    - **P50**: `0.1352 ms`
-   - **P95**: `0.2156 ms` ($\le 2.0\text{ ms}$ requerido).
-   - **Operaciones SQLite en Startup**: **0 operaciones** (acceso a disco nulo en ausencia de `.ctxfwrc`).
-2. **Consumo de Memoria**:
-   - **RAM Pico en Modo Nominal**: `0.13 MB` (Límite de seguridad: $\le 30.0\text{ MB}$).
-3. **Identidad AST Determinista**:
-   - El código podado en $D_1$ y $D_2$ genera una salida sintáctica **idéntica carácter por carácter** a la suite canónica de la versión `v3.8.0`.
+   - **P95**: `0.2156 ms` ($\le 2.0\text{ ms}$ required).
+   - **Startup SQLite Disk Operations**: **0 operations** (zero disk access when `.ctxfwrc` is absent).
+2. **Memory Footprint**:
+   - **Peak RAM in Nominal Mode**: `0.13 MB` (Safety boundary: $\le 30.0\text{ MB}$).
+3. **Deterministic AST Identity**:
+   - Code pruned at $D_1$ and $D_2$ generates syntactic output **identical byte-for-byte** to the canonical suite of version `v3.8.0`.
 
 ---
 
-### D. Prueba de Caída Grácil (Fault Tolerance)
+## 7. FAULT TOLERANCE & GRACEFUL DEGRADATION
 
-| Escenario de Falla Hostil | Comportamiento Observado | Estatus de Seguridad |
+| Hostile Failure Scenario | Observed Behavior | Security Status |
 | :--- | :--- | :---: |
-| **JSON Corrupto en `.ctxfwrc`** | Emite advertencia a `stderr` (`[ctxfw] Warning: failed to parse config...`) y cae limpiamente a $D_2$ por defecto sin arrojar traceback fatal. | **CONFORME** |
-| **Profundidad Fuera de Cota (`max_depth: 99`)** | Clamping preventivo seguro: fuerza `max_depth = 2` ($D_2$) cumpliendo AXIOM-20. | **CONFORME** |
-| **Archivo `.ctxfwrc` Sobredimensionado (>1 MB)** | Detecta violación perimetral, descarta archivo y mantiene $D_2$. | **CONFORME** |
-| **Namespace Dinámico (PEP 562 `__getattr__`)** | Detecta opacidad léxica y emite etiqueta obligatoria `[DYNAMIC_UNBOUND:?]` cumpliendo AXIOM-17. | **CONFORME** |
-| **Aislamiento de Subsistema (`subsystem_clamping`)** | Poda estricta de módulos ajenos a la jerarquía de paquetes de $D_1/D_2$. | **CONFORME** |
+| **Corrupted JSON in `.ctxfwrc`** | Emits diagnostic warning to `stderr` (`[ctxfw] Warning: failed to parse config...`) and falls back cleanly to default $D_2$ without fatal traceback. | **COMPLIANT** |
+| **Out-of-Bounds Depth (`max_depth: 99`)** | Preventive defensive clamping: forces `max_depth = 2` ($D_2$) adhering to AXIOM-20. | **COMPLIANT** |
+| **Oversized `.ctxfwrc` File (>1 MB)** | Detects perimeter violation, discards file, and maintains $D_2$. | **COMPLIANT** |
+| **Dynamic Namespace (PEP 562 `__getattr__`)** | Detects lexical opacity and emits mandatory token `[DYNAMIC_UNBOUND:?]` adhering to AXIOM-17. | **COMPLIANT** |
+| **Subsystem Isolation (`subsystem_clamping`)** | Strict pruning of modules outside the package hierarchy of $D_1/D_2$. | **COMPLIANT** |
 
 ---
 
-## 5. MATRIZ DE CRITERIOS DE ACEPTACIÓN INMUTABLES
+## 8. IMMUTABLE ACCEPTANCE CRITERIA MATRIX
 
-| Criterio | Descripción | Umbral Requerido | Valor Empírico Medido | Estatus |
+| Criterion | Description | Required Threshold | Empirical Measured Value | Status |
 | :--- | :--- | :---: | :---: | :---: |
-| **CA-01** | Latencia P95 en resolución $D_3$ | $\le 25.0\text{ ms}$ | **10.415 ms** (P50: **8.496 ms**) | ✅ **PASS** |
-| **CA-02** | Overhead inicialización default (sin `.ctxfwrc`) | $\le 2.0\text{ ms}$ | **0.2156 ms** (P95) / **0.1352 ms** (P50) | ✅ **PASS** |
-| **CA-03** | Cero excepciones fatales no controladas en fallos de disco/DB | 0 tracebacks | **0 excepciones no controladas** (100% tolerante) | ✅ **PASS** |
-| **CA-04** | Cobertura de pruebas en módulos modificados | $\ge 95.0\%$ | `config.py`: **99.1%** / `topological.py`: **96.1%** (Global: **97.1%**) | ✅ **PASS** |
+| **CA-01** | P95 latency in $D_3$ resolution | $\le 25.0\text{ ms}$ | **10.415 ms** (P50: **8.496 ms**) | ✅ **PASS** |
+| **CA-02** | Default initialization overhead (without `.ctxfwrc`) | $\le 2.0\text{ ms}$ | **0.2156 ms** (P95) / **0.1352 ms** (P50) | ✅ **PASS** |
+| **CA-03** | Zero fatal unhandled exceptions on disk/DB failures | 0 tracebacks | **0 unhandled exceptions** (100% resilient) | ✅ **PASS** |
+| **CA-04** | Test coverage across modified modules | $\ge 95.0\%$ | `config.py`: **99.1%** / `topological.py`: **96.1%** (Overall: **97.1%**) | ✅ **PASS** |
 
 ---
 
-## 6. SÍNTESIS DE REMEDIACIONES IMPLEMENTADAS
+## 9. SYNTHESIS OF IMPLEMENTED REMEDIATIONS
 
-### Tarea R-1: Indexación WAL y L1 Write-Through en `LocalSemanticCache` & `ContextFirewallEngine`
-- **Implementación:**
-  - Creación de tabla `d3_symbol_index` con esquema `(module_rel_path, sha256, mtime, symbols_json, symbol_count)` en modo WAL con `PRAGMA synchronous = NORMAL`.
-  - Conexión SQLite persistente reutilizada (`self._conn` con `check_same_thread=False`).
-  - Capa L1 in-memory write-through en `LocalSemanticCache` (`_l1_cache` y `_d3_l1_cache`).
-  - Memoización de distancias topológicas en `ProjectDependencyGraph._distance_cache`.
-- **Resultado:** Latencia P95 reducida de 246.22 ms a **10.415 ms** (aceleración de 23.6x).
+### Task R-1: WAL Indexing and L1 Write-Through in `LocalSemanticCache` & `ContextFirewallEngine`
+- **Implementation:**
+  - Creation of table `d3_symbol_index` with schema `(module_rel_path, sha256, mtime, symbols_json, symbol_count)` in WAL mode with `PRAGMA synchronous = NORMAL`.
+  - Reused persistent SQLite connection (`self._conn` with `check_same_thread=False`).
+  - L1 in-memory write-through layer in `LocalSemanticCache` (`_l1_cache` and `_d3_l1_cache`).
+  - Topological distance memoization in `ProjectDependencyGraph._distance_cache`.
+- **Result:** P95 latency reduced from 246.22 ms to **10.415 ms** (23.6x speedup).
 
-### Tarea R-2: Expansión de Cobertura y Trazabilidad Bytecode en `config.py` y `topological.py`
-- **Implementación:**
-  - Adición de pruebas exhaustivas en [`tests/test_depth_configurator.py`](file:///C:/ctxfw/tests/test_depth_configurator.py) y [`tests/test_topological_resolver.py`](file:///C:/ctxfw/tests/test_topological_resolver.py) cubriendo paths relativos, resolución fuera de raíz, clamping por presupuesto, techos de tokens, rotación atómica y capturas de excepciones.
-  - Corrección de la instrumentación de cobertura utilizando `trace._find_executable_linenos` para mapeo exacto de líneas ejecutables en bytecode y descarga limpia de `sys.modules`.
-- **Resultado:** Cobertura de `config.py` elevada a **99.1%** y `topological.py` a **96.1%** (Global: **97.1%**). 180 / 180 pruebas unitarias en verde.
+### Task R-2: Bytecode Coverage Expansion and Traceability in `config.py` and `topological.py`
+- **Implementation:**
+  - Added exhaustive tests in [`tests/test_depth_configurator.py`](file:///C:/ctxfw/tests/test_depth_configurator.py) and [`tests/test_topological_resolver.py`](file:///C:/ctxfw/tests/test_topological_resolver.py) covering relative paths, out-of-root resolution, budget clamping, token ceilings, atomic rotation, and exception catching.
+  - Corrected coverage instrumentation using `trace._find_executable_linenos` for exact bytecode executable line mapping and clean unloading of `sys.modules`.
+- **Result:** Coverage of `config.py` elevated to **99.1%** and `topological.py` to **96.1%** (Overall: **97.1%**). 180 / 180 unit tests green.
 
 ---
-*Reporte forense emitido bajo el protocolo de soberanía de agentes Heurístico LAB.*  
-*Manifiesto criptográfico inmutable:* `837e90a0d2d97f569f7190da2652d4e578efadf86b71d4a5c3020c6e16bf5bd3`
+*Forensic report issued under Heurístico LAB Sovereign Governance Protocol.*  
+*Immutable cryptographic attestation hash:* `837e90a0d2d97f569f7190da2652d4e578efadf86b71d4a5c3020c6e16bf5bd3`

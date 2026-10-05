@@ -250,11 +250,11 @@ class D3SymbolExtractor(ast.NodeVisitor):
 
 
 class TopologicalContextBundleDTO(BaseModel):
-    """Contrato inmutable de paquete de contexto topológico optimizado."""
+    """Immutable optimized topological context bundle contract."""
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     root_target: str
-    entries: Dict[str, OptimizationResultDTO] = Field(..., description="Módulos optimizados indexados por ruta relativa")
+    entries: Dict[str, OptimizationResultDTO] = Field(..., description="Optimized modules indexed by relative path")
     ambient_manifest: Optional[str] = Field(default=None, description="D3 Ambient Symbol Cartography manifest if enabled")
 
     def to_dict(self) -> Dict[str, str]:

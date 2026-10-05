@@ -48,5 +48,5 @@ A pivotal finding is the compounding token compaction as depth expands from dire
 - **AST Pass Rate:** 100% syntactic validity verified across all generated code stubs (`ast.parse() == True`).
 
 ---
-*Reporte forense emitido bajo el protocolo de soberanía de agentes Heurístico LAB.*  
-*Manifiesto criptográfico inmutable:* `837e90a0d2d97f569f7190da2652d4e578efadf86b71d4a5c3020c6e16bf5bd3`
+*Forensic report issued under Heurístico LAB Sovereign Governance Protocol.*  
+*Immutable cryptographic attestation hash:* `837e90a0d2d97f569f7190da2652d4e578efadf86b71d4a5c3020c6e16bf5bd3`

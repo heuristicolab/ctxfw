@@ -293,12 +293,12 @@ async def push_telemetry_heartbeat(
     client: Optional[httpx.AsyncClient] = None,
 ) -> int:
     """
-    Heartbeat asíncrono hacia el endpoint central /api/telemetry/push.
-    Garantiza Resiliencia Offline: si el endpoint central está inalcanzable,
-    las métricas se retienen en SQLite WAL y se sincronizarán en el próximo pulso.
+    Asynchronous heartbeat to the central telemetry push endpoint.
+    Guarantees Offline Resilience: if the central endpoint is unreachable,
+    metrics are retained in SQLite WAL and will synchronize on the next heartbeat.
     """
     if httpx is None:
-        # Fail-open silencioso en entornos mínimos sin dependencias de red
+        # Silent fail-open in minimal environments without network dependencies
         return 0
 
     active_ledger = ledger or TelemetryLedger()
@@ -324,7 +324,7 @@ async def push_telemetry_heartbeat(
             return len(record_ids)
         return 0
     except Exception:
-        # Resiliencia offline: Retiene los registros en SQLite para el siguiente pulso
+        # Offline resilience: Retain records in SQLite for next pulse
         return 0
     finally:
         if should_close:

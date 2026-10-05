@@ -34,11 +34,11 @@ CTXFW (Context Framework) is an in-memory, deterministic AST pruning firewall an
     - `export OPENAI_BASE_URL="http://localhost:8765/v1"`
   - Zero-egress local loopback processing with < 5 ms warm cache overhead.
 
-## Architecture & Deployment Tiers
-1. **Tier 0: Perimeter Audit ($1,500 USD):** 24h turn-around static context and token leakage audit.
-2. **Tier 1: Core Engine License ($4,500 USD):** Self-hosted AST pruning daemon for single-repo pipelines.
-3. **Tier 2: Sovereign AI Forge ($9,500 USD):** Multi-model routing, dynamic cost-capping, and bespoke Tree-sitter grammars.
-4. **Tier 3: Skunk Works Enterprise ($16,500+ USD):** Air-gapped deployment, custom compiler bridges, and on-premise SLA.
+## Architecture & Deployment Topologies
+1. **Local CLI & Git Hook:** Ephemeral developer workstation inspection and pre-commit context boundaries.
+2. **Native MCP Stdio Daemon:** Transparent in-process AST pruning for agentic IDEs (Claude Desktop, Claude Code, Cursor, Windsurf).
+3. **Zero-Egress Reverse Proxy:** Port-forwarded loopback proxy (`/v1/chat/completions`, `/v1/messages`) for non-MCP agents (Aider, OpenCode, Continue).
+4. **Air-Gapped CI/CD Gatekeeper:** Headless automated perimeter analysis, GitHub Actions job summaries, and sovereign deterministic PR auditing.
 
 ## API & Endpoints
 - Documentation & Live Sensor: https://ctxfw.heuristicolab.com

@@ -68,25 +68,25 @@ class CtxfwConfigDTO(BaseModel):
 
     max_depth: ContextDepthLevel = Field(
         default=ContextDepthLevel.TRANSITIVE_NOMINAL,
-        description="Profundidad topológica máxima para la resolución del grafo."
+        description="Maximum topological depth for dependency graph resolution."
     )
     ambient_manifest: bool = Field(
         default=False,
-        description="Habilitar generación de índice plano de símbolos a D3."
+        description="Enable zero-syntax flat symbol index generation for D3."
     )
     distractor_budget: int = Field(
         default=150,
         ge=20,
         le=500,
-        description="Cota máxima de símbolos exportados inyectables en D3."
+        description="Maximum ceiling of exported symbols injectable in D3."
     )
     subsystem_clamping: bool = Field(
         default=True,
-        description="Restringir D3 a los prefijos de paquete compartidos por D1/D2."
+        description="Restrict D3 to package prefixes shared by D1/D2 ancestors."
     )
     stale_reads_on_herd: bool = Field(
         default=True,
-        description="Retornar snapshot SQLite previo ante cambios masivos de mtime."
+        description="Return cached SQLite snapshot under thundering herd mtime spikes."
     )
 
 

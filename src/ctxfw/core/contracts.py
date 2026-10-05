@@ -10,14 +10,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class PruningDepth(str, Enum):
-    """Niveles de profundidad de poda topológica."""
-    FULL = "full"             # D0: 100% código íntegro sin poda
-    INTERFACE = "interface"   # D1: Firmas, tipos, docstrings, decoradores, raises sanitizados y ...
-    NOMINAL = "nominal"       # D2+: Esquemas puramente nominales (clases / DTOs sin métodos)
+    """Topological pruning depth levels."""
+    FULL = "full"             # D0: 100% full implementation retained untouched
+    INTERFACE = "interface"   # D1: Signatures, types, docstrings, decorators, sanitized raises, and ...
+    NOMINAL = "nominal"       # D2+: Purely nominal schemas (classes / DTOs without methods)
 
 
 class SupportedLanguage(str, Enum):
-    """Lenguajes de programación soportados formalmente en el motor de optimización."""
+    """Programming languages formally supported by the optimization engine."""
     PYTHON = "python"
     TYPESCRIPT = "typescript"
     JAVASCRIPT = "javascript"
@@ -26,19 +26,19 @@ class SupportedLanguage(str, Enum):
 
 
 class OptimizationRequestDTO(BaseModel):
-    """Contrato inmutable de solicitud de optimización."""
+    """Immutable optimization request contract."""
     model_config = ConfigDict(frozen=True, extra="forbid", str_strip_whitespace=True)
 
-    source_code: str = Field(..., min_length=1, description="Código fuente a podar")
-    language: Union[SupportedLanguage, str] = Field(default=SupportedLanguage.PYTHON, description="Lenguaje de programación")
-    strip_docs: bool = Field(default=False, description="Purga total de docstrings si es True")
-    depth: PruningDepth = Field(default=PruningDepth.INTERFACE, description="Profundidad de podado")
-    sanitize_raises: bool = Field(default=True, description="Sanitizar argumentos de sentencias raise")
+    source_code: str = Field(..., min_length=1, description="Source code to prune")
+    language: Union[SupportedLanguage, str] = Field(default=SupportedLanguage.PYTHON, description="Programming language")
+    strip_docs: bool = Field(default=False, description="Purge docstrings if True")
+    depth: PruningDepth = Field(default=PruningDepth.INTERFACE, description="Pruning depth level")
+    sanitize_raises: bool = Field(default=True, description="Sanitize raise statement arguments")
     mode: Optional[str] = Field(default=None, description="Engine operating mode ('distance' or 'passthrough')")
 
 
 class OptimizationResultDTO(BaseModel):
-    """Métricas y resultado del contexto optimizado."""
+    """Metrics and output of the optimized context."""
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     pruned_code: str
@@ -48,31 +48,31 @@ class OptimizationResultDTO(BaseModel):
     savings_percentage: float = Field(..., ge=0.0, le=100.0)
     cache_hit: bool
     execution_ms: float = Field(..., ge=0.0)
-    depth: PruningDepth = Field(default=PruningDepth.INTERFACE, description="Nivel de profundidad aplicado")
+    depth: PruningDepth = Field(default=PruningDepth.INTERFACE, description="Applied depth level")
 
 
 class TelemetryRecordDTO(BaseModel):
-    """Contrato inmutable de telemetría anónima perimetral (inviolabilidad perimetral)."""
+    """Immutable perimeter anonymous telemetry contract (perimeter sovereignty)."""
     model_config = ConfigDict(frozen=True, extra="forbid", str_strip_whitespace=True)
 
-    dev_uuid: str = Field(..., min_length=8, description="Identificador anónimo único del desarrollador")
-    timestamp_utc: str = Field(..., description="Marca temporal UTC en formato ISO 8601")
-    model_target: str = Field(..., min_length=1, description="Nombre del modelo LLM objetivo")
-    tokens_orig: int = Field(..., ge=0, description="Tokens originales evaluados")
-    tokens_pruned: int = Field(..., ge=0, description="Tokens eludidos/podados")
-    usd_avoided: float = Field(..., ge=0.0, description="Ahorro financiero estimado en USD")
-    team: str = Field(default="Engineering", description="Equipo organizativo")
+    dev_uuid: str = Field(..., min_length=8, description="Unique anonymous developer identifier")
+    timestamp_utc: str = Field(..., description="UTC ISO 8601 timestamp")
+    model_target: str = Field(..., min_length=1, description="Target LLM model name")
+    tokens_orig: int = Field(..., ge=0, description="Original evaluated tokens")
+    tokens_pruned: int = Field(..., ge=0, description="Tokens pruned or elided")
+    usd_avoided: float = Field(..., ge=0.0, description="Estimated financial savings in USD")
+    team: str = Field(default="Engineering", description="Organizational team")
 
 
 class TelemetryBatchPushDTO(BaseModel):
-    """Lote de registros de telemetría anónima para sincronización perimetral."""
+    """Batch of anonymous telemetry records for perimeter synchronization."""
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    records: list[TelemetryRecordDTO] = Field(..., description="Lista de eventos de telemetría anónima")
+    records: list[TelemetryRecordDTO] = Field(..., description="List of anonymous telemetry events")
 
 
 class TeamSavingsDTO(BaseModel):
-    """Métricas agregadas por equipo organizativo."""
+    """Aggregated metrics by organizational team."""
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     team: str
@@ -82,7 +82,7 @@ class TeamSavingsDTO(BaseModel):
 
 
 class ModelSavingsDTO(BaseModel):
-    """Métricas agregadas por modelo de lenguaje."""
+    """Aggregated metrics by language model."""
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     model_target: str
@@ -92,7 +92,7 @@ class ModelSavingsDTO(BaseModel):
 
 
 class TelemetryStatsDTO(BaseModel):
-    """Estadísticas globales agregadas para el plano de control y dashboard FinOps."""
+    """Global aggregated statistics for control plane and FinOps dashboard."""
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     total_tokens_orig: int = Field(..., ge=0)

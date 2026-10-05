@@ -78,3 +78,18 @@ specs/**
 *.conf
 *.xml
 *.log
+
+# =====================================================================
+# INTERNAL ASSETS & BUSINESS STRATEGY (PROPRIETARY - ZERO PUBLIC ACCESS)
+# =====================================================================
+docs/reports/
+docs/internal/
+docs/biz/
+docs/telemetry/
+*.biz.md
+*.internal.md
+bizdev/
+internal/
+scripts/*biz*.py
+scripts/*sales*.py
+

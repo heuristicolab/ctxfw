@@ -18,23 +18,23 @@ from ctxfw.storage.cache import get_canonical_cache_path
 
 
 class FinOpsReportDTO(BaseModel):
-    """Contrato inmutable de auditoría financiera y métricas de tokens."""
+    """Immutable financial audit and token metrics contract."""
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    total_tokens_evaluated: int = Field(..., ge=0, description="Volumen total de tokens evaluados en código original")
-    tokens_saved_cold: int = Field(..., ge=0, description="Tokens ahorrados mediante slicing sintáctico AST")
-    tokens_saved_cache_bypass: int = Field(..., ge=0, description="Tokens 100% eludidos mediante hits de caché cálida")
-    net_tokens_saved: int = Field(..., ge=0, description="Total neto de tokens ahorrados")
-    estimated_usd_savings: float = Field(..., ge=0.0, description="Ahorro financiero proyectado en USD")
-    cache_hit_ratio: float = Field(..., ge=0.0, le=100.0, description="Tasa porcentual de aciertos de caché")
-    air_gapped_certified: bool = Field(default=True, description="Certificación de ejecución 100% local sin red")
-    timestamp: str = Field(..., description="Marca temporal UTC de la auditoría en formato ISO 8601")
+    total_tokens_evaluated: int = Field(..., ge=0, description="Total volume of tokens evaluated in original source code")
+    tokens_saved_cold: int = Field(..., ge=0, description="Tokens saved via AST syntactic slicing")
+    tokens_saved_cache_bypass: int = Field(..., ge=0, description="Tokens completely elided via warm cache hits")
+    net_tokens_saved: int = Field(..., ge=0, description="Net total tokens saved")
+    estimated_usd_savings: float = Field(..., ge=0.0, description="Projected financial savings in USD")
+    cache_hit_ratio: float = Field(..., ge=0.0, le=100.0, description="Cache hit ratio percentage")
+    air_gapped_certified: bool = Field(default=True, description="Certification of 100% air-gapped local execution")
+    timestamp: str = Field(..., description="UTC ISO 8601 audit timestamp")
 
 
 class FinOpsAuditor:
-    """Motor de cálculo financiero y auditoría de tokens."""
+    """Financial calculation and token auditing engine."""
 
-    DEFAULT_PRICE_PER_MILLION: float = 3.0  # Base USD por 1M de tokens (tier estándar frontier LLM)
+    DEFAULT_PRICE_PER_MILLION: float = 3.0  # Base USD per 1M tokens (standard frontier LLM tier)
 
     @classmethod
     def audit_bundle(
