@@ -1,13 +1,14 @@
 """
-src/ctxfw/config.py — Dynamic Configuration Engine (v3.7.0)
-manifest_hash: 2a63e65e200442944f6f0c4d804a965681f4c919a9d306c26484b7903308dca1
+src/ctxfw/config.py — Dynamic Configuration Engine (v4.0.0-dev)
+manifest_hash: 837e90a0d2d97f569f7190da2652d4e578efadf86b71d4a5c3020c6e16bf5bd3
 
-Manages persistent user configuration in ~/.ctxfw/config.json with Pydantic v2 immutability,
-atomic filesystem staging (.tmp -> os.replace), and zero-exception fallback on corrupt JSON.
+Manages persistent user configuration in ~/.ctxfw/config.json and workspace .ctxfwrc
+with Pydantic v2 immutability, atomic filesystem staging (.tmp -> os.replace),
+and zero-exception fallback on corrupt JSON.
 """
 from __future__ import annotations
 
-from enum import Enum
+from enum import Enum, IntEnum
 import json
 import os
 from pathlib import Path
@@ -53,6 +54,166 @@ class AppConfigDTO(BaseModel):
 
     engine: EngineConfigDTO = Field(default_factory=EngineConfigDTO, description="Context firewall engine settings")
     finops: FinOpsConfigDTO = Field(default_factory=FinOpsConfigDTO, description="FinOps economic settings")
+
+
+class ContextDepthLevel(IntEnum):
+    PURE_PASSTHROUGH = 0      # D0: Exclusivamente archivo activo (100% lógica)
+    DIRECT_INTERFACE = 1      # D1: Contratos directos y stubs tipados (...)
+    TRANSITIVE_NOMINAL = 2    # D2: Firmas y clases nominales (Baseline v3.8.0)
+    AMBIENT_CARTOGRAPHY = 3   # D3: Manifiesto léxico de coordenadas (v4.0 H1)
+
+
+class CtxfwConfigDTO(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    max_depth: ContextDepthLevel = Field(
+        default=ContextDepthLevel.TRANSITIVE_NOMINAL,
+        description="Profundidad topológica máxima para la resolución del grafo."
+    )
+    ambient_manifest: bool = Field(
+        default=False,
+        description="Habilitar generación de índice plano de símbolos a D3."
+    )
+    distractor_budget: int = Field(
+        default=150,
+        ge=20,
+        le=500,
+        description="Cota máxima de símbolos exportados inyectables en D3."
+    )
+    subsystem_clamping: bool = Field(
+        default=True,
+        description="Restringir D3 a los prefijos de paquete compartidos por D1/D2."
+    )
+    stale_reads_on_herd: bool = Field(
+        default=True,
+        description="Retornar snapshot SQLite previo ante cambios masivos de mtime."
+    )
+
+
+_CANONICAL_DEPTH_CONFIG = CtxfwConfigDTO()
+
+
+def load_depth_config(
+    project_root: Optional[Path | str] = None,
+    custom_config_path: Optional[Path | str] = None,
+) -> CtxfwConfigDTO:
+    """
+    Loads dynamic context depth configuration adhering to SPEC-004 hierarchy:
+    1. Environment variables / MCP Client injection (CTXFW_DEPTH, CTXFW_DISTRACTOR_BUDGET, etc.)
+    2. Local workspace configuration (.ctxfwrc, .ctxfw.json)
+    3. Global user configuration (~/.ctxfw/config.json)
+    4. Canonical in-memory defaults (max_depth=2, ambient_manifest=False, distractor_budget=150)
+
+    Enforces AXIOM-20:
+    Never executes topological depth expansions exceeding depth 3 (D > 3), and rejects malformed values.
+    Enforces AXIOM-21:
+    Never transmits workspace config or environment overrides outside local host.
+    """
+    raw_cfg: dict[str, Any] = {}
+
+    # 1. Attempt to load from workspace or custom config file
+    candidate_paths: list[Path] = []
+    if custom_config_path:
+        candidate_paths.append(Path(custom_config_path))
+    else:
+        root_dir = Path(project_root) if project_root else Path.cwd()
+        candidate_paths.extend([
+            root_dir / ".ctxfwrc",
+            root_dir / ".ctxfw.json",
+        ])
+
+    for cand in candidate_paths:
+        if cand.is_file():
+            try:
+                if cand.stat().st_size > 1048576:
+                    sys.stderr.write(f"[ctxfw] Warning: {cand} exceeds 1 MB limit. Ignoring.\\n")
+                    break
+                content = cand.read_text(encoding="utf-8")
+                parsed = json.loads(content)
+                if isinstance(parsed, dict):
+                    clean_dict = {k: v for k, v in parsed.items() if not k.startswith("$")}
+                    raw_cfg.update(clean_dict)
+                    break
+            except Exception as e:
+                sys.stderr.write(f"[ctxfw] Warning: failed to parse config at {cand} ({e}). Falling back.\\n")
+                break
+
+    # Fast-path for default canonical environment (zero disk overhead)
+    if (
+        not raw_cfg
+        and "CTXFW_DEPTH" not in os.environ
+        and "CTXFW_DISTRACTOR_BUDGET" not in os.environ
+        and "CTXFW_AMBIENT_MANIFEST" not in os.environ
+        and "CTXFW_SUBSYSTEM_CLAMPING" not in os.environ
+        and "CTXFW_STALE_READS_ON_HERD" not in os.environ
+    ):
+        return _CANONICAL_DEPTH_CONFIG
+
+    # Sanitize max_depth from file if present
+    if "max_depth" in raw_cfg:
+        try:
+            m_val = int(raw_cfg["max_depth"])
+            if m_val < 0 or m_val > 3:
+                sys.stderr.write(
+                    f"[ctxfw] Warning: max_depth={m_val} in config exceeds ceiling [0, 3]. Clamping to D2.\\n"
+                )
+                raw_cfg["max_depth"] = ContextDepthLevel.TRANSITIVE_NOMINAL
+            else:
+                raw_cfg["max_depth"] = ContextDepthLevel(m_val)
+        except (ValueError, TypeError):
+            sys.stderr.write(
+                "[ctxfw] Warning: max_depth in config is malformed. Clamping to D2.\\n"
+            )
+            raw_cfg["max_depth"] = ContextDepthLevel.TRANSITIVE_NOMINAL
+
+    # 2. Environment variables / MCP Server Client injection overrides (Highest Priority)
+    if "CTXFW_DEPTH" in os.environ:
+        val = os.environ["CTXFW_DEPTH"].strip()
+        try:
+            depth_int = int(val)
+            if 0 <= depth_int <= 3:
+                raw_cfg["max_depth"] = ContextDepthLevel(depth_int)
+            else:
+                sys.stderr.write(
+                    f"[ctxfw] Warning: CTXFW_DEPTH={depth_int} exceeds ceiling [0, 3]. Falling back to D2.\\n"
+                )
+                raw_cfg["max_depth"] = ContextDepthLevel.TRANSITIVE_NOMINAL
+        except (ValueError, TypeError):
+            sys.stderr.write(
+                f"[ctxfw] Warning: CTXFW_DEPTH='{val}' is malformed. Falling back to D2.\\n"
+            )
+            raw_cfg["max_depth"] = ContextDepthLevel.TRANSITIVE_NOMINAL
+
+    if "CTXFW_DISTRACTOR_BUDGET" in os.environ:
+        val = os.environ["CTXFW_DISTRACTOR_BUDGET"].strip()
+        try:
+            budget_int = int(val)
+            raw_cfg["distractor_budget"] = max(20, min(500, budget_int))
+        except (ValueError, TypeError):
+            pass
+
+    if "CTXFW_AMBIENT_MANIFEST" in os.environ:
+        val = os.environ["CTXFW_AMBIENT_MANIFEST"].strip().lower()
+        raw_cfg["ambient_manifest"] = val in {"1", "true", "yes", "on"}
+
+    if "CTXFW_SUBSYSTEM_CLAMPING" in os.environ:
+        val = os.environ["CTXFW_SUBSYSTEM_CLAMPING"].strip().lower()
+        raw_cfg["subsystem_clamping"] = val in {"1", "true", "yes", "on"}
+
+    if "CTXFW_STALE_READS_ON_HERD" in os.environ:
+        val = os.environ["CTXFW_STALE_READS_ON_HERD"].strip().lower()
+        raw_cfg["stale_reads_on_herd"] = val in {"1", "true", "yes", "on"}
+
+    # Automatic ambient activation if max_depth is 3 and ambient_manifest not explicitly set
+    if raw_cfg.get("max_depth") == ContextDepthLevel.AMBIENT_CARTOGRAPHY:
+        if "ambient_manifest" not in raw_cfg:
+            raw_cfg["ambient_manifest"] = True
+
+    try:
+        return CtxfwConfigDTO.model_validate(raw_cfg)
+    except ValidationError as e:
+        sys.stderr.write(f"[ctxfw] Warning: invalid depth configuration schema ({e}). Using defaults.\\n")
+        return CtxfwConfigDTO()
 
 
 def get_canonical_config_dir() -> Path:

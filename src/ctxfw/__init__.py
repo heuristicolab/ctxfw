@@ -1,11 +1,11 @@
 """
-ctxfw — Sovereign Context Firewall & Token Optimization Engine (v3.8.0)
-Axiom Manifest Hash: 4a35e336c0621f5b76a6abb20d975bc896c15592b5da2098f2454adc6a4d66a6
+ctxfw — Sovereign Context Firewall & Token Optimization Engine (v3.9.0)
+Axiom Manifest Hash: 9845b97331f39b4cb728b0702dd5b56693b5588c1d129a35a9843d5b8ad8d3ca
 Hermetic Toolchain implementation adhering to Google style and POSIX/XDG standards.
 """
 from __future__ import annotations
 
-__version__ = "3.8.0"
+__version__ = "3.9.0"
 
 from ctxfw.core.contracts import (
     OptimizationRequestDTO,
@@ -13,10 +13,16 @@ from ctxfw.core.contracts import (
     PruningDepth,
     SupportedLanguage,
 )
+from ctxfw.config import (
+    ContextDepthLevel,
+    CtxfwConfigDTO,
+    load_depth_config,
+)
 from ctxfw.core.polyglot import TreeSitterContextPruner
 from ctxfw.core.pruner import DeterministicContextPruner, _MethodBodyStripper
 from ctxfw.core.topological import (
     ContextFirewallEngine,
+    D3SymbolExtractor,
     ProjectDependencyGraph,
     StaticImportExtractor,
     TopologicalContextBundleDTO,
@@ -37,6 +43,10 @@ __all__ = [
     "ProjectDependencyGraph",
     "TopologicalContextBundleDTO",
     "ContextFirewallEngine",
+    "D3SymbolExtractor",
+    "ContextDepthLevel",
+    "CtxfwConfigDTO",
+    "load_depth_config",
     "LocalSemanticCache",
     "get_canonical_cache_path",
     "handle_init_command",

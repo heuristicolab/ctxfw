@@ -1,0 +1,151 @@
+{
+  "manifest_hash": "351a333911df4bc45293747327914ab094008ac9dc8aad8191c3e5f3b0dbc5fd",
+  "task1_latency": {
+    "results_by_depth": {
+      "D0 (Pass-through)": {
+        "avg_ms": 4.263,
+        "p50_ms": 4.137,
+        "p95_ms": 5.525,
+        "p99_ms": 6.194,
+        "modules_count": 1,
+        "has_manifest": false
+      },
+      "D1 (Direct Interface)": {
+        "avg_ms": 5.475,
+        "p50_ms": 5.389,
+        "p95_ms": 6.808,
+        "p99_ms": 7.319,
+        "modules_count": 6,
+        "has_manifest": false
+      },
+      "D2 (Transitive Nominal)": {
+        "avg_ms": 9.667,
+        "p50_ms": 9.795,
+        "p95_ms": 12.123,
+        "p99_ms": 13.967,
+        "modules_count": 26,
+        "has_manifest": false
+      },
+      "D3 (Ambient Manifest)": {
+        "avg_ms": 8.529,
+        "p50_ms": 8.496,
+        "p95_ms": 10.415,
+        "p99_ms": 12.143,
+        "modules_count": 11,
+        "has_manifest": true
+      }
+    },
+    "wal_throughput_ops_sec": 528.6,
+    "wal_errors": 0,
+    "busy_handled_cleanly": true,
+    "recovery_time_ms": 9.576
+  },
+  "task2_tokens": {
+    "token_breakdown": {
+      "D0 (Pass-through)": {
+        "total_tokens": 144,
+        "manifest_tokens": 0,
+        "symbols_injected": 0,
+        "total_chars": 576,
+        "modules_count": 1,
+        "overhead_vs_d1_pct": -71.9
+      },
+      "D1 (Direct Interface)": {
+        "total_tokens": 512,
+        "manifest_tokens": 0,
+        "symbols_injected": 0,
+        "total_chars": 2051,
+        "modules_count": 6,
+        "overhead_vs_d1_pct": 0.0
+      },
+      "D2 (Transitive Nominal)": {
+        "total_tokens": 1555,
+        "manifest_tokens": 0,
+        "symbols_injected": 0,
+        "total_chars": 6222,
+        "modules_count": 26,
+        "overhead_vs_d1_pct": 203.7
+      },
+      "D3 (Ambient 150)": {
+        "total_tokens": 1001,
+        "manifest_tokens": 269,
+        "symbols_injected": 35,
+        "total_chars": 4005,
+        "modules_count": 11,
+        "overhead_vs_d1_pct": 95.5
+      }
+    },
+    "clamping_results": {
+      "50": {
+        "budget_requested": 50,
+        "symbols_delivered": 35,
+        "manifest_tokens": 269,
+        "strictly_bounded": true
+      },
+      "150": {
+        "budget_requested": 150,
+        "symbols_delivered": 35,
+        "manifest_tokens": 269,
+        "strictly_bounded": true
+      },
+      "300": {
+        "budget_requested": 300,
+        "symbols_delivered": 35,
+        "manifest_tokens": 269,
+        "strictly_bounded": true
+      }
+    },
+    "all_d3_symbols_count": 56,
+    "retained_symbols": 35,
+    "pruned_noise_count": 21,
+    "signal_ratio_pct": 62.5
+  },
+  "task3_regression": {
+    "init_p50_ms": 0.1352,
+    "init_p95_ms": 0.2156,
+    "init_avg_ms": 0.1523,
+    "peak_ram_mb": 0.13,
+    "execution_time_ms": 210.8,
+    "ast_identity_verified": true,
+    "zero_sqlite_on_init": true
+  },
+  "task4_fault_tolerance": {
+    "scenarios": {
+      "corrupted_json_handled": true,
+      "out_of_bounds_depth_clamped": true,
+      "oversized_config_quarantined": true,
+      "dynamic_namespace_quarantined": true,
+      "subsystem_boundary_enforced": true
+    },
+    "all_fault_scenarios_passed": true
+  },
+  "coverage": {
+    "config_pct": 99.1,
+    "topo_pct": 96.1,
+    "combined_pct": 97.1,
+    "compliant_ca04": true
+  },
+  "criteria": {
+    "CA-01": {
+      "pass": true,
+      "threshold": "<= 25.0 ms",
+      "measured": "10.415 ms"
+    },
+    "CA-02": {
+      "pass": true,
+      "threshold": "<= 2.0 ms",
+      "measured": "0.2156 ms"
+    },
+    "CA-03": {
+      "pass": true,
+      "threshold": "zero unhandled",
+      "measured": "0 unhandled"
+    },
+    "CA-04": {
+      "pass": true,
+      "threshold": ">= 95.0%",
+      "measured": "97.1%"
+    }
+  },
+  "verdict": "GO (Apto para release v3.9.0)"
+}
