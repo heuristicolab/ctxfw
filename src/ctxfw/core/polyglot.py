@@ -10,7 +10,6 @@ import time
 from typing import Dict, List, Tuple
 
 from ctxfw.core.contracts import SupportedLanguage
-from ctxfw.storage.telemetry import TelemetryLedger
 
 
 class TreeSitterContextPruner:

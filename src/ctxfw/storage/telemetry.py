@@ -14,7 +14,10 @@ import sqlite3
 from typing import List, Optional
 import uuid
 
-import httpx
+try:
+    import httpx
+except ImportError:
+    httpx = None
 
 from ctxfw.core.contracts import (
     ModelSavingsDTO,
@@ -294,6 +297,10 @@ async def push_telemetry_heartbeat(
     Garantiza Resiliencia Offline: si el endpoint central está inalcanzable,
     las métricas se retienen en SQLite WAL y se sincronizarán en el próximo pulso.
     """
+    if httpx is None:
+        # Fail-open silencioso en entornos mínimos sin dependencias de red
+        return 0
+
     active_ledger = ledger or TelemetryLedger()
     unsynced = active_ledger.get_unsynced_records(limit=100)
     if not unsynced:
@@ -329,6 +336,10 @@ def push_telemetry_heartbeat_sync(
     ledger: Optional[TelemetryLedger] = None,
 ) -> int:
     """Synchronous version for CLI execution."""
+    if httpx is None:
+        # Fail-open silencioso en entornos mínimos sin dependencias de red
+        return 0
+
     active_ledger = ledger or TelemetryLedger()
     unsynced = active_ledger.get_unsynced_records(limit=100)
     if not unsynced:
