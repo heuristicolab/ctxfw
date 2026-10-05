@@ -1,0 +1,24 @@
+# Dockerfile.trilogy — Containerized Multi-Depth Benchmark Harness (v4.0.0-preview)
+# Attestation Manifest Hash: 837e90a0d2d97f569f7190da2652d4e578efadf86b71d4a5c3020c6e16bf5bd3
+
+FROM python:3.11-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git sqlite3 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# Pre-create directory structures
+RUN mkdir -p /workspace/repos /workspace/results /workspace/ctxfw
+
+# Copy source repository
+COPY . /workspace/ctxfw
+
+# Install ctxfw in editable mode
+RUN pip install --no-cache-dir -e /workspace/ctxfw
+
+WORKDIR /workspace/ctxfw
+
+# Default invocation runs the multi-depth empirical benchmark harness
+ENTRYPOINT ["python", "benchmarks/run_remote_trilogy_d3.py", "--repos-dir", "/workspace/repos", "--output-dir", "/workspace/results"]

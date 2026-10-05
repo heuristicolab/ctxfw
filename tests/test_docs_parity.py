@@ -63,6 +63,14 @@ def test_llms_txt_contains_canonical_references():
     assert "TRILOGY_EMPIRICAL_BENCHMARK.md" in llms_text, "llms.txt no referencia el benchmark de la trilogía"
     assert "RELEASE_NOTES_v" in llms_text, "llms.txt no enlaza las notas de release"
 
+    # Valida que todos los archivos markdown locales referenciados existan en disco
+    links = re.findall(r'\[([^\]]+)\]\(([^)]+\.md)\)', llms_text)
+    for title, link in links:
+        if not link.startswith("http"):
+            target_path = REPO_ROOT / link
+            assert target_path.is_file(), f"Enlace roto en llms.txt: {link} no existe en disco"
+
+
 
 def test_test_count_parity():
     """Verifica que la cantidad de tests declarada en documentación coincida con el reporte oficial."""

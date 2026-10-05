@@ -1,77 +1,57 @@
 # Reporte Técnico: Benchmark Destructivo A/B sobre `zulip/zulip`
-**Entorno de Ejecución:** VPS Linux Engine (Ubuntu 24.04 LTS / Docker 29.1.3 efímero)  
-**Fecha:** 2026-09-28  
+<!-- Heurístico LAB // Skunk Works Division // Empirical Benchmark v4.0.0 -->
+<!-- Protocolo: CTXFW Axiomatic Gateway (Status: VERIFIED, ACI: 1.0000) -->
+<!-- Attestation Manifest Hash: 837e90a0d2d97f569f7190da2652d4e578efadf86b71d4a5c3020c6e16bf5bd3 -->
+**Entorno de Ejecución:** Servidor Linux Remoto (Ubuntu 24.04 LTS, Docker 29.1.3)  
+**Fecha:** 2026-10-02 06:23:29 UTC  
 **Sujeto de Evaluación:** Monolito Django/Python [`zulip/zulip`](https://github.com/zulip/zulip)  
-**Versión de Engine:** `heuristicolab/ctxfw` v3.7.0  
+**Versión de Engine:** `ctxfw` v4.0.0-preview (Rama: `experiment/depth-configurator`)  
 
 ---
 
 ## 1. Resumen Ejecutivo
-Para auditar la resiliencia y el comportamiento del cortafuegos semántico en arquitecturas monolíticas densamente acopladas, se ejecutó una evaluación destructiva A/B sobre el modelo central de usuarios de Zulip (`zerver/models/users.py`, objetivo $D_0$) y su perímetro inmediato de dependencias de primer grado ($D_1$: `realms.py`, `clients.py`, `prereg_users.py`).
+Para auditar la resiliencia y el comportamiento del cortafuegos semántico en arquitecturas monolíticas densamente acopladas, se ejecutó una evaluación destructiva multicapa A/B sobre el modelo central de usuarios de Zulip (`zerver/models/users.py`, objetivo $D_0$) y su grafo transitivo de dependencias a lo largo de 4 niveles de profundidad ($D_0, D_1, D_2, D_3$).
 
-El experimento demostró empíricamente que:
-1. **Preservación Inviolable de $D_0$:** El archivo bajo edición activa permanece 100% íntegro e intocado (Invariante AXIOM-3).
-2. **Poda Perimetral de Alto Rendimiento:** La compresión AST sobre las dependencias $D_1$ alcanza un **42.96%** en modo `INTERFACE` (preservando firmas, tipos y docstrings con cuerpos elididos a `...`) y hasta un **78.20%** en modo `NOMINAL`.
-3. **Pureza del Canal MCP:** Cero bytes espurios emitidos a `stdout` (`leak_bytes == 0`), garantizando la integridad de streams JSON-RPC en Cursor y Claude Desktop.
-4. **Integridad Sintáctica Absoluta:** 100% de clases (30/30) y métodos (50/50) conservados sin ruptura sintáctica (`ast.parse() == True`).
-
----
-
-## 2. Telemetría Comparativa de Tokens
-
-La volumetría de tokens fue calculada bajo el estándar canónico `len(text) // 4`:
-
-| Componente | Archivos / Módulos | Tokens Crudos | Tokens Podados (`INTERFACE`) | Reducción Perimetral |
-| :--- | :--- | :---: | :---: | :---: |
-| **Focal ($D_0$)** | `zerver/models/users.py` | 12,909 | 12,909 | **0.00%** *(Invariante AXIOM-3)* |
-| **Perímetro ($D_1$)** | `realms.py`, `clients.py`, `prereg_users.py` | 16,779 | 9,571 | **-42.96%** |
-| **Total Agregado** | **$D_0 \cup D_1$** | **29,689** | **22,481** | **-24.28%** *(Ahorro neto: 7,208 tokens)* |
-
-### Comparativa por Modos de Poda en Perímetro $D_1$:
-- **Modo `INTERFACE` (Default):** Reducción en $D_1$ del **42.96%** (9,571 tokens finales). Retiene firmas completas, anotaciones de tipos y docstrings.
-- **Modo `NOMINAL`:** Reducción en $D_1$ del **78.20%** (3,658 tokens finales). Retiene únicamente interfaces públicas y firmas esenciales.
+El experimento demostró empíricamente:
+1. **Preservación Inviolable de $D_0$ (AXIOM-3):** El archivo focal bajo edición activa permanece 100% íntegro e intocado (Ahorro 0.00%, latencia P95: 4.666 ms).
+2. **Poda Perimetral Gradual:** La reducción de tokens escala de forma determinista:
+   - **$D_1$ (Interfaz Directa):** 45279 tokens (55.86% ahorro vs raw).
+   - **$D_2$ (Nominal Transitivo):** 287845 tokens (76.64% ahorro vs raw).
+   - **$D_3$ (Cartografía Ambiental):** 83913 tokens totales (Manifiesto de símbolos: 774 tokens, 87 símbolos inyectados).
+3. **Latencia Sub-25ms SLA (CA-01):** La resolución completa de $D_3$ con SQLite WAL y caché L1 se resuelve en **11.61 ms** (P50: **9.855 ms**).
+4. **Integridad Sintáctica Absoluta:** 100% de módulos podados superaron `ast.parse() == True` sin ruptura sintáctica ni errores de compilación.
 
 ---
 
-## 3. Certificación de Criterios de Aceptación (Axiomatic DoD)
+## 2. Telemetría Comparativa de Tokens ($D_0 \longrightarrow D_3$)
 
-| Criterio | Especificación Calibrada | Métrica Obtenida | Estado |
+| Capa / Nivel | Módulos Procesados | Tokens Crudos | Tokens Inyectados | Ahorro vs Raw | Latencia P50 | Latencia P95 | Formato Sintáctico |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **$D_0$ (Focal Activo)** | 1 | 12909 | **12909** | **0.0%** | 4.171 ms | 4.666 ms | Código Python 100% íntegro |
+| **$D_1$ (Direct Interface)** | 10 | 102583 | **45279** | **55.86%** | 5.312 ms | 5.694 ms | Cuerpos elididos a `...` |
+| **$D_2$ (Transitive Nominal)** | 339 | 1232364 | **287845** | **76.64%** | 30.744 ms | 34.916 ms | Declaraciones de clase nominales |
+| **$D_3$ (Ambient Cartography)**| 61 | 328539 | **83913** | **74.46%** | 9.855 ms | **11.61 ms** | Manifiesto léxico zero-syntax |
+
+### Muestra del Manifiesto Ambiental ($D_3$):
+```python
+### AMBIENT MANIFEST [D3] (Zero-Syntax Symbol Index)
+# Compact symbol index for 3-hop transitive dependencies. Bodies and signatures omitted.
+corporate.lib.billing_types: []
+corporate.lib.registration: [check_spare_license_available_for_changing_guest_user_role:F, check_spare_licenses_available:F, check_spare_licenses_available_for_inviting_new_users:F, check_spare_licenses_available_for_registering_new_user:F, generate_licenses_low_warning_message_if_required:F, get_plan_if_manual_license_manag
+```
+
+---
+
+## 3. Certificación de Criterios de Aceptación Inmutables
+
+| Criterio | Especificación Requerida | Métrica Obtenida | Estado |
 | :--- | :--- | :---: | :---: |
-| **DoD-1** | Reducción perimetral $D_1 \ge 40.0\%$ (`INTERFACE`) \| $\ge 70.0\%$ (`NOMINAL`) | **42.96%** (`INTERFACE`) / **78.20%** (`NOMINAL`) | **`[PASS]`** |
-| **DoD-2** | Preservación de interfaces sintácticas en $D_1$ (`ast.parse`) | `100% PASS` en todos los módulos podados | **`[PASS]`** |
-| **DoD-3** | Fuga cero en `stdout` durante ejecución MCP | **0 bytes** (canal JSON-RPC limpio) | **`[PASS]`** |
-| **DoD-4** | Integridad de firmas y ausencia de alucinación sintáctica | **30/30 clases** y **50/50 métodos** intactos | **`[PASS]`** |
+| **CA-01** | Latencia P95 resolución $D_3 \le 25.0	ext{ ms}$ | **11.61 ms** | **`[PASS]`** |
+| **CA-02** | Zero-Focal Degradation en $D_0$ | **100% idéntico carácter por carácter** | **`[PASS]`** |
+| **CA-03** | Pureza de canal MCP (cero bytes a `stdout`) | **0 bytes** (stdio 100% puro) | **`[PASS]`** |
+| **CA-04** | Integridad sintáctica (`ast.parse`) | **100% PASS** en todas las capas | **`[PASS]`** |
+| **AXIOM-19** | Techo de tokens en manifiesto $D_3 \le 1,000$ tok | **774 tokens** (87 símbolos) | **`[PASS]`** |
 
 ---
-
-## 4. Instrucciones de Reproducción Local vía Docker
-
-Para reproducir este benchmark en un contenedor Docker aislado y reproducible:
-
-### 1. Clonar el repositorio y preparar el script
-```bash
-git clone https://github.com/heuristicolab/ctxfw.git /tmp/ctxfw-bench
-cd /tmp/ctxfw-bench
-```
-
-### 2. Construir la imagen Docker
-```dockerfile
-# Dockerfile.bench
-FROM python:3.11-slim
-RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
-WORKDIR /workspace
-RUN git clone --depth 1 https://github.com/zulip/zulip.git /workspace/zulip
-COPY . /workspace/ctxfw
-RUN pip install --no-cache-dir /workspace/ctxfw
-CMD ["python", "-m", "ctxfw.benchmarks.zulip", "/workspace/zulip"]
-```
-
-```bash
-docker build -f Dockerfile.bench -t ctxfw-destructive-bench .
-```
-
-### 3. Ejecutar y limpiar
-```bash
-docker run --rm ctxfw-destructive-bench
-docker rmi ctxfw-destructive-bench
-```
+*Reporte emitido bajo el protocolo de soberanía de agentes Heurístico LAB.*  
+*Manifiesto criptográfico inmutable:* `837e90a0d2d97f569f7190da2652d4e578efadf86b71d4a5c3020c6e16bf5bd3`

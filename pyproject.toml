@@ -1,21 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "ctxfw"
-version = "3.8.0"
-description = "Deterministic Axiomatic Gatekeeper & Context Firewall // Skunk Works Division"
+version = "3.9.0"
+description = "Deterministic Context Firewall & AST Ambient Pruner for AI Coding Agents"
 readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
 authors = [
   { name = "Heuristico LAB // Skunk Works Division", email = "mo@heuristicolab.com" }
 ]
 dependencies = [
-    "pydantic>=2.0.0",
-    "fastapi>=0.100.0",
-    "httpx>=0.24.0",
-    "uvicorn>=0.20.0",
-    "tree-sitter>=0.21.0",
-    "tree-sitter-typescript",
-    "tree-sitter-go",
-    "tree-sitter-java",
+    "tree-sitter>=0.22.0",
+    "tree-sitter-python>=0.21.0",
+    "rich>=13.0.0",
+    "pydantic>=2.0.0"
 ]
 
 [project.urls]
@@ -33,22 +34,25 @@ dev = [
     "pytest>=8.0.0",
 ]
 
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [project.scripts]
-ctxfw = "ctxfw.cli:main"
-ctxfw-init = "ctxfw.cli:init_entrypoint"
-ctxfw-install = "ctxfw.cli:install_entrypoint"
-ctxfw-mcp = "ctxfw.mcp:main"
-ctxfw-proxy = "ctxfw.proxy:main"
-ctxfw-ci = "ctxfw.gatekeeper:main"
-ctxfw-audit = "ctxfw.auditor:main"
-ctxfw-doctor = "ctxfw.cli:doctor_entrypoint"
+ctxfw = "ctxfw.cli.main:app"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/ctxfw"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/ctxfw",
+    "/README.md",
+    "/LICENSE",
+    "/pyproject.toml"
+]
+exclude = [
+    "/benchmarks",
+    "/tests",
+    "/docs/reports",
+    "*.db"
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

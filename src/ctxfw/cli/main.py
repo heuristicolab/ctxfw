@@ -1,8 +1,8 @@
 """
-src/ctxfw/cli/main.py — Unified Command Line Interface for Context Firewall (v3.8.0)
-Axiom Manifest Hash: 4a35e336c0621f5b76a6abb20d975bc896c15592b5da2098f2454adc6a4d66a6
+src/ctxfw/cli/main.py — Unified Command Line Interface for Context Firewall (v3.9.0)
+Axiom Manifest Hash: 9845b97331f39b4cb728b0702dd5b56693b5588c1d129a35a9843d5b8ad8d3ca
 Supports direct target file clipboard invocation (`ctxfw <file>`) 
-plus explicit subcommands (`ctxfw benchmark`, `ctxfw mcp`, `ctxfw proxy`, `ctxfw ci`, `ctxfw audit`, `ctxfw init`, `ctxfw install`, `ctxfw doctor`, `ctxfw spec`).
+plus explicit subcommands (`ctxfw benchmark`, `ctxfw mcp`, `ctxfw proxy`, `ctxfw ci`, `ctxfw audit`, `ctxfw init`, `ctxfw install`, `ctxfw doctor`, `ctxfw spec`, `ctxfw report`).
 """
 from __future__ import annotations
 
@@ -687,16 +687,31 @@ def generate_share_report(db_path: Optional[str] = None) -> str:
 
 
 def handle_report_command(argv: list[str]) -> int:
-    """Handles ctxfw report [--share] [--output <file>] command."""
+    """Handles ctxfw report [--share] [--ci-markdown] [--output <file>] command."""
     parser = argparse.ArgumentParser(
         prog="ctxfw report",
         description="Generate FinOps telemetry and ROI reports.",
     )
     parser.add_argument("--share", action="store_true", help="Generate shareable sanitized Markdown ROI report (Invariant 4)")
+    parser.add_argument("--ci-markdown", action="store_true", help="Generate CI/CD PR dependency and FinOps summary via CIGatekeeper")
     parser.add_argument("--output", "-o", type=str, default=None, help="Save report to specified output path")
     parser.add_argument("--db", type=str, default=None, help="Path to SQLite telemetry database")
 
     args = parser.parse_args(argv)
+
+    if args.ci_markdown:
+        from ctxfw.gatekeeper import CIGatekeeper
+        gatekeeper = CIGatekeeper()
+        changed_files = gatekeeper.detect_changed_files()
+        classified = gatekeeper.classify_perimeter(changed_files)
+        report_md = gatekeeper.generate_markdown_summary(classified)
+        if args.output:
+            out_p = Path(args.output).resolve()
+            out_p.parent.mkdir(parents=True, exist_ok=True)
+            out_p.write_text(report_md, encoding="utf-8")
+        else:
+            sys.stdout.write(report_md + "\n")
+        return 0
 
     report_md = generate_share_report(db_path=args.db)
 
@@ -783,6 +798,7 @@ def build_parser() -> argparse.ArgumentParser:
     # Subcommand report
     report_parser = subparsers.add_parser("report", help="Generate FinOps ROI telemetry reports")
     report_parser.add_argument("--share", action="store_true", help="Generate shareable sanitized Markdown ROI report")
+    report_parser.add_argument("--ci-markdown", action="store_true", help="Generate CI/CD PR dependency and FinOps summary via CIGatekeeper")
     report_parser.add_argument("--output", "-o", type=str, default=None, help="Save report to specified output path")
     report_parser.add_argument("--db", type=str, default=None, help="Path to SQLite telemetry database")
 
@@ -903,7 +919,11 @@ def main():
     sys.exit(exit_code)
 
 
+app = main
+
+
 __all__ = [
+    "app",
     "build_parser",
     "copy_to_clipboard",
     "run_firewall_cli",

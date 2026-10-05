@@ -318,7 +318,7 @@ def test_malformed_json_and_unknown_method(mcp_server: MCPServer):
     assert "Method not found" in resp["error"]["message"]
 
 
-def test_stdio_loop_hygiene_and_content_length(mcp_server: MCPServer, monkeypatch):
+def test_stdio_loop_hygiene_and_content_length_zero_leak_bytes(mcp_server: MCPServer, monkeypatch):
     """Asserts strict stdio hygiene (valid JSON to stdout, diagnostic to stderr, Content-Length support)."""
     # Simulate a stream with:
     # 1. initialize request (line-delimited)

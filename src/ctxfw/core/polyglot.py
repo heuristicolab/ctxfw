@@ -1,5 +1,6 @@
 """
 src/ctxfw/core/polyglot.py — Concrete Syntax Tree (CST) Polyglot Pruning Engine (v3.4.0)
+manifest_hash: b90e57b4c60302ff676f552fec3ce7dedaf327caca4854c9a10173b397fd68d5
 Leverages Tree-sitter CST traversal to slice TypeScript/JavaScript, Go, and Java,
 preserving signatures, interfaces, types, and DTO structures while stubbing method bodies.
 """
@@ -9,6 +10,7 @@ import time
 from typing import Dict, List, Tuple
 
 from ctxfw.core.contracts import SupportedLanguage
+from ctxfw.storage.telemetry import TelemetryLedger
 
 
 class TreeSitterContextPruner:

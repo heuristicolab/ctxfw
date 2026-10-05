@@ -112,7 +112,7 @@ def test_empty_changeset_summary(repo_fixture: Path):
     assert "No Python source files were detected in this changeset" in summary
 
 
-def test_cli_execution_with_output_file(repo_fixture: Path, tmp_path: Path):
+def test_cli_execution_with_output_file_zero_leak_bytes(repo_fixture: Path, tmp_path: Path, monkeypatch):
     """Asserts that running ci_gatekeeper via CLI writes summary to specified output path."""
     output_file = tmp_path / "pr_summary.md"
     pre_commit_file = tmp_path / ".pre-commit-config.yaml"
@@ -143,3 +143,16 @@ def test_cli_execution_with_output_file(repo_fixture: Path, tmp_path: Path):
     assert pre_commit_file.is_file()
     pc_content = pre_commit_file.read_text(encoding="utf-8")
     assert "context-firewall-gatekeeper" in pc_content
+
+    # Assert ctxfw report --ci-markdown emits zero stdout leak bytes when --output is provided
+    from ctxfw.cli.main import handle_report_command
+    import io
+
+    ci_out = tmp_path / "ci_gatekeeper_summary.md"
+    mock_out = io.StringIO()
+    monkeypatch.setattr("sys.stdout", mock_out)
+    exit_code = handle_report_command(["--ci-markdown", "--output", str(ci_out)])
+    assert exit_code == 0
+    assert ci_out.is_file()
+    assert mock_out.getvalue() == ""  # Zero leak bytes to stdout
+

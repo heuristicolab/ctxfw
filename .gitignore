@@ -1,35 +1,44 @@
-# Sovereign Clean Environment — Google Engineering Standards
-# Bytecode & Caches
+# =====================================================================
+# CTXFW CANONICAL EXCLUSION MANIFEST (ZERO-POLLUTION SHIELD)
+# =====================================================================
+
+# 1. Entornos Virtuales y Dependencias
+.venv/
+venv/
+env/
+__pypackages__/
+
+# 2. Caché de Intérprete y Compiladores C (Tree-Sitter)
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*.dylib
+*.pyd
 .pytest_cache/
 .coverage
 htmlcov/
 .cache/
 
-# Environments & Dependencies
-.venv/
-env/
-venv/
-*.egg-info/
-build/
-dist/
-
-# Databases & Ephemeral Storage
+# 3. Base de Datos Local y Ledgers Transaccionales (AXIOM-Zero-Egress)
+# NUNCA versionar la telemetría viva local ni SQLite WAL
 *.db
 *.db-wal
 *.db-shm
+tokens.db
+tokens.db-wal
+tokens.db-shm
+telemetry.db
 *.sqlite
 *.sqlite3
 
-# Secrets & Configuration
-.env
-*.env
-.env.*
+# 4. Artefactos de Empaquetado y Distribución
+build/
+dist/
+*.egg-info/
+.eggs/
 
-# OS Artifacts (Windows / macOS / Linux)
+# 5. Desechos de Sistema Operativo y Editores
 .DS_Store
 .DS_Store?
 ._*
@@ -40,28 +49,32 @@ desktop.ini
 *.bak
 *~
 *.swp
-
-# IDE & Editor Files
 .idea/
-.vscode/
-*.sublime-workspace
-*.sublime-project
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+.cursor/scratchpad*
 
-# Internal Artifacts & Scratchpads
+# 6. Reportes y Snapshots Efímeros de Evaluación
+tests/eval_report.json
+tests/test_report.json
+eval_run_*.json
+pr_summary.md
+
+# 7. Secretos, Scratchpads y Especificaciones Locales
+.env
+*.env
+.env.*
 scratch/
 release_assets/
 .gtm/
 public_export/
 org_profile/
 profile_readme/
-
-# Compiled Binaries & Ephemeral Logs
+specs/
+specs/**
+.cursor/
 *.exe
 *.conf
 *.xml
 *.log
-
-# Local specifications & architecture specs (Zero Egress)
-specs/
-specs/**
-.cursor/

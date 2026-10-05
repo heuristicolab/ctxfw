@@ -1,8 +1,9 @@
 """
-src/ctxfw/cli/__init__.py — Unified Command Line Interface Package (v3.8.0)
-Axiom Manifest Hash: 4a35e336c0621f5b76a6abb20d975bc896c15592b5da2098f2454adc6a4d66a6
+src/ctxfw/cli/__init__.py — Unified Command Line Interface Package (v3.9.0)
+Axiom Manifest Hash: 9845b97331f39b4cb728b0702dd5b56693b5588c1d129a35a9843d5b8ad8d3ca
 """
 from ctxfw.cli.main import (
+    app,
     build_parser,
     copy_to_clipboard,
     doctor_entrypoint,
@@ -29,6 +30,7 @@ from ctxfw.cli.main import (
 )
 
 __all__ = [
+    "app",
     "build_parser",
     "copy_to_clipboard",
     "run_firewall_cli",

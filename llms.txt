@@ -19,9 +19,9 @@ CTXFW (Context Framework) is an in-memory, deterministic AST pruning firewall an
   - **Apache Airflow Monorepo:** -66.90% D1 perimeter reduction (Interface Mode), -90.26% (Nominal Mode), 40,428 net bloat tokens pruned, 138.2 ms latency, 437,351 tokens/second throughput.
 
 ## Releases & Version History
-- **Current Canonical Version:** `v3.8.0`
-- **Release Dossier:** [`docs/RELEASE_NOTES_v3.8.0.md`](docs/RELEASE_NOTES_v3.8.0.md)
-  - Features: Zero-touch atomic Claude Code CLI & Desktop installer (`ctxfw install --claude`), non-destructive deep merging, bounded backups, pre-approved permissions, and ACI 1.0000 seal.
+- **Current Canonical Version:** `v3.9.0`
+- **Release Dossier:** [`docs/RELEASE_NOTES_v3.9.0.md`](docs/RELEASE_NOTES_v3.9.0.md) | Prior: [`docs/RELEASE_NOTES_v3.8.0.md`](docs/RELEASE_NOTES_v3.8.0.md)
+  - Features: D3 ambient cartography & depth configurator, 1,000-token ambient manifest ceiling, zero-touch headless CI composite action, and verified ACI 1.0000 attestation seal.
 
 ## Interoperability & Integration Endpoints
 - **Native MCP Stdio Engine:**

@@ -1,0 +1,116 @@
+{
+  "metadata": {
+    "generated_at": "2026-10-03T17:57:55.019126+00:00",
+    "manifest_hash": "5497efa292c44107b48f2b9825559ee514642f1d4b2dcd13f8a247607d4f9f06",
+    "specification": "docs/specs/SPEC-005_BIZDEV_AUDIT_HARNESS.md",
+    "perspective": "internal",
+    "active_version": "v3.8.0"
+  },
+  "local_ledger": {
+    "db_found": true,
+    "db_path": "C:\\Users\\Miguel Mar\u00edn\\AppData\\Local\\ctxfw\\tokens.db",
+    "total_cycles": 1704,
+    "raw_tokens": 66748,
+    "pruned_tokens": 20596,
+    "net_tokens_saved": 46152,
+    "efficiency_pct": 69.14,
+    "total_usd_avoided": 0.05446,
+    "today_cycles": 1,
+    "today_raw_tokens": 16440,
+    "today_pruned_tokens": 9441,
+    "today_tokens_saved": 6999,
+    "today_efficiency_pct": 42.57,
+    "today_usd_avoided": 0.021,
+    "cache_signatures": 140,
+    "cache_by_depth": {
+      "full": {
+        "count": 22,
+        "tokens_saved": 0,
+        "avg_savings_pct": 0.0
+      },
+      "interface": {
+        "count": 62,
+        "tokens_saved": 93497,
+        "avg_savings_pct": 55.19
+      },
+      "nominal": {
+        "count": 56,
+        "tokens_saved": 18991,
+        "avg_savings_pct": 44.15
+      }
+    },
+    "indexed_modules": 15,
+    "indexed_symbols": 47
+  },
+  "empirical_trilogy": [
+    {
+      "repo": "zulip",
+      "archetype": "Coupled Django Monolith",
+      "target_file": "zerver/models/users.py",
+      "d0_raw_tokens": 12909,
+      "d1_net_tokens": 45279,
+      "d2_net_tokens": 287845,
+      "d3_net_tokens": 83913,
+      "d3_raw_input_tokens": 328539,
+      "d3_savings_vs_raw_pct": 74.46,
+      "d3_savings_vs_d2_pct": 70.85,
+      "p50_latency_ms": 9.855,
+      "p95_latency_ms": 11.61,
+      "sla_threshold_ms": 25.0,
+      "sla_status": "PASS",
+      "manifest_tokens": 774,
+      "symbols_count": 87,
+      "modules_count": 61,
+      "ast_pass": true
+    },
+    {
+      "repo": "posthog",
+      "archetype": "Modern COSS / Data Engine",
+      "target_file": "posthog/models/team/team.py",
+      "d0_raw_tokens": 14301,
+      "d1_net_tokens": 448807,
+      "d2_net_tokens": 7202635,
+      "d3_net_tokens": 681273,
+      "d3_raw_input_tokens": 1333525,
+      "d3_savings_vs_raw_pct": 48.91,
+      "d3_savings_vs_d2_pct": 90.54,
+      "p50_latency_ms": 189.746,
+      "p95_latency_ms": 250.294,
+      "sla_threshold_ms": 25.0,
+      "sla_status": "EXCEEDED",
+      "manifest_tokens": 812,
+      "symbols_count": 111,
+      "modules_count": 201,
+      "ast_pass": false
+    },
+    {
+      "repo": "airflow",
+      "archetype": "Async Distributed Orchestration Monorepo",
+      "target_file": "airflow-core/src/airflow/models/dag.py",
+      "d0_raw_tokens": 9622,
+      "d1_net_tokens": 68838,
+      "d2_net_tokens": 323306,
+      "d3_net_tokens": 127882,
+      "d3_raw_input_tokens": 411010,
+      "d3_savings_vs_raw_pct": 68.89,
+      "d3_savings_vs_d2_pct": 60.45,
+      "p50_latency_ms": 16.075,
+      "p95_latency_ms": 18.727,
+      "sla_threshold_ms": 25.0,
+      "sla_status": "PASS",
+      "manifest_tokens": 563,
+      "symbols_count": 64,
+      "modules_count": 99,
+      "ast_pass": true
+    }
+  ],
+  "pypi_adoption": {
+    "project": "ctxfw",
+    "active_version": "v3.8.0",
+    "total_downloads": 4391,
+    "v380_downloads": 297,
+    "v380_share_pct": 6.76,
+    "last_day_total": 75,
+    "source": "PePy.tech Public Web Sentry"
+  }
+}

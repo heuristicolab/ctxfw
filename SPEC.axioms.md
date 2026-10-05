@@ -87,3 +87,43 @@ Formal error taxonomy isolating fault domains during IDE injection:
 - The installer shall never transmit telemetry, user prompts, file paths, or authentication tokens outside the local host during installation.
 - The injected Claude Code plugin shall never bypass the deterministic AST pruning pipeline or emit unpruned context when strict firewall mode is enabled.
 - The configuration engine shall never proceed with file mutation if the existing configuration fails deterministic JSON syntax validation.
+
+## Appendix D: Topological Depth Engine (D3) & Ambient Cartography
+<!-- Axiom Completeness Index (ACI): 1.0000 | Status: VERIFIED | Bounds: 6/6 -->
+<!-- Attestation Manifest Hash: 9845b97331f39b4cb728b0702dd5b56693b5588c1d129a35a9843d5b8ad8d3ca -->
+
+### D.1 Domain Entities & Bounded Variables
+Deterministic runtime bounds governing the D3 ambient cartography engine:
+- Variable `max_topological_depth`: integer bounded >= 0 and <= 3 levels.
+- Variable `ambient_manifest_token_ceiling`: integer bounded >= 100 and <= 1000 tokens.
+- Variable `distractor_budget`: integer bounded >= 20 and <= 500 symbols.
+- Variable `d3_resolution_latency_p95_ms`: integer bounded >= 1 and <= 25 milliseconds.
+- Variable `max_inline_reparse_modules`: integer bounded >= 1 and <= 20 modules.
+- Variable `aci_verification_threshold`: float bounded >= 0.9000 and <= 1.0000 completeness index.
+Bounds: 6 / 6
+
+### D.2 Deterministic State Machine (FSM)
+Lifecycle states and transition map $\delta(S, E)$ governing topological D3 resolution:
+- States: `DRAFT`, `DISCOVERY`, `RESOLVING_D3`, `CLAMPED_EMIT`, `FAIL_OPEN`
+- State transition $\delta(\text{DRAFT}, \text{REQUEST_RECEIVED}) \to \text{DISCOVERY}$
+- State transition $\delta(\text{DISCOVERY}, \text{DEPTH_LE_2}) \to \text{CLAMPED_EMIT}$
+- State transition $\delta(\text{DISCOVERY}, \text{DEPTH_EQ_3}) \to \text{RESOLVING_D3}$
+- State transition $\delta(\text{RESOLVING_D3}, \text{PARSE_SUCCESS}) \to \text{CLAMPED_EMIT}$
+- State transition $\delta(\text{RESOLVING_D3}, \text{PARSE_ERROR}) \to \text{FAIL_OPEN}$
+- State transition $\delta(\text{FAIL_OPEN}, \text{FALLBACK_STALE}) \to \text{CLAMPED_EMIT}$
+- Terminal State: `CLAMPED_EMIT` is immutable and sealed for agent prompt delivery.
+
+### D.3 Error Taxonomy & Quarantine
+Formal error taxonomy isolating fault domains during D3 ambient resolution:
+- Class 1 (Transient Fault): SQLite WAL lock contention or cache miss burst -> Fallback to stale SQLite snapshot and out-of-band asynchronous worker.
+- Class 2 (Deterministic Input Fault): PEP 562 dynamic symbols or unparseable syntax -> Tag namespace with [DYNAMIC_UNBOUND:?] and fail-open.
+- Class 3 (Business & Specification Violation): Depth requested > 3 or distractor budget > 500 -> Clamp to D2 or budget boundary.
+- Class 4 (Security & Isolation Violation): Workspace path egress or telemetry leakage in config -> Immediate halt, zero external transmission, stderr alert.
+
+### D.4 Negative Invariants (Floor of 5 Required)
+- **AXIOM-17 (Dynamic Namespace Quarantine):** The D3 ambient manifest generator shall never emit a closed symbol list for modules implementing PEP 562 '__getattr__', dynamic '__all__' expressions, or dynamic registries, and must explicitly flag the namespace with the token '[DYNAMIC_UNBOUND:?]' to inhibit negative absence hallucination.
+- **AXIOM-18 (Throttled Warmup & Stale-Read Guarantee):** The D3 symbol resolution engine shall never execute synchronous inline re-parsing of more than 20 cache-missed modules within a single request turn, and shall never block the primary stdio JSON-RPC thread beyond 40 ms; it must return the last attested stale SQLite snapshot.
+- **AXIOM-19 (Subsystem Boundary Clamping):** The D3 ambient manifest serializer shall never inject more than 1,000 net tokens of D3 symbols into a prompt, and shall strictly reject modules crossing outside the architectural subsystem boundary of the D1/D2 ancestors.
+- **AXIOM-20 (Configuration Depth Ceiling):** The configuration engine shall never parse or execute topological depth expansions strictly exceeding depth level 3 (D > 3), and shall reject malformed numeric depth values.
+- **AXIOM-21 (Zero Telemetry Leakage in Config):** The configuration loader shall never transmit .ctxfwrc contents, workspace paths, or environment variable overrides outside the local host runtime.
+
