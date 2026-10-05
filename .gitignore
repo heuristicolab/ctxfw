@@ -93,3 +93,14 @@ internal/
 scripts/*biz*.py
 scripts/*sales*.py
 
+# =====================================================================
+# LOCAL WORKSPACE & INTERNAL TOOLING
+# =====================================================================
+*.cmd
+.gitea/
+scripts/*monitor*
+scripts/*sprint*
+scripts/*checkpoint*
+.agents/skills/*scout*
+.agents/skills/*triage*
+docs/directives/
