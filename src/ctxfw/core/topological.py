@@ -329,11 +329,7 @@ class ContextFirewallEngine:
         d3_candidate_modules: List[str] = []
 
         for rel_path, distance in sorted_modules:
-            full_path = self.project_root / rel_path
-            if not full_path.is_file():
-                continue
-
-            # Filtering based on depth_cfg.max_depth
+            # Early distance filtering before filesystem stat operations
             if depth_cfg.max_depth == ContextDepthLevel.PURE_PASSTHROUGH and distance > 0:
                 continue
             if depth_cfg.max_depth == ContextDepthLevel.DIRECT_INTERFACE and distance > 1:
@@ -347,6 +343,11 @@ class ContextFirewallEngine:
                     continue
             elif depth_cfg.ambient_manifest and distance == 3:
                 d3_candidate_modules.append(rel_path)
+                continue
+
+            full_path = self.project_root / rel_path
+            if not full_path.is_file():
+                continue
 
             code = full_path.read_text(encoding="utf-8")
 
@@ -379,28 +380,58 @@ class ContextFirewallEngine:
                 depth=depth.value,
             )
 
+            if not code.strip():
+                orig_c = len(code)
+                dto = OptimizationResultDTO(
+                    pruned_code=code,
+                    original_chars=orig_c,
+                    pruned_chars=orig_c,
+                    estimated_tokens_saved=0,
+                    savings_percentage=0.0,
+                    cache_hit=False,
+                    execution_ms=0.0,
+                    depth=depth,
+                )
+                self.cache.set(cache_key, dto)
+                entries[rel_path] = dto
+                continue
+
             cached_result = self.cache.get(cache_key)
             if cached_result is not None:
                 entries[rel_path] = cached_result
             else:
-                req = OptimizationRequestDTO(
-                    source_code=code,
-                    language="python",
-                    strip_docs=False,
-                    depth=depth,
-                    sanitize_raises=True,
-                )
-                pruned_code, orig_c, pruned_c, saved, pct, ms = DeterministicContextPruner.prune(req)
-                dto = OptimizationResultDTO(
-                    pruned_code=pruned_code,
-                    original_chars=orig_c,
-                    pruned_chars=pruned_c,
-                    estimated_tokens_saved=saved,
-                    savings_percentage=pct,
-                    cache_hit=False,
-                    execution_ms=ms,
-                    depth=depth,
-                )
+                try:
+                    req = OptimizationRequestDTO(
+                        source_code=code,
+                        language="python",
+                        strip_docs=False,
+                        depth=depth,
+                        sanitize_raises=True,
+                    )
+                    pruned_code, orig_c, pruned_c, saved, pct, ms = DeterministicContextPruner.prune(req)
+                    dto = OptimizationResultDTO(
+                        pruned_code=pruned_code,
+                        original_chars=orig_c,
+                        pruned_chars=pruned_c,
+                        estimated_tokens_saved=saved,
+                        savings_percentage=pct,
+                        cache_hit=False,
+                        execution_ms=ms,
+                        depth=depth,
+                    )
+                except Exception:
+                    # Fail-open guardrail: preserve intact raw code on syntax errors or template files
+                    orig_c = len(code)
+                    dto = OptimizationResultDTO(
+                        pruned_code=code,
+                        original_chars=orig_c,
+                        pruned_chars=orig_c,
+                        estimated_tokens_saved=0,
+                        savings_percentage=0.0,
+                        cache_hit=False,
+                        execution_ms=0.0,
+                        depth=depth,
+                    )
                 self.cache.set(cache_key, dto)
                 entries[rel_path] = dto
 
