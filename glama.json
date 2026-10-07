@@ -1,0 +1,14 @@
+{
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "maintainers": [
+    "heuristicolab"
+  ],
+  "cmdArguments": [
+    "mcp-proxy",
+    "--",
+    "uv",
+    "run",
+    "ctxfw",
+    "mcp"
+  ]
+}
