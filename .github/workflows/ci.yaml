@@ -1,4 +1,4 @@
-# manifest_hash: 8d76882a3aecbf8780a71d26e39ed1653bf54aafc42aa92c4c97489efcd41c6b
+# manifest_hash: 7c09f2047bbb42996eff3c58758a46a3ecb7850815a83c94fee6a8f12353bf5d
 name: Hermetic TDD & Multiplatform Standalone CI Matrix
 on:
   push:
@@ -11,14 +11,18 @@ on:
 jobs:
   tdd-attestation:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.12
+      - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install Pure Dependencies & Package
         run: |
@@ -29,7 +33,7 @@ jobs:
           python3 -m compileall src/ tests/
           python3 -c "import sqlite3; con = sqlite3.connect(':memory:'); con.executescript(open('src/ctxfw/storage/schema.sql').read()); print('SQL DDL Verified.')"
 
-      - name: Execute Pytest TDD Matrix (Python 3.12 Environment)
+      - name: Execute Pytest TDD Matrix (Python ${{ matrix.python-version }} Environment)
         run: |
           python3 -m pytest tests/ -v --tb=short
 

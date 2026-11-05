@@ -1,3 +1,4 @@
+# manifest_hash: 7c09f2047bbb42996eff3c58758a46a3ecb7850815a83c94fee6a8f12353bf5d
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -11,6 +12,35 @@ requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
 authors = [
   { name = "Heuristico Lab", email = "mo@heuristicolab.com" }
+]
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "ai-governance",
+    "prompt-injection-firewall",
+    "ast-pruning",
+    "tree-sitter",
+    "token-optimization",
+    "coding-agents",
+    "sqlite-wal",
+    "deterministic-ai"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Quality Assurance",
+    "Typing :: Typed"
 ]
 dependencies = [
     "tree-sitter>=0.22.0",
