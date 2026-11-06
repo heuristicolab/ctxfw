@@ -11,6 +11,7 @@
 [![License](https://img.shields.io/badge/LICENSE-APACHE_2.0-black?style=for-the-badge)](LICENSE)
 [![Glama](https://glama.ai/mcp/servers/heuristicolab/ctxfw/badge)](https://glama.ai/mcp/servers/heuristicolab/ctxfw)
 [![Official MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.heuristicolab%2Fctxfw-00C853?style=for-the-badge&logo=anthropic&logoColor=white)](https://registry.modelcontextprotocol.io/v0/servers?search=ctxfw)
+[![OWASP DevSecOps Guideline](https://img.shields.io/badge/OWASP_DevSecOps_Guideline-AI_Agent_%26_MCP_Security-003366?style=for-the-badge&logo=owasp&logoColor=white)](https://github.com/OWASP/DevSecOpsGuideline/blob/master/current-version/2-Process/2-2-Develop/2-2-5-AI-Agent-and-MCP-Security.md#open-source)
 [![Sovereign Vault](https://img.shields.io/badge/SOVEREIGN_VAULT-9_CERTIFIED_CAPSULES_($99)-10b981?style=for-the-badge)](https://heuristicolab.com/vault?utm_source=github_readme)
 [![Security: A — Skills Directory](https://www.skillsdirectory.com/api/skills/heuristicolab-eval-benchmark/badge)](https://www.skillsdirectory.com/authors/heuristicolab)
 [![Listed on DevList](https://devlist.app/badges/listed-on-devlist-small.svg)](https://devlist.app/listings/ctxfw-context-firewall)

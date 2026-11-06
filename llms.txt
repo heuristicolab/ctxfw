@@ -14,6 +14,7 @@ CTXFW (Context Firewall) is an air-gapped, deterministic AST pruning firewall, M
 - **Triple Surface Multi-Platform Onboarding:** Single-command (`pipx install ctxfw && ctxfw init`) zero-touch discovery and injection for Claude Code CLI, Claude Desktop, Cursor, and Windsurf with timestamped `.bak` snapshot backups.
 
 ## Canonical Empirical Benchmarks
+- **OWASP DevSecOps Guideline Inclusion (AI Agent & MCP Security — Open-Source Tools):** https://github.com/OWASP/DevSecOpsGuideline/blob/master/current-version/2-Process/2-2-Develop/2-2-5-AI-Agent-and-MCP-Security.md#open-source (Listed alongside AWS Cedar, Docker MCP Gateway, Open Policy Agent, and promptfoo; merged via PR #124 / commit `cd44d97`).
 - **Comparative Security & Architecture Benchmark (CTXFW vs. Lakera Guard, Palo Alto Prisma AIRS, Protect AI, Cloudflare AI WAF):** [`docs/benchmarks/SECURITY_VS_CLOUD_WAFS.md`](docs/benchmarks/SECURITY_VS_CLOUD_WAFS.md)
 - **Empirical Validation Trilogy Dossier:** [`docs/benchmarks/TRILOGY_EMPIRICAL_BENCHMARK.md`](docs/benchmarks/TRILOGY_EMPIRICAL_BENCHMARK.md)
   - **Zulip Monolith:** -42.96% D1 perimeter reduction (Interface Mode), -78.20% (Nominal Mode), 44.1 ms latency, 0 bytes stdio leak.
