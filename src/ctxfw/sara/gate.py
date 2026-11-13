@@ -4,6 +4,7 @@ SARA Runtime Authorization Gate :: Deterministic Policy & FSM Enforcement
 =========================================================================
 manifest_hash (M3-P2): 8f925c1e7c680c7af68e6f3daa48a5ac734923438762ed8836878a97508ce42e
 manifest_hash (M3-P3): 8d94151e921e2f8eaacb440cb3c1b0d4e0ff6ac80fa217e5830de1c1edec1b13
+manifest_hash_wave1b: ebbcd0d607fa09a71dda690ea76104d762b3f279cde258f64917421d39a249f4
 Evaluates untrusted tool observations against immutable allowlist policies
 (AuthorizedPolicyDTO), emits AuthorizationVerdictDTO (ALLOW, STRIP_COMMANDS,
 QUARANTINE_TOOL), tracks the total FSM transition trace delta(S, E), and
@@ -118,8 +119,9 @@ class RuntimeAuthorizationGate:
 
     GATE_LATENCY_BUDGET_MS: float = GATE_LATENCY_BUDGET_MS
 
-    def __init__(self, audit_sink: Optional[Any] = None) -> None:
+    def __init__(self, audit_sink: Optional[Any] = None, pasac_store: Optional[Any] = None) -> None:
         self._audit_sink = audit_sink
+        self._pasac_store = pasac_store
 
     @_DualMethod
     def authorize_traced(
@@ -240,3 +242,43 @@ class RuntimeAuthorizationGate:
             )
             rejected_state = transition(SaraState.INGRESSED, SaraEvent.VALIDATION_FAIL)
             return fallback_verdict, [SaraState.INGRESSED, rejected_state]
+
+    @_DualMethod
+    def evaluate_pasac_pep(
+        self_or_cls: Any,
+        contract: Any,
+        bas: Any,
+        risk_state: Any,
+        action_code: str,
+        *,
+        in_authorized_scope: bool = True,
+        resource_whitelisted: bool = True,
+        action_risk: float = 0.0,
+        risk_threshold: float = 0.50,
+        pasac_store: Optional[Any] = None,
+    ) -> Any:
+        """Evaluate PASAC 6-layer Boundary Assurance Stack & four-predicate PEP Allow(a) gate."""
+        from ctxfw.sara.assurance import evaluate_pep_gate
+
+        target_store = pasac_store or getattr(self_or_cls, "_pasac_store", None)
+        if target_store is not None:
+            return target_store.evaluate_and_record_pep(
+                contract=contract,
+                bas=bas,
+                risk_state=risk_state,
+                action_code=action_code,
+                in_authorized_scope=in_authorized_scope,
+                resource_whitelisted=resource_whitelisted,
+                action_risk=action_risk,
+                risk_threshold=risk_threshold,
+            )
+        return evaluate_pep_gate(
+            contract=contract,
+            bas=bas,
+            risk_state=risk_state,
+            action_code=action_code,
+            in_authorized_scope=in_authorized_scope,
+            resource_whitelisted=resource_whitelisted,
+            action_risk=action_risk,
+            risk_threshold=risk_threshold,
+        )

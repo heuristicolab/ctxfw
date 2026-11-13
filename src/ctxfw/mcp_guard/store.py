@@ -9,7 +9,9 @@ parameter binding audits, sandbox contracts, and OS confinement logs.
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
+import os
 from pathlib import Path
 import sqlite3
 import threading
@@ -53,6 +55,7 @@ class McpGuardStore:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
+        self._seq_counter = itertools.count(1)
         self._conn = sqlite3.connect(
             str(self.db_path),
             timeout=30.0,
@@ -61,6 +64,12 @@ class McpGuardStore:
         )
         self._conn.row_factory = sqlite3.Row
         self._initialize_schema()
+
+    def _next_unique_seed(self) -> str:
+        """Return a collision-free per-call seed even when system timers lack sub-ms resolution."""
+        with self._lock:
+            seq = next(self._seq_counter)
+        return f"{os.getpid()}:{time.perf_counter_ns()}:{seq}"
 
     def _initialize_schema(self) -> None:
         """Apply SQLite WAL PRAGMAs and load idempotent DDL schema."""
@@ -412,7 +421,10 @@ class McpGuardStore:
         now_iso = utc_now_iso()
         audit_id = _new_id(
             "PBA",
-            f"{server_id}:{guard.tool_name}:{verdict}:{','.join(unknown)}:{','.join(missing)}:{time.monotonic_ns()}",
+            (
+                f"{server_id}:{guard.tool_name}:{verdict}:"
+                f"{','.join(unknown)}:{','.join(missing)}:{self._next_unique_seed()}"
+            ),
         )
 
         def _tx(conn: sqlite3.Connection) -> None:
@@ -489,7 +501,10 @@ class McpGuardStore:
         """Append immutable confinement audit log entry with hashed path candidate."""
         now_iso = utc_now_iso()
         raw_hash = hashlib.sha256((raw_path or "").encode("utf-8", errors="replace")).hexdigest()
-        log_id = _new_id("CNF", f"{server_id}:{tool_name}:{result.verdict.value}:{raw_hash}:{time.monotonic_ns()}")
+        log_id = _new_id(
+            "CNF",
+            f"{server_id}:{tool_name}:{result.verdict.value}:{raw_hash}:{self._next_unique_seed()}",
+        )
 
         def _tx(conn: sqlite3.Connection) -> None:
             conn.execute(

@@ -6,6 +6,7 @@ manifest_hash: 0823534213f7266f79184a2f24e71680fd24cb9c5971f58eab7c2dd124023a7c
 manifest_hash: e58711f27fcc24b86d00be174bced029f3ec73aab400897d6a7aa434782f335c
 manifest_hash_v41_dante: 4a446cfc7aa488cc2b193750e694b95f5b66d694387ecd5b66d2090c0303f6be
 manifest_hash_wave1a: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
+manifest_hash_wave1b: ebbcd0d607fa09a71dda690ea76104d762b3f279cde258f64917421d39a249f4
 Exposes deterministic context pruning, topological bundle resolution,
 axiomatic spec evaluation, SWE-Gate patch verification, and audit ledger querying
 to AI agents (Cursor, Claude Code, Windsurf) using JSON-RPC 2.0.
@@ -18,7 +19,7 @@ import os
 from pathlib import Path
 import re
 import sys
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
 import uuid
 
 from ctxfw.core.contracts import (
@@ -84,6 +85,11 @@ class MCPServer:
         authorized_roots: Optional[Sequence[Union[str, Path]]] = None,
         allow_unsandboxed_fallback: bool = False,
         strict_param_binding: bool = True,
+        pasac_store: Optional[Any] = None,
+        pasac_contract: Optional[Any] = None,
+        pasac_bas: Optional[Any] = None,
+        pasac_risk_state: Optional[Any] = None,
+        enforce_pasac_pep: bool = True,
     ):
         if allow_unsandboxed_fallback:
             raise ValueError("allow_unsandboxed_fallback shall never be True (PT-005)")
@@ -119,6 +125,12 @@ class MCPServer:
         self._mcp_guard_store = mcp_guard_store
         self._authorized_roots = resolved_auth_roots
         self._strict_param_binding = bool(strict_param_binding)
+        self._pasac_store = pasac_store
+        self._pasac_contract = pasac_contract
+        self._pasac_bas = pasac_bas
+        self._pasac_risk_state = pasac_risk_state
+        self._enforce_pasac_pep = bool(enforce_pasac_pep)
+        self._pasac_default_cache: Optional[Tuple[Any, Any, Any]] = None
         self._guards = tuple(guards) if guards is not None else ()
         self._workspace_guards_cache: Dict[tuple[str, str], tuple[Any, ...]] = {}
         self._param_binding_guards: Dict[str, Any] = self._build_builtin_param_guards()
@@ -432,6 +444,268 @@ class MCPServer:
             db_path = Path(get_canonical_cache_path()).parent / "tokencast.db"
             self._tokencast_store = TokenCastStore(db_path)
         return self._tokencast_store
+
+    def _get_pasac_store(self):
+        """Lazily initialize PasacAssuranceStore on canonical or overridden pasac.db path."""
+        if self._pasac_store is None:
+            from ctxfw.sara.assurance_store import PasacAssuranceStore
+            from ctxfw.storage.cache import get_canonical_cache_path
+
+            env_db = os.environ.get("CTXFW_PASAC_DB")
+            if env_db:
+                db_path = Path(env_db)
+            else:
+                db_path = Path(get_canonical_cache_path()).parent / "pasac.db"
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+            self._pasac_store = PasacAssuranceStore(db_path)
+        return self._pasac_store
+
+    def _resolve_pasac_context(self, session_id: str) -> Tuple[Any, Any, Any]:
+        """Resolve (AssuranceScopeContract, BoundaryAssuranceVector, AgentRiskStateVector) for runtime PEP."""
+        from ctxfw.sara.assurance import (
+            AgentRiskStateVector,
+            AssuranceScopeContract,
+            BoundaryAssuranceVector,
+            EgressPolicyMode,
+            PreflightStatus,
+            derive_contract_digest,
+            format_pasac_session_id,
+            format_pep_action_code,
+        )
+
+        norm_sid = (
+            self._pasac_contract.session_id
+            if self._pasac_contract is not None
+            else format_pasac_session_id(session_id)
+        )
+        strict_bind = bool(self._strict_param_binding)
+        if (
+            self._pasac_default_cache is None
+            or self._pasac_default_cache[0] != (norm_sid, strict_bind)
+        ):
+            def_contract = AssuranceScopeContract(
+                session_id=norm_sid,
+                egress_mode=EgressPolicyMode.OFFLINE_ISOLATED,
+                live_egress_detected=False,
+                cross_run_writable=False,
+                preflight_status=PreflightStatus.VALID,
+                contract_digest=derive_contract_digest(
+                    norm_sid,
+                    self._get_guard_server_id(),
+                    int(strict_bind),
+                ),
+            )
+            def_bas = BoundaryAssuranceVector(
+                probe_id=f"BAS-{format_pep_action_code(norm_sid)[:32]}",
+                session_id=norm_sid,
+                b_scope=0.96,
+                b_identity=0.95 if strict_bind else 0.65,
+                b_network=0.95,
+                b_storage=0.95,
+                b_monitor=0.94,
+                b_response=0.95 if strict_bind else 0.60,
+            )
+            def_risk = AgentRiskStateVector(
+                telemetry_id=f"RISK-{format_pep_action_code(norm_sid)[:31]}",
+                session_id=norm_sid,
+                task_generality_g=0.40,
+                agent_capability_c=0.60,
+                external_exposure_e=0.05,
+                scope_weakness_s=0.10 if strict_bind else 0.55,
+                monitoring_strength_m=0.94,
+                response_speed_r=0.95,
+                impact_severity_i=10.0,
+                exposure_duration_d=1.0,
+                hazard_l_t=0.10,
+            )
+            self._pasac_default_cache = ((norm_sid, strict_bind), def_contract, def_bas, def_risk)
+
+        _, def_contract, def_bas, def_risk = self._pasac_default_cache
+        contract = self._pasac_contract if self._pasac_contract is not None else def_contract
+        bas = self._pasac_bas if self._pasac_bas is not None else def_bas
+        risk_state = self._pasac_risk_state if self._pasac_risk_state is not None else def_risk
+        return contract, bas, risk_state
+
+    def run_pasac_preflight(
+        self,
+        *,
+        mcp_configs: Sequence[Mapping[str, Any]] = (),
+        wal_healthy: bool = True,
+        tracekit_intact: bool = True,
+    ) -> Any:
+        """Execute offline PASAC 6-layer preflight check, bind posture, and record OCC baseline."""
+        from ctxfw.sara.assurance import (
+            PasacLifecycleState,
+            assess_runtime_isolation_posture,
+            format_pasac_session_id,
+        )
+
+        sid = format_pasac_session_id(self.session_id or "mcp-runtime")
+        guard_quarantined = 0
+        if self._mcp_guard_store is not None:
+            try:
+                guard_quarantined = self._mcp_guard_store.count_stats()[1]
+            except Exception:
+                guard_quarantined = 0
+
+        posture = assess_runtime_isolation_posture(
+            session_id=sid,
+            mcp_configs=mcp_configs,
+            wal_healthy=wal_healthy,
+            tracekit_intact=tracekit_intact,
+            confinement_enabled=True,
+            strict_param_binding=self._strict_param_binding,
+            mcp_guard_quarantined_count=guard_quarantined,
+        )
+        self._pasac_contract = posture.contract
+        self._pasac_bas = posture.bas
+        store = self._get_pasac_store()
+        state = (
+            PasacLifecycleState.PREFLIGHT_VERIFIED
+            if posture.passed
+            else PasacLifecycleState.QUARANTINED_BREACH
+        )
+        store.register_scope_contract(posture.contract, lifecycle_state=state)
+        store.record_bas_probe(posture.bas)
+        return posture
+
+    def reauthorize_pasac_session(
+        self,
+        *,
+        signoff_code: str,
+        accountability_role: Any,
+        approval_rationale: str,
+        reset_hazard_l_t: float = 0.10,
+    ) -> Any:
+        """Record accountability sign-off to restore CONTAINMENT_HALTED -> PREFLIGHT_VERIFIED."""
+        from ctxfw.sara.assurance import PreflightStatus
+
+        contract, _, risk_state = self._resolve_pasac_context(self.session_id or "mcp-runtime")
+        store = self._get_pasac_store()
+        new_state = store.record_reauthorization(
+            signoff_code=signoff_code,
+            session_id=contract.session_id,
+            accountability_role=accountability_role,
+            approval_rationale=approval_rationale,
+        )
+        if self._pasac_contract is not None and self._pasac_contract.preflight_status != PreflightStatus.VALID:
+            self._pasac_contract = self._pasac_contract.model_copy(
+                update={"preflight_status": PreflightStatus.VALID, "live_egress_detected": False}
+            )
+        if self._pasac_risk_state is not None and self._pasac_risk_state.hazard_l_t >= self._pasac_risk_state.tau_stop:
+            self._pasac_risk_state = self._pasac_risk_state.model_copy(
+                update={"hazard_l_t": reset_hazard_l_t}
+            )
+        elif risk_state is self._pasac_risk_state:
+            pass
+        return new_state
+
+    def _evaluate_pasac_pre_execution(
+        self,
+        *,
+        tool_name: str,
+        session_id: str,
+        user_prompt: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Enforce conjunctive PEP Allow(a) & synchronous hazard containment before tool execution."""
+        if not self._enforce_pasac_pep:
+            return None
+
+        from ctxfw.sara.assurance import (
+            PasacLifecycleState,
+            evaluate_pep_gate,
+            format_pep_action_code,
+        )
+
+        contract, bas, risk_state = self._resolve_pasac_context(session_id)
+        if self._pasac_store is not None:
+            persisted_state = self._pasac_store.get_lifecycle_state(contract.session_id)
+            if persisted_state in (
+                PasacLifecycleState.CONTAINMENT_HALTED,
+                PasacLifecycleState.QUARANTINED_BREACH,
+            ):
+                reason = (
+                    f"PASAC_PEP_BLOCKED [{persisted_state.value}]: Session '{contract.session_id}' "
+                    f"halted awaiting accountability reauthorization before running '{tool_name}'."
+                )
+                self._record_security_trace(
+                    session_id=session_id,
+                    user_prompt=user_prompt,
+                    plan_summary=f"PASAC containment halt enforced on {tool_name}",
+                    tool_or_file="sara.assurance",
+                    payload=reason,
+                )
+                return {
+                    "content": [{"type": "text", "text": reason}],
+                    "isError": True,
+                    "policyViolation": True,
+                    "pasacBlocked": True,
+                    "pasacState": persisted_state.value,
+                    "allowAction": False,
+                }
+
+        action_code = format_pep_action_code(f"MCP_{tool_name}")
+        if self._pasac_store is not None:
+            decision = self._pasac_store.evaluate_and_record_pep(
+                contract=contract,
+                bas=bas,
+                risk_state=risk_state,
+                action_code=action_code,
+                in_authorized_scope=True,
+                resource_whitelisted=True,
+                action_risk=0.10,
+                risk_threshold=0.50,
+            )
+        else:
+            decision = evaluate_pep_gate(
+                contract=contract,
+                bas=bas,
+                risk_state=risk_state,
+                action_code=action_code,
+                in_authorized_scope=True,
+                resource_whitelisted=True,
+                action_risk=0.10,
+                risk_threshold=0.50,
+            )
+
+        if not decision.allow_action:
+            if self._pasac_store is None:
+                try:
+                    self._get_pasac_store().evaluate_and_record_pep(
+                        contract=contract,
+                        bas=bas,
+                        risk_state=risk_state,
+                        action_code=action_code,
+                        in_authorized_scope=True,
+                        resource_whitelisted=True,
+                        action_risk=0.10,
+                        risk_threshold=0.50,
+                    )
+                except Exception:
+                    pass
+            reason = (
+                f"PASAC_PEP_BLOCKED [{decision.hazard_regime.value}]: PEP denied '{tool_name}' "
+                f"(A_min={decision.conservative_assurance:.2f}, floor={bas.min_layer_floor:.2f}, "
+                f"preflight={decision.preflight_status.value}, R*={decision.risk_index_r_star:.2f})."
+            )
+            self._record_security_trace(
+                session_id=session_id,
+                user_prompt=user_prompt,
+                plan_summary=f"PASAC PEP denial on {tool_name}",
+                tool_or_file="sara.assurance",
+                payload=reason,
+            )
+            return {
+                "content": [{"type": "text", "text": reason}],
+                "isError": True,
+                "policyViolation": True,
+                "pasacBlocked": True,
+                "allowAction": False,
+                "hazardRegime": decision.hazard_regime.value,
+                "conservativeAssurance": decision.conservative_assurance,
+                "riskIndexRStar": decision.risk_index_r_star,
+            }
+        return None
 
     def _get_sara_store(self):
         """Lazily initialize SaraStore on canonical sara.db path."""
@@ -1865,6 +2139,15 @@ class MCPServer:
         if tool_name == "query_audit_ledger":
             return ToolResult(self._handle_query_audit_ledger(arguments))
 
+        # 0b. Proactive Agent Assurance Gate (PASAC PEP Allow(a) & Hazard Containment :: #18)
+        pasac_block = self._evaluate_pasac_pre_execution(
+            tool_name=str(tool_name),
+            session_id=session_id,
+            user_prompt=user_prompt,
+        )
+        if pasac_block is not None:
+            return ToolResult(pasac_block)
+
         # 1. Closed-Loop Security Pre-Execution Interception
         from ctxfw.rules.enforcer import RulesEnforcer, normalize_path
         from ctxfw.rules.contracts import EnforcementVerdict
@@ -2451,11 +2734,11 @@ class MCPServer:
                             if not header or header.strip() == "":
                                 break
                         body = sys.stdin.read(content_length)
-                        output = self.process_raw_line(body)
                     except Exception as e:
                         sys.stderr.write(f"Framing error: {e}\n")
                         sys.stderr.flush()
                         continue
+                    output = self.process_raw_line(body)
                 else:
                     # Standard line-delimited JSON-RPC
                     output = self.process_raw_line(line)
@@ -2492,6 +2775,11 @@ class MCPServer:
             if self._mcp_guard_store is not None:
                 try:
                     self._mcp_guard_store.close()
+                except Exception:
+                    pass
+            if self._pasac_store is not None:
+                try:
+                    self._pasac_store.close()
                 except Exception:
                     pass
 

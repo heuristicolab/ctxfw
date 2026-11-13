@@ -614,3 +614,96 @@ def test_doctor_check8_detects_poisoned_mcp_json(tmp_path: Path):
     assert len(cfg_findings) >= 2
     assert any(f.vector == "P20" for f in cfg_findings)
     assert any(f.invisible_unicode_detected for f in cfg_findings)
+
+
+def test_store_burst_param_binding_and_confinement_unique_ids(tmp_path: Path):
+    """Guarantees >=50 identical sub-ms calls never collide on PBA-* or CNF-* primary keys on Windows."""
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    safe_file = ws / "module.py"
+    safe_file.write_text("x = 1\n", encoding="utf-8")
+
+    store = McpGuardStore(tmp_path / "burst_guard.db")
+    try:
+        p_guard = ParameterBindingGuard(
+            tool_name="inspect_code",
+            allowed_keys=("path",),
+            required_keys=("path",),
+        )
+        burst_count = 60
+        for _ in range(burst_count):
+            ok, missing, unknown = store.check_and_record_param_binding(
+                p_guard,
+                {"path": str(safe_file)},
+                server_id="burst-srv",
+            )
+            assert ok is True
+            assert missing == ()
+            assert unknown == ()
+
+        param_rows = store.list_param_audits()
+        assert len(param_rows) == burst_count
+        assert len({row["audit_id"] for row in param_rows}) == burst_count
+
+        conf_res = is_component_confined(safe_file, [ws])
+        assert conf_res.allowed is True
+        for _ in range(burst_count):
+            store.record_confinement_check(
+                "burst-srv",
+                "inspect_code",
+                str(safe_file),
+                conf_res,
+            )
+
+        conf_rows = store.list_confinement_logs()
+        assert len(conf_rows) == burst_count
+        assert len({row["log_id"] for row in conf_rows}) == burst_count
+    finally:
+        store.close()
+
+
+def test_run_stdio_loop_does_not_swallow_dispatch_exception_as_framing_error(tmp_path: Path, monkeypatch):
+    """Content-Length framing errors log to stderr, while process_raw_line dispatch errors propagate."""
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    server = MCPServer(
+        cache=LocalSemanticCache(str(tmp_path / "cache.db")),
+        tracekit_store=TraceKitStore(tmp_path / "tracekit.db", clock=SystemUtcClock()),
+        mcp_guard_store=McpGuardStore(tmp_path / "guard.db"),
+        authorized_roots=[ws],
+    )
+
+    # 1. Dispatch failure after valid Content-Length frame must propagate, NOT become "Framing error"
+    payload = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+    valid_framed = f"Content-Length: {len(payload)}\n\n{payload}"
+    err_buf = io.StringIO()
+    out_buf = io.StringIO()
+    monkeypatch.setattr(sys, "stdin", io.StringIO(valid_framed))
+    monkeypatch.setattr(sys, "stdout", out_buf)
+    monkeypatch.setattr(sys, "stderr", err_buf)
+
+    def _boom(_raw_line: str) -> str:
+        raise RuntimeError("synthetic dispatch failure")
+
+    monkeypatch.setattr(server, "process_raw_line", _boom)
+    with pytest.raises(RuntimeError, match="synthetic dispatch failure"):
+        server.run_stdio_loop()
+    assert "Framing error" not in err_buf.getvalue()
+
+    # 2. Re-open clean loop for genuine malformed Content-Length header -> logged cleanly as Framing error
+    case2_dir = tmp_path / "case2"
+    case2_dir.mkdir()
+    server2 = MCPServer(
+        cache=LocalSemanticCache(str(case2_dir / "cache.db")),
+        tracekit_store=TraceKitStore(case2_dir / "tracekit.db", clock=SystemUtcClock()),
+        mcp_guard_store=McpGuardStore(case2_dir / "guard.db"),
+        authorized_roots=[ws],
+    )
+    bad_framed = "Content-Length: not-a-number\n\n"
+    err_buf2 = io.StringIO()
+    out_buf2 = io.StringIO()
+    monkeypatch.setattr(sys, "stdin", io.StringIO(bad_framed))
+    monkeypatch.setattr(sys, "stdout", out_buf2)
+    monkeypatch.setattr(sys, "stderr", err_buf2)
+    server2.run_stdio_loop()
+    assert "Framing error:" in err_buf2.getvalue()

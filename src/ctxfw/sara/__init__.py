@@ -3,8 +3,11 @@
 
 CTXFW Axiomatic Gateway (milestone M3-P2): status VERIFIED | ACI 1.0000
 manifest_hash: 8f925c1e7c680c7af68e6f3daa48a5ac734923438762ed8836878a97508ce42e
+manifest_hash_wave1b: ebbcd0d607fa09a71dda690ea76104d762b3f279cde258f64917421d39a249f4
 Sealed blueprint manifest_hash (SARA SIG-0d2acf53b92882b0, VERIFIED, ACI 1.0000):
     51d819312f8dd802981a7b7d97b9d6397316738ded76c94161a9f147411c94ea
+Sealed blueprint manifest_hash (#18 PASAC SIG-97ba08207eca7295, VERIFIED, ACI 1.0000):
+    da52eae13ef720cd4f56f1f3a3c295b7800aeb9585d8b92e346529e90bf4dc95
 
 Vendored, byte-for-byte, from the sealed blueprint (never edited here):
     contracts.py             <- specs/2_pydantic_contracts.py
@@ -47,10 +50,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 __all__ = [
+    "ASSURANCE_SCHEMA_PATH",
     "CONTRACTS_PATH",
     "MANIFEST_PATH",
     "PACKAGE_DIR",
     "SCHEMA_PATH",
+    "load_assurance_schema_sql",
     "load_manifest",
     "load_schema_sql",
     # Sovereign engines:
@@ -61,7 +66,29 @@ __all__ = [
     "RuntimeAuthorizationGate",
     "AuditSink",
     "SaraStore",
+    "PasacAssuranceStore",
     "derive_quarantine_id",
+    # Proactive Agent Assurance & PASAC Gate (Wave 1B :: #18):
+    "AssuranceScopeContract",
+    "BoundaryAssuranceVector",
+    "AgentRiskStateVector",
+    "PolicyEnforcementDecision",
+    "ContainmentQuarantineAlert",
+    "RuntimePreflightPosture",
+    "PasacLifecycleState",
+    "PasacLifecycleEvent",
+    "AccountabilityRole",
+    "EgressPolicyMode",
+    "PreflightStatus",
+    "HazardRegime",
+    "FailureErrorClass",
+    "pasac_transition",
+    "compute_boundary_assurances",
+    "compute_parametric_risk_r_star",
+    "classify_hazard_regime",
+    "evaluate_pep_gate",
+    "assess_runtime_isolation_posture",
+    "format_pep_action_code",
     # Architecture directive aliases:
     "UntrustedObservationDTO",
     "AuthorizedPolicyDTO",
@@ -104,9 +131,36 @@ __all__ = [
 PACKAGE_DIR = Path(__file__).resolve().parent
 CONTRACTS_PATH = PACKAGE_DIR / "contracts.py"
 SCHEMA_PATH = PACKAGE_DIR / "schema.sql"
+ASSURANCE_SCHEMA_PATH = PACKAGE_DIR / "assurance_schema.sql"
 MANIFEST_PATH = PACKAGE_DIR / "blueprint_manifest.json"
 
-_SUBMODULES = frozenset({"contracts", "lexical", "induction", "gate", "audit", "store"})
+_SUBMODULES = frozenset(
+    {"contracts", "lexical", "induction", "gate", "audit", "store", "assurance", "assurance_store"}
+)
+
+_ASSURANCE_EXPORTS = frozenset(
+    {
+        "AccountabilityRole",
+        "AgentRiskStateVector",
+        "AssuranceScopeContract",
+        "BoundaryAssuranceVector",
+        "ContainmentQuarantineAlert",
+        "EgressPolicyMode",
+        "FailureErrorClass",
+        "HazardRegime",
+        "PasacLifecycleEvent",
+        "PasacLifecycleState",
+        "PolicyEnforcementDecision",
+        "PreflightStatus",
+        "RuntimePreflightPosture",
+        "assess_runtime_isolation_posture",
+        "classify_hazard_regime",
+        "compute_boundary_assurances",
+        "compute_parametric_risk_r_star",
+        "evaluate_pep_gate",
+        "format_pep_action_code",
+    }
+)
 
 _ALIASES: dict[str, str] = {
     "UntrustedObservationDTO": "RawToolObservationDTO",
@@ -118,6 +172,11 @@ _ALIASES: dict[str, str] = {
 def load_schema_sql() -> str:
     """Return the sealed DDL text exactly as vendored (UTF-8)."""
     return SCHEMA_PATH.read_text(encoding="utf-8")
+
+
+def load_assurance_schema_sql() -> str:
+    """Return the PASAC assurance SQLite WAL DDL text (UTF-8)."""
+    return ASSURANCE_SCHEMA_PATH.read_text(encoding="utf-8")
 
 
 def load_manifest() -> dict[str, Any]:
@@ -152,6 +211,18 @@ def __getattr__(name: str) -> Any:
         from . import store
 
         return getattr(store, name)
+    if name == "PasacAssuranceStore":
+        from . import assurance_store
+
+        return getattr(assurance_store, name)
+    if name == "pasac_transition":
+        from . import assurance
+
+        return getattr(assurance, "transition")
+    if name in _ASSURANCE_EXPORTS:
+        from . import assurance
+
+        return getattr(assurance, name)
     if name in _ALIASES:
         from . import contracts
 
@@ -168,6 +239,29 @@ def __dir__() -> list[str]:
 
 
 if TYPE_CHECKING:
+    from .assurance import (
+        AccountabilityRole,
+        AgentRiskStateVector,
+        AssuranceScopeContract,
+        BoundaryAssuranceVector,
+        ContainmentQuarantineAlert,
+        EgressPolicyMode,
+        FailureErrorClass,
+        HazardRegime,
+        PasacLifecycleEvent,
+        PasacLifecycleState,
+        PolicyEnforcementDecision,
+        PreflightStatus,
+        RuntimePreflightPosture,
+        assess_runtime_isolation_posture,
+        classify_hazard_regime,
+        compute_boundary_assurances,
+        compute_parametric_risk_r_star,
+        evaluate_pep_gate,
+        format_pep_action_code,
+        transition as pasac_transition,
+    )
+    from .assurance_store import PasacAssuranceStore
     from .audit import AuditSink, derive_quarantine_id
     from .contracts import (
         EXECUTION_ID_PATTERN,

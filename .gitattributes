@@ -70,4 +70,8 @@ src/ctxfw/mcp_guard/contracts.py -text
 src/ctxfw/mcp_guard/schema.sql -text
 src/ctxfw/mcp_guard/store.py -text
 tests/test_mcp_guard.py -text
+src/ctxfw/sara/assurance.py -text
+src/ctxfw/sara/assurance_schema.sql -text
+src/ctxfw/sara/assurance_store.py -text
+tests/test_pasac_assurance.py -text
 
