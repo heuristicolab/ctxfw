@@ -4,6 +4,7 @@ SARA Action Induction Parser :: Deterministic Directive Extraction & Risk Scorin
 =================================================================================
 manifest_hash (M3-P2): 8f925c1e7c680c7af68e6f3daa48a5ac734923438762ed8836878a97508ce42e
 manifest_hash (M3-P3): 8d94151e921e2f8eaacb440cb3c1b0d4e0ff6ac80fa217e5830de1c1edec1b13
+manifest_hash_wave1a: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 Scans untrusted tool observations for imperative shell commands, file path access,
 role-override injections, and hidden escape sequences. Computes a deterministic
 risk_score in [0.0, 1.0] (strictly rejecting NaN/Inf) under default-deny policy rules.
@@ -11,8 +12,11 @@ risk_score in [0.0, 1.0] (strictly rejecting NaN/Inf) under default-deny policy 
 from __future__ import annotations
 
 import math
+import os
+from pathlib import Path
 import posixpath
 import re
+import urllib.parse
 from typing import Optional, Sequence, Tuple, Union
 
 from ctxfw.sara.contracts import (
@@ -158,28 +162,88 @@ def _normalize_command_text(raw_match: str) -> str:
     return text
 
 
+_SARA_WIN_DRIVE_RE = re.compile(r"^[A-Za-z]:(?:[/\\]|$)")
+_SARA_URI_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]{1,20}:")
+
+
+def _unquote_path_safe(raw_text: str, max_rounds: int = 3) -> Optional[str]:
+    """Bounded percent-decoding; returns None if encoding fails to stabilize."""
+    current = raw_text
+    for _ in range(max_rounds):
+        nxt = urllib.parse.unquote(current)
+        if nxt == current:
+            return current
+        current = nxt
+    if urllib.parse.unquote(current) != current:
+        return None
+    return current
+
+
 def _is_path_allowlisted(path_text: str, allowed_paths: Tuple[str, ...]) -> bool:
-    """Check if a file path is within the policy path prefix allowlist (rejecting any '..' traversal)."""
+    """Check if a file path is component-confined within allowlist (blocking URI schemes, traversal, sibling prefix & symlink escapes)."""
     if not allowed_paths:
         return False
-    cleaned = path_text.strip().replace("\\", "/")
-    segments = cleaned.split("/")
-    if ".." in segments:
+    if "\x00" in path_text:
         return False
-    if not cleaned.startswith("/"):
+    decoded = _unquote_path_safe(path_text.strip(), max_rounds=3)
+    if decoded is None or not decoded or "\x00" in decoded:
+        return False
+    if decoded.lower().startswith("file:") or (
+        _SARA_URI_SCHEME_RE.match(decoded) and not _SARA_WIN_DRIVE_RE.match(decoded)
+    ):
+        return False
+
+    cleaned = decoded.replace("\\", "/")
+    if cleaned.startswith("//"):
+        return False
+    segments = [seg for seg in cleaned.split("/") if seg]
+    if ".." in segments or cleaned == "..":
+        return False
+    is_posix_abs = cleaned.startswith("/")
+    is_win_abs = bool(_SARA_WIN_DRIVE_RE.match(cleaned))
+    if not is_posix_abs and not is_win_abs:
         return False
 
     norm_path = posixpath.normpath(cleaned)
     if ".." in norm_path.split("/"):
         return False
 
+    lexical_match_prefix: Optional[str] = None
     for prefix in allowed_paths:
-        norm_prefix = posixpath.normpath(prefix.strip().replace("\\", "/")).rstrip("/")
+        prefix_clean = prefix.strip().replace("\\", "/")
+        norm_prefix = posixpath.normpath(prefix_clean).rstrip("/")
         if not norm_prefix:
             continue
-        if norm_path == norm_prefix or norm_path.startswith(norm_prefix + "/"):
-            return True
-    return False
+        if is_win_abs and _SARA_WIN_DRIVE_RE.match(norm_prefix):
+            norm_path_low = norm_path.lower()
+            norm_prefix_low = norm_prefix.lower()
+            if norm_path_low == norm_prefix_low or norm_path_low.startswith(norm_prefix_low + "/"):
+                lexical_match_prefix = norm_prefix
+                break
+        elif norm_path == norm_prefix or norm_path.startswith(norm_prefix + "/"):
+            lexical_match_prefix = norm_prefix
+            break
+
+    if lexical_match_prefix is None:
+        return False
+
+    # Symlink / TOCTOU confinement check when path components exist on local filesystem
+    cand_local = Path(decoded)
+    prefix_local = Path(lexical_match_prefix)
+    try:
+        cur = cand_local
+        has_real_target = os.path.lexists(cur) or os.path.lexists(prefix_local)
+        if has_real_target:
+            resolved_prefix = prefix_local.resolve()
+            resolved_cand = cand_local.resolve()
+            if not resolved_cand.is_relative_to(resolved_prefix):
+                return False
+            if os.path.islink(cand_local):
+                return False
+    except (OSError, ValueError):
+        return False
+
+    return True
 
 
 def _is_command_allowlisted(

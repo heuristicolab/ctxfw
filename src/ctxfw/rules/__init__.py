@@ -3,6 +3,7 @@
 
 CTXFW Axiomatic Gateway (milestone M2): status VERIFIED | ACI 1.0000
 manifest_hash: 862e0dc20133fe81f2ce12812b86d74068db80cce8566a3b71d2d406db72c549
+manifest_hash_wave1a: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 Sealed blueprint manifest_hash (Claude Rules Compiler SIG-1d0a63f087edb904, VERIFIED, ACI 1.0000):
     b5b8e1cd10ce8beeed6b076f4726d19b361a6ce2f5d480c2bb2aa437986822d3
 
@@ -53,6 +54,7 @@ __all__ = [
     "RulesEnforcer",
     "RulesStore",
     "extract_normative_clauses",
+    "is_path_confined",
     "normalize_path",
     "audit_source",
     # Architecture directive aliases:
@@ -112,7 +114,7 @@ def __getattr__(name: str) -> Any:
         from . import compiler
 
         return getattr(compiler, name)
-    if name in {"RulesEnforcer", "normalize_path", "audit_source"}:
+    if name in {"RulesEnforcer", "is_path_confined", "normalize_path", "audit_source"}:
         from . import enforcer
 
         return getattr(enforcer, name)
@@ -168,7 +170,7 @@ if TYPE_CHECKING:
         sha256_hex,
         transition,
     )
-    from .enforcer import RulesEnforcer, audit_source, normalize_path
+    from .enforcer import RulesEnforcer, audit_source, is_path_confined, normalize_path
     from .extractor import extract_normative_clauses
     from .store import RulesStore
 

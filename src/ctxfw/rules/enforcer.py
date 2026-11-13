@@ -2,17 +2,20 @@
 """
 Claude Rules Compiler :: Rules Enforcer & AST Auditor
 =====================================================
+manifest_hash_wave1a: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 Enforces compiled guards against tool calls and audits Python source code via AST analysis.
-Features 3-round path traversal unquoting and deterministic subsequence matching.
+Features 3-round path traversal unquoting, URI-scheme rejection, OS confinement, and deterministic matching.
 """
 from __future__ import annotations
 
 import ast
+import os
+from pathlib import Path
 import posixpath
 import re
 import shlex
 import urllib.parse
-from typing import Sequence
+from typing import Sequence, Tuple, Union
 
 from ctxfw.rules.contracts import (
     CompiledAstGuardDTO,
@@ -24,21 +27,30 @@ from ctxfw.rules.contracts import (
 __all__ = [
     "RulesEnforcer",
     "audit_source",
+    "is_path_confined",
     "normalize_path",
 ]
 
+_WIN_DRIVE_RE = re.compile(r"^[A-Za-z]:(?:[/\\]|$)")
+_URI_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]{1,20}:")
+
 
 def normalize_path(raw: str, max_rounds: int = 3) -> str:
-    """Normalize and sanitize file paths against traversal attacks.
+    """Normalize and sanitize file paths against traversal, null-byte, and file:// URI attacks.
 
     Steps:
-      1. Iterative percent/hex unquoting up to max_rounds (default 3).
+      1. Null byte rejection prior to and after unquoting.
+      2. Iterative percent/hex unquoting up to max_rounds (default 3).
          Raises ValueError if encoding does not stabilize.
-      2. Backslash conversion ('\\' -> '/') and posixpath.normpath.
-      3. Stripping of './' prefix.
-      4. Traversal check: raises ValueError if path escapes project root (starts with '../', '/../', or is '..').
-      5. Returns normalized path in lowercase.
+      3. Reject file:// URI smuggling (e.g. file:///etc/passwd or file:secret).
+      4. Backslash conversion ('\\\\' -> '/') and posixpath.normpath.
+      5. Stripping of './' prefix.
+      6. Traversal check: raises ValueError if path escapes project root (starts with '../', '/../', or is '..').
+      7. Returns normalized path in lowercase.
     """
+    if "\x00" in raw:
+        raise ValueError("path contains null byte")
+
     current = raw
     for _ in range(max_rounds):
         nxt = urllib.parse.unquote(current)
@@ -48,6 +60,15 @@ def normalize_path(raw: str, max_rounds: int = 3) -> str:
     else:
         if urllib.parse.unquote(current) != current:
             raise ValueError("path encoding does not stabilize")
+
+    if "\x00" in current:
+        raise ValueError("path contains null byte")
+
+    stripped_lower = current.strip().lower()
+    if stripped_lower.startswith("file:"):
+        raise ValueError("file:// URI scheme not permitted in path")
+    if _URI_SCHEME_RE.match(current.strip()) and not _WIN_DRIVE_RE.match(current.strip()):
+        raise ValueError("URI scheme not permitted in path")
 
     # Detect explicit traversal sequences in unquoted text
     cleaned = current.replace("\\", "/")
@@ -62,6 +83,23 @@ def normalize_path(raw: str, max_rounds: int = 3) -> str:
         raise ValueError("path escapes the project root")
 
     return norm.lower()
+
+
+def is_path_confined(
+    candidate: Union[str, Path],
+    authorized_roots: Sequence[Union[str, Path]],
+    *,
+    follow_symlinks: bool = False,
+) -> Tuple[bool, str]:
+    """Verify real OS component confinement of candidate within authorized_roots (#03 PT-001..PT-005)."""
+    from ctxfw.mcp_guard.contracts import is_component_confined
+
+    res = is_component_confined(
+        candidate,
+        authorized_roots,
+        follow_symlinks=follow_symlinks,
+    )
+    return res.allowed, res.reason
 
 
 def _is_subsequence(sub: Sequence[str], full: Sequence[str]) -> bool:
@@ -156,7 +194,7 @@ class RulesEnforcer:
         # Traversal evasion check: if any token fails normalization and path guards exist, block immediately!
         if path_guards:
             for tok in tokens:
-                if any(c in tok for c in ("/", "\\", "%", "..")):
+                if any(c in tok for c in ("/", "\\", "%", "..", "\x00")) or tok.lower().startswith("file:"):
                     try:
                         normalize_path(tok)
                     except ValueError:

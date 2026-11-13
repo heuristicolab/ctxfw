@@ -3,7 +3,7 @@
 > **Project**: `heuristico-core-optimizer` (`ord-2026-4f003b`)  
 > **Canonical Version**: `v4.1.1`  
 > **Domain**: AST Slicing, Multi-Surface MCP, & Zero-Egress Proxy Gateway  
-> **Verification Status**: **473 / 473 Tests Passing (100% Green)** | **ACI 1.0000**  
+> **Verification Status**: **483 / 483 Tests Passing (100% Green)** | **ACI 1.0000**  
 > **Target Stack**: Python 3.10+ | Native AST / Tree-sitter | Pydantic v2 | SQLite WAL | Pytest  
 
 ---
@@ -11,7 +11,7 @@
 ## 🛠️ Verification & Build Commands
 
 ```bash
-# Execute canonical test suite (473 tests, 100% green)
+# Execute canonical test suite (483 tests, 100% green)
 pytest tests/ -v --tb=short
 
 # Run high-assurance health & stdio isolation diagnostics (6 checks)

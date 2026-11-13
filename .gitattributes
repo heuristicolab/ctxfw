@@ -65,4 +65,9 @@ tests/test_closed_loop_m4.py -text
 tests/test_mcp_server.py -text
 tests/test_sovereign_pentad_stress.py -text
 tests/test_multirepo_isolation.py -text
+src/ctxfw/mcp_guard/__init__.py -text
+src/ctxfw/mcp_guard/contracts.py -text
+src/ctxfw/mcp_guard/schema.sql -text
+src/ctxfw/mcp_guard/store.py -text
+tests/test_mcp_guard.py -text
 
