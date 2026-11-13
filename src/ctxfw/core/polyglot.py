@@ -1,6 +1,7 @@
 """
 src/ctxfw/core/polyglot.py — Concrete Syntax Tree (CST) Polyglot Pruning Engine (v3.4.0)
 manifest_hash: b90e57b4c60302ff676f552fec3ce7dedaf327caca4854c9a10173b397fd68d5
+manifest_hash_wave1c: 00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762
 Leverages Tree-sitter CST traversal to slice TypeScript/JavaScript, Go, and Java,
 preserving signatures, interfaces, types, and DTO structures while stubbing method bodies.
 """
@@ -16,6 +17,17 @@ class TreeSitterContextPruner:
     """Motor políglota de slicing basado en Tree-sitter CST."""
 
     _parsers: Dict[str, object] = {}
+    _invalidation_epoch: int = 0
+    _last_invalidation_reason: str = ""
+
+    @classmethod
+    def invalidate_cache(cls, reason: str = "rollback", reset_parsers: bool = False) -> int:
+        """Advance polyglot pruner invalidation epoch and optionally reset parser handles."""
+        cls._invalidation_epoch += 1
+        cls._last_invalidation_reason = reason
+        if reset_parsers:
+            cls._parsers.clear()
+        return cls._invalidation_epoch
 
     @classmethod
     def _get_parser(cls, language: SupportedLanguage):

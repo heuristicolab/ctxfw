@@ -1,6 +1,7 @@
 """
 src/ctxfw/proxy.py — Perimeter Reverse Proxy Service (v3.5.0)
 Manifest Hash: 22765740d4ee59328c52f4259f862ac6c389a2cb8d863021cf64fd0027f22310
+manifest_hash_wave1c: 00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762
 Transparent HTTP reverse proxy implementing the Fail-Open Context Firewall policy
 for OpenAI (/v1/chat/completions) and Anthropic (/v1/messages) protocols.
 Enforces FinOps Policy Governance (model clamping, token caps, thinking budget, circuit breaker).
@@ -37,6 +38,8 @@ from ctxfw.storage.telemetry import (
     get_or_create_dev_uuid,
     push_telemetry_heartbeat,
 )
+from ctxfw.tracelite.contracts import AgentObservationStep, TraceReducerPolicy
+from ctxfw.tracelite.reducer import TraceLiteReducer, is_edit_action
 
 
 app = FastAPI(
@@ -153,15 +156,264 @@ def compact_code_snippet(
         return code, 0
 
 
+_SERIALIZED_STEP_RE = re.compile(
+    r"(?:^|\n)(?:\[STEP\s+(?P<idx1>\d+)\]|###\s*Step\s+(?P<idx2>\d+))\s*"
+    r"Action:\s*(?P<action>[^\n]+)\n"
+    r"Observation:\s*\n?(?P<obs>.*?)(?=(?:\n(?:\[STEP\s+\d+\]|###\s*Step\s+\d+)\s*Action:)|\Z)",
+    re.DOTALL,
+)
+
+
+def _extract_target_resource(args_obj: Any) -> Optional[str]:
+    if isinstance(args_obj, str):
+        try:
+            args_obj = json.loads(args_obj)
+        except Exception:
+            return None
+    if isinstance(args_obj, dict):
+        for key in ("target_file", "file_path", "TargetFile", "AbsolutePath", "path", "file", "filename"):
+            val = args_obj.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+    return None
+
+
+def reduce_serialized_trace_text(
+    text: str,
+    cache: Optional[LocalSemanticCache] = None,
+    policy: Optional[TraceReducerPolicy] = None,
+) -> Tuple[str, int]:
+    """
+    Detects explicit multi-step agent trace blocks ([STEP N] Action: ... Observation: ...)
+    and applies deterministic TraceLite reduction without touching newest O_s or actions a_i.
+    """
+    if not text or ("Action:" not in text or "Observation:" not in text):
+        return text, 0
+    matches = list(_SERIALIZED_STEP_RE.finditer(text))
+    if len(matches) < 2:
+        return text, 0
+
+    steps: list[AgentObservationStep] = []
+    for pos, m in enumerate(matches):
+        idx_raw = m.group("idx1") or m.group("idx2") or str(pos)
+        action = m.group("action").strip()
+        obs = m.group("obs").rstrip("\r\n")
+        steps.append(
+            AgentObservationStep(
+                step_index=int(idx_raw),
+                action_invocation=action,
+                observation_text=obs,
+                is_edit_action=is_edit_action(action),
+                target_resource=None,
+            )
+        )
+
+    reducer = TraceLiteReducer(policy=policy, cache=cache)
+    window, _transitions, _incidents = reducer.reduce(
+        trajectory_id=f"proxy-text-{len(steps)}",
+        steps=steps,
+    )
+    if window.tokens_saved <= 0:
+        return text, 0
+
+    out_parts: list[str] = []
+    cursor = 0
+    for pos, m in enumerate(matches):
+        out_parts.append(text[cursor : m.start()])
+        reduced_step = window.steps[pos]
+        tag = f"[STEP {reduced_step.step_index}]" if m.group("idx1") is not None else f"### Step {reduced_step.step_index}"
+        out_parts.append(
+            f"{tag} Action: {reduced_step.action_invocation}\n"
+            f"Observation:\n{reduced_step.observation_text}"
+        )
+        cursor = m.end()
+    out_parts.append(text[cursor:])
+    return "".join(out_parts), window.tokens_saved
+
+
+def reduce_message_trajectory(
+    messages: list,
+    cache: Optional[LocalSemanticCache] = None,
+    policy: Optional[TraceReducerPolicy] = None,
+) -> Tuple[list, int, set[int]]:
+    """
+    Applies deterministic TraceLite trajectory reduction across multi-step OpenAI/Anthropic
+    tool observations in `messages` while preserving all actions a_i and newest observation O_s.
+    Returns (updated_messages, tokens_saved, tracelite_handled_msg_indices).
+    """
+    if not messages:
+        return messages, 0, set()
+
+    # Track assistant tool invocations by call_id -> (name, formatted_action, resource)
+    call_lookup: Dict[str, Tuple[str, str, Optional[str]]] = {}
+    slots: list[tuple[int, Optional[int], bool, AgentObservationStep]] = []
+
+    for msg_idx, msg in enumerate(messages):
+        if not isinstance(msg, dict):
+            continue
+        role = msg.get("role")
+
+        # OpenAI assistant tool_calls
+        if role == "assistant" and isinstance(msg.get("tool_calls"), list):
+            for tc in msg["tool_calls"]:
+                if not isinstance(tc, dict):
+                    continue
+                tc_id = str(tc.get("id") or "")
+                fn = tc.get("function") if isinstance(tc.get("function"), dict) else {}
+                fn_name = str(fn.get("name") or tc.get("name") or "tool_call")
+                args = fn.get("arguments", "")
+                res = _extract_target_resource(args)
+                action_str = f"{fn_name}({args})" if args else fn_name
+                if tc_id:
+                    call_lookup[tc_id] = (fn_name, action_str[:16000], res)
+
+        # Anthropic assistant tool_use blocks
+        content = msg.get("content")
+        if role == "assistant" and isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict) and part.get("type") == "tool_use":
+                    tu_id = str(part.get("id") or "")
+                    tu_name = str(part.get("name") or "tool_use")
+                    tu_input = part.get("input", {})
+                    res = _extract_target_resource(tu_input)
+                    action_str = f"{tu_name}({json.dumps(tu_input, sort_keys=True)})" if tu_input else tu_name
+                    if tu_id:
+                        call_lookup[tu_id] = (tu_name, action_str[:16000], res)
+
+        # OpenAI tool observation message
+        if role == "tool":
+            tc_id = str(msg.get("tool_call_id") or "")
+            fn_name, action_str, res = call_lookup.get(
+                tc_id,
+                (
+                    str(msg.get("name") or "tool"),
+                    str(msg.get("name") or f"tool:{tc_id or msg_idx}"),
+                    None,
+                ),
+            )
+            obs_text = ""
+            is_string_content = isinstance(content, str)
+            if is_string_content:
+                obs_text = content
+            elif isinstance(content, list):
+                text_bits = [
+                    p.get("text", "")
+                    for p in content
+                    if isinstance(p, dict) and p.get("type") == "text" and isinstance(p.get("text"), str)
+                ]
+                obs_text = "\n".join(text_bits)
+            slots.append((
+                msg_idx,
+                None,
+                is_string_content,
+                AgentObservationStep(
+                    step_index=len(slots),
+                    action_invocation=action_str or fn_name,
+                    observation_text=obs_text,
+                    is_edit_action=is_edit_action(fn_name),
+                    target_resource=res,
+                    message_index=msg_idx,
+                    tool_call_id=tc_id or None,
+                ),
+            ))
+            continue
+
+        # Anthropic tool_result blocks inside user message content lists
+        if isinstance(content, list):
+            for part_idx, part in enumerate(content):
+                if isinstance(part, dict) and part.get("type") == "tool_result":
+                    tu_id = str(part.get("tool_use_id") or "")
+                    fn_name, action_str, res = call_lookup.get(
+                        tu_id,
+                        ("tool_result", f"tool_result:{tu_id or part_idx}", None),
+                    )
+                    tr_content = part.get("content")
+                    is_tr_str = isinstance(tr_content, str)
+                    if is_tr_str:
+                        obs_text = tr_content
+                    elif isinstance(tr_content, list):
+                        text_bits = [
+                            p.get("text", "")
+                            for p in tr_content
+                            if isinstance(p, dict) and p.get("type") == "text" and isinstance(p.get("text"), str)
+                        ]
+                        obs_text = "\n".join(text_bits)
+                    else:
+                        obs_text = ""
+                    slots.append((
+                        msg_idx,
+                        part_idx,
+                        is_tr_str,
+                        AgentObservationStep(
+                            step_index=len(slots),
+                            action_invocation=action_str or fn_name,
+                            observation_text=obs_text,
+                            is_edit_action=is_edit_action(fn_name),
+                            target_resource=res,
+                            message_index=msg_idx,
+                            tool_call_id=tu_id or None,
+                        ),
+                    ))
+
+    if len(slots) < 2:
+        return messages, 0, set()
+
+    steps = [slot[3] for slot in slots]
+    reducer = TraceLiteReducer(policy=policy, cache=cache)
+    window, _transitions, _incidents = reducer.reduce(
+        trajectory_id=f"proxy-msg-{len(steps)}",
+        steps=steps,
+    )
+    if window.tokens_saved <= 0:
+        return messages, 0, set()
+
+    updated_messages = [dict(m) if isinstance(m, dict) else m for m in messages]
+    handled_indices: set[int] = set()
+
+    for pos, (msg_idx, part_idx, _was_str, orig_step) in enumerate(slots):
+        reduced_obs = window.steps[pos].observation_text
+        handled_indices.add(msg_idx)
+        if reduced_obs == orig_step.observation_text:
+            continue
+        msg_obj = dict(updated_messages[msg_idx])
+        if part_idx is None:
+            # OpenAI role == 'tool'
+            if isinstance(msg_obj.get("content"), str):
+                msg_obj["content"] = reduced_obs
+            elif isinstance(msg_obj.get("content"), list):
+                msg_obj["content"] = [{"type": "text", "text": reduced_obs}]
+        else:
+            # Anthropic tool_result inside content list
+            parts = list(msg_obj.get("content", []))
+            tr_block = dict(parts[part_idx])
+            if isinstance(tr_block.get("content"), str):
+                tr_block["content"] = reduced_obs
+            else:
+                tr_block["content"] = [{"type": "text", "text": reduced_obs}]
+            parts[part_idx] = tr_block
+            msg_obj["content"] = parts
+        updated_messages[msg_idx] = msg_obj
+
+    return updated_messages, window.tokens_saved, handled_indices
+
+
 def compact_text_payload(
     text: str,
     cache: Optional[LocalSemanticCache] = None,
 ) -> Tuple[str, int]:
     """
-    Scans text for tagged file blocks or markdown code fences, compacting code blocks.
+    Scans text for multi-step agent traces, tagged file blocks, or markdown code fences,
+    applying deterministic TraceLite reduction and AST pruning.
     Returns (compacted_text, total_tokens_saved).
     """
-    if not text or "```" not in text:
+    if not text:
+        return text, 0
+
+    reduced_trace, trace_saved = reduce_serialized_trace_text(text, cache=cache)
+    if trace_saved > 0:
+        return reduced_trace, trace_saved
+
+    if "```" not in text:
         return text, 0
 
     total_saved = 0
@@ -293,9 +545,20 @@ def inspect_and_compact_payload(
 
     # Process "messages" array (OpenAI and Anthropic)
     if "messages" in compacted_body and isinstance(compacted_body["messages"], list):
+        reduced_msgs, trace_saved, tracelite_msg_indices = reduce_message_trajectory(
+            compacted_body["messages"],
+            cache=cache,
+        )
+        total_tokens_saved += trace_saved
+
         new_messages = []
-        for msg in compacted_body["messages"]:
+        for msg_idx, msg in enumerate(reduced_msgs):
             if not isinstance(msg, dict):
+                new_messages.append(msg)
+                continue
+
+            if msg_idx in tracelite_msg_indices and msg.get("role") == "tool":
+                # Tool observation already handled by TraceLite (protect newest O_s and markers).
                 new_messages.append(msg)
                 continue
 
@@ -307,7 +570,7 @@ def inspect_and_compact_payload(
                 new_msg["content"] = new_content
                 total_tokens_saved += saved
             elif isinstance(content, list):
-                # Anthropic or OpenAI multi-part content
+                # Anthropic or OpenAI multi-part content (never mutate tool_use / tool_result)
                 new_parts = []
                 for part in content:
                     if isinstance(part, dict) and part.get("type") == "text" and isinstance(part.get("text"), str):

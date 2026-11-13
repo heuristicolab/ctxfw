@@ -1,5 +1,6 @@
 """
 src/ctxfw/core/pruner.py — AST Slicing and Method Body Stripper (v3.4.0)
+manifest_hash_wave1c: 00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762
 Preserves type annotations, signatures, docstrings, and sanitized raises while stubbing bodies with Ellipsis.
 """
 from __future__ import annotations
@@ -118,6 +119,15 @@ class _MethodBodyStripper(ast.NodeTransformer):
 class DeterministicContextPruner:
     """Motor de slicing determinista basado en Python AST."""
     RULES_VERSION = "v2.0.0"
+    _invalidation_epoch: int = 0
+    _last_invalidation_reason: str = ""
+
+    @classmethod
+    def invalidate_cache(cls, reason: str = "rollback") -> int:
+        """Advance pruner invalidation epoch cleanly on sandbox rollback."""
+        cls._invalidation_epoch += 1
+        cls._last_invalidation_reason = reason
+        return cls._invalidation_epoch
 
     @staticmethod
     def estimate_tokens(chars: int) -> int:
