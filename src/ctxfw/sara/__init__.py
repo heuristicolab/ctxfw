@@ -4,6 +4,7 @@
 CTXFW Axiomatic Gateway (milestone M3-P2): status VERIFIED | ACI 1.0000
 manifest_hash: 8f925c1e7c680c7af68e6f3daa48a5ac734923438762ed8836878a97508ce42e
 manifest_hash_wave1b: ebbcd0d607fa09a71dda690ea76104d762b3f279cde258f64917421d39a249f4
+manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
 Sealed blueprint manifest_hash (SARA SIG-0d2acf53b92882b0, VERIFIED, ACI 1.0000):
     51d819312f8dd802981a7b7d97b9d6397316738ded76c94161a9f147411c94ea
 Sealed blueprint manifest_hash (#18 PASAC SIG-97ba08207eca7295, VERIFIED, ACI 1.0000):
@@ -51,11 +52,13 @@ from typing import TYPE_CHECKING, Any
 
 __all__ = [
     "ASSURANCE_SCHEMA_PATH",
+    "TASK_AUTH_SCHEMA_PATH",
     "CONTRACTS_PATH",
     "MANIFEST_PATH",
     "PACKAGE_DIR",
     "SCHEMA_PATH",
     "load_assurance_schema_sql",
+    "load_task_auth_schema_sql",
     "load_manifest",
     "load_schema_sql",
     # Sovereign engines:
@@ -67,7 +70,49 @@ __all__ = [
     "AuditSink",
     "SaraStore",
     "PasacAssuranceStore",
+    "TaskAuthStore",
     "derive_quarantine_id",
+    # Task-Scoped Paired-Replay Auth, Sandbox PoLP & Spoof Delimiters (Wave 2 D.1 :: #07 + #08 + #10):
+    "AUTH_REPLAY_TRANSITIONS",
+    "FORBIDDEN_CDP_PORT",
+    "MAX_MULTIPLICITY_CEILING",
+    "MIN_CONTAINER_UID",
+    "SPOOF_DELIMITER_RE",
+    "SPOOF_MARKER_SIGNATURES",
+    "TASK_AUTH_MANIFEST_HASH",
+    "TERMINAL_AUTH_STATES",
+    "ArtifactoryMirrorConfig",
+    "AttackGoal",
+    "AuthReplayEvent",
+    "AuthReplayState",
+    "DpopProofContext",
+    "HttpMethodVerb",
+    "OpaRegoVerdictEnvelope",
+    "PairedReplayAuthorizationReceipt",
+    "PolicyCondition",
+    "RefreshTokenExchangeRequest",
+    "ReplayErrorClass",
+    "SandboxPolpPosture",
+    "StructuredToolCallEnvelope",
+    "TaskAuthorityPolicySpec",
+    "ToolDomain",
+    "canonical_dpop_message_bytes",
+    "compute_decision_seal",
+    "compute_dpop_hmac_signature",
+    "compute_harmful_execution",
+    "compute_model_compromise",
+    "compute_paired_contrast_delta",
+    "compute_scope_intersection",
+    "compute_state_chain_digest",
+    "detect_spoof_delimiters",
+    "evaluate_local_rego_policy",
+    "evaluate_scoped_tool_call",
+    "is_polp_mirror_compliant",
+    "task_auth_transition",
+    "validate_tool_domain",
+    "verify_dpop_proof",
+    "verify_jwt_before_parse",
+    "verify_opa_fail_closed",
     # Proactive Agent Assurance & PASAC Gate (Wave 1B :: #18):
     "AssuranceScopeContract",
     "BoundaryAssuranceVector",
@@ -132,10 +177,66 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 CONTRACTS_PATH = PACKAGE_DIR / "contracts.py"
 SCHEMA_PATH = PACKAGE_DIR / "schema.sql"
 ASSURANCE_SCHEMA_PATH = PACKAGE_DIR / "assurance_schema.sql"
+TASK_AUTH_SCHEMA_PATH = PACKAGE_DIR / "task_auth_schema.sql"
 MANIFEST_PATH = PACKAGE_DIR / "blueprint_manifest.json"
 
 _SUBMODULES = frozenset(
-    {"contracts", "lexical", "induction", "gate", "audit", "store", "assurance", "assurance_store"}
+    {
+        "contracts",
+        "lexical",
+        "induction",
+        "gate",
+        "audit",
+        "store",
+        "assurance",
+        "assurance_store",
+        "task_auth",
+        "task_auth_store",
+    }
+)
+
+_TASK_AUTH_EXPORTS = frozenset(
+    {
+        "AUTH_REPLAY_TRANSITIONS",
+        "FORBIDDEN_CDP_PORT",
+        "MAX_MULTIPLICITY_CEILING",
+        "MIN_CONTAINER_UID",
+        "SPOOF_DELIMITER_RE",
+        "SPOOF_MARKER_SIGNATURES",
+        "TASK_AUTH_MANIFEST_HASH",
+        "ArtifactoryMirrorConfig",
+        "AttackGoal",
+        "AuthReplayEvent",
+        "AuthReplayState",
+        "DpopProofContext",
+        "HttpMethodVerb",
+        "OpaRegoVerdictEnvelope",
+        "PairedReplayAuthorizationReceipt",
+        "PolicyCondition",
+        "RefreshTokenExchangeRequest",
+        "ReplayErrorClass",
+        "SandboxPolpPosture",
+        "StructuredToolCallEnvelope",
+        "TaskAuthorityPolicySpec",
+        "ToolDomain",
+        "canonical_dpop_message_bytes",
+        "compute_decision_seal",
+        "compute_dpop_hmac_signature",
+        "compute_harmful_execution",
+        "compute_model_compromise",
+        "compute_paired_contrast_delta",
+        "compute_scope_intersection",
+        "compute_state_chain_digest",
+        "detect_spoof_delimiters",
+        "evaluate_local_rego_policy",
+        "evaluate_scoped_tool_call",
+        "is_polp_mirror_compliant",
+        "task_auth_transition",
+        "validate_tool_domain",
+        "verify_dpop_proof",
+        "verify_jwt_before_parse",
+        "verify_opa_fail_closed",
+    }
 )
 
 _ASSURANCE_EXPORTS = frozenset(
@@ -179,6 +280,11 @@ def load_assurance_schema_sql() -> str:
     return ASSURANCE_SCHEMA_PATH.read_text(encoding="utf-8")
 
 
+def load_task_auth_schema_sql() -> str:
+    """Return the Wave 2 D.1 task-auth SQLite WAL DDL text (UTF-8)."""
+    return TASK_AUTH_SCHEMA_PATH.read_text(encoding="utf-8")
+
+
 def load_manifest() -> dict[str, Any]:
     """Return the sealed blueprint manifest as a dictionary."""
     return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
@@ -215,6 +321,14 @@ def __getattr__(name: str) -> Any:
         from . import assurance_store
 
         return getattr(assurance_store, name)
+    if name == "TaskAuthStore":
+        from . import task_auth_store
+
+        return getattr(task_auth_store, name)
+    if name in _TASK_AUTH_EXPORTS:
+        from . import task_auth
+
+        return getattr(task_auth, name)
     if name == "pasac_transition":
         from . import assurance
 
@@ -223,6 +337,14 @@ def __getattr__(name: str) -> Any:
         from . import assurance
 
         return getattr(assurance, name)
+    if name == "TERMINAL_STATES":
+        from . import contracts
+
+        return getattr(contracts, name)
+    if name == "TERMINAL_AUTH_STATES":
+        from . import task_auth
+
+        return getattr(task_auth, name)
     if name in _ALIASES:
         from . import contracts
 
@@ -300,6 +422,49 @@ if TYPE_CHECKING:
     from .induction import MAX_DIRECTIVES_PER_OBS, InductionParser
     from .lexical import LexicalSanitizer, SanitizationResult
     from .store import SaraStore
+    from .task_auth import (
+        AUTH_REPLAY_TRANSITIONS,
+        FORBIDDEN_CDP_PORT,
+        MAX_MULTIPLICITY_CEILING,
+        MIN_CONTAINER_UID,
+        SPOOF_DELIMITER_RE,
+        SPOOF_MARKER_SIGNATURES,
+        TASK_AUTH_MANIFEST_HASH,
+        TERMINAL_AUTH_STATES,
+        ArtifactoryMirrorConfig,
+        AttackGoal,
+        AuthReplayEvent,
+        AuthReplayState,
+        DpopProofContext,
+        HttpMethodVerb,
+        OpaRegoVerdictEnvelope,
+        PairedReplayAuthorizationReceipt,
+        PolicyCondition,
+        RefreshTokenExchangeRequest,
+        ReplayErrorClass,
+        SandboxPolpPosture,
+        StructuredToolCallEnvelope,
+        TaskAuthorityPolicySpec,
+        ToolDomain,
+        canonical_dpop_message_bytes,
+        compute_decision_seal,
+        compute_dpop_hmac_signature,
+        compute_harmful_execution,
+        compute_model_compromise,
+        compute_paired_contrast_delta,
+        compute_scope_intersection,
+        compute_state_chain_digest,
+        detect_spoof_delimiters,
+        evaluate_local_rego_policy,
+        evaluate_scoped_tool_call,
+        is_polp_mirror_compliant,
+        task_auth_transition,
+        validate_tool_domain,
+        verify_dpop_proof,
+        verify_jwt_before_parse,
+        verify_opa_fail_closed,
+    )
+    from .task_auth_store import TaskAuthStore
 
     UntrustedObservationDTO = RawToolObservationDTO
     AuthorizedPolicyDTO = AuthorizationPolicyRuleDTO

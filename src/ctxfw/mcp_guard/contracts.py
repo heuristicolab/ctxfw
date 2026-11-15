@@ -1,4 +1,5 @@
 # manifest_hash: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
+# manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
 """
 ctxfw.mcp_guard.contracts — Axiomatic Contracts, FSM & Deterministic Security Engines
 =======================================================================================
@@ -60,6 +61,7 @@ _UNICODE_TAG_RANGE = range(0xE0000, 0xE0080)
 _IMPERATIVE_POISON_RE = re.compile(
     r"(?:"
     r"<\s*(?:IMPORTANT|SYSTEM|INSTRUCTIONS|CRITICAL|SECRET|ADMIN|OVERRIDE)\s*>"
+    r"|<\s*(?:INST|DATA)\s+(?:BEGIN|END)\s*>"
     r"|<\|\s*(?:im_start|system|im_end)\s*\|>"
     r"|\[/?INST\]"
     r"|\bignore\s+(?:all\s+)?(?:previous|prior|above)\s+instructions\b"

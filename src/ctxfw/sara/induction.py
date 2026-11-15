@@ -5,6 +5,7 @@ SARA Action Induction Parser :: Deterministic Directive Extraction & Risk Scorin
 manifest_hash (M3-P2): 8f925c1e7c680c7af68e6f3daa48a5ac734923438762ed8836878a97508ce42e
 manifest_hash (M3-P3): 8d94151e921e2f8eaacb440cb3c1b0d4e0ff6ac80fa217e5830de1c1edec1b13
 manifest_hash_wave1a: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
+manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
 Scans untrusted tool observations for imperative shell commands, file path access,
 role-override injections, and hidden escape sequences. Computes a deterministic
 risk_score in [0.0, 1.0] (strictly rejecting NaN/Inf) under default-deny policy rules.
@@ -63,9 +64,10 @@ _CRITICAL_HIDDEN_RE = re.compile(
     re.IGNORECASE,
 )
 
-# 2. Role override & prompt context escape markers
+# 2. Role override & prompt context escape markers (#10 LTBD delimiters strictly `<...>` anchored)
 _ROLE_RE = re.compile(
     r"(?:</?system>|<\|im_start\|>|<\|im_end\|>|<\|system\|>|\[/?INST\]|</?tool_call>"
+    r"|<\s*(?:INST|DATA)\s+(?:BEGIN|END)\s*>"
     r"|\b(?:System|Assistant|Developer):"
     r"|\bignore\s+(?:all\s+)?(?:previous|prior)\s+instructions\b)",
     re.IGNORECASE,
@@ -82,7 +84,9 @@ _ROLE_IGNORE_RE = re.compile(
 )
 
 _ROLE_OPENING_RE = re.compile(
-    r"(?:<system>|<\|im_start\|>|<\|system\|>|\[INST\]|<tool_call>|\b(?:System|Assistant|Developer):)",
+    r"(?:<system>|<\|im_start\|>|<\|system\|>|\[INST\]|<tool_call>"
+    r"|<\s*(?:INST|DATA)\s+(?:BEGIN|END)\s*>"
+    r"|\b(?:System|Assistant|Developer):)",
     re.IGNORECASE,
 )
 

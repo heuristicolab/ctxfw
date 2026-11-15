@@ -167,3 +167,88 @@ Formal error taxonomy isolating fault domains during FinOps matrix resolution, C
 - The `ctxfw gate` CLI command shall never return exit code 0 when `SweGateVerifier` detects an architectural violation, malformed diff, or failed functional test suite.
 - The model matrix loader shall never execute arbitrary code or parse non-JSON payloads when loading pricing specifications.
 - The multi-turn compounding calculator shall never produce negative, NaN, or infinite USD savings estimates.
+
+## Appendix F: Task-Scoped Paired-Replay Authorization, Sandbox PoLP Guard & Spoof Boundary Delimiters (Wave 2 Block D.1 :: #07 + #08 + #10)
+<!-- Axiom Completeness Index (ACI): 1.0000 | Status: VERIFIED | Bounds: 8/8 -->
+<!-- Attestation Manifest Hash: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a -->
+
+### F.1 Domain Entities & Bounded Variables
+Deterministic runtime bounds governing `sara/task_auth.py`, `sara/task_auth_store.py`, `sara/lexical.py`, `mcp_guard/contracts.py`, and `mcp.py` Hook `0c`:
+- Variable `multiplicity_k`: integer bounded >= 1 and <= 100 cumulative target-entity actions per task scope.
+- Variable `dpop_jti_len`: integer bounded >= 16 and <= 128 characters matching `^[A-Za-z0-9_.:-]{16,128}$`.
+- Variable `tool_domain_len`: integer bounded >= 1 and <= 64 characters matching `^[a-zA-Z0-9_.:-]{1,64}$` (open extensible `ToolDomain`).
+- Variable `container_uid`: integer bounded >= 1000 and <= 65534 non-root sandbox UID threshold.
+- Variable `token_expiry_sec`: integer bounded >= 60 and <= 3600 seconds for refresh token exchange bounds.
+- Variable `gate_latency_budget_ms`: float bounded >= 0.1 and <= 2.0 milliseconds (`GATE_LATENCY_BUDGET_MS`).
+- Variable `db_busy_timeout_ms`: integer bounded >= 100 and <= 60000 milliseconds for SQLite WAL contention handling.
+- Variable `expected_version_occ`: integer bounded >= 0 and <= 2147483647 for isolated `auth_occ_ledger` optimistic concurrency.
+Bounds: 8 / 8
+
+### F.2 Deterministic State Machine (FSM)
+Lifecycle states and transition map $\delta(S, E)$ governing task-scoped paired-replay authorization:
+- States: `TASK_ISSUED`, `CONTEXT_EXPOSED`, `SCOPE_CHECKED`, `EXECUTED` (terminal), `DENIED` (terminal), `QUARANTINED` (terminal).
+- State transition $\delta(\text{TASK\_ISSUED}, \text{RECEIVE\_UNTRUSTED\_CONTEXT}) \to \text{CONTEXT\_EXPOSED}$.
+- State transition $\delta(\text{CONTEXT\_EXPOSED}, \text{CHECK\_SCOPE\_ALLOW}) \to \text{SCOPE\_CHECKED}$.
+- State transition $\delta(\text{CONTEXT\_EXPOSED}, \text{CHECK\_SCOPE\_OVERREACH}) \to \text{DENIED}$.
+- State transition $\delta(\text{SCOPE\_CHECKED}, \text{VERIFY\_CRYPTO\_PASS}) \to \text{EXECUTED}$.
+- State transition $\delta(\text{SCOPE\_CHECKED}, \text{VERIFY\_CRYPTO\_FAIL}) \to \text{DENIED}$.
+- State transition $\delta(\text{SCOPE\_CHECKED}, \text{MULTIPLICITY\_EXCEEDED}) \to \text{DENIED}$.
+- State transition $\delta(*, \text{REPLAY\_DETECTED}) \to \text{QUARANTINED}$ and $\delta(*, \text{STATE\_DIGEST\_MISMATCH}) \to \text{QUARANTINED}$.
+- Terminal States: `EXECUTED`, `DENIED`, `QUARANTINED` (any post-terminal transition routes to `QUARANTINED`).
+
+### F.3 Error Taxonomy & Quarantine
+- Class 1 (Transient Fault): SQLite WAL `SQLITE_BUSY` lock contention -> Bounded retry (max 5 retries) before failing closed to `DENIED`.
+- Class 2 (Deterministic Input Fault): Invalid `dpop_jti`, malformed `pre_state_sha256`, invalid `ToolDomain`, or unverified JWT header -> Immediate rejection to `DENIED` with zero state mutation.
+- Class 3 (Business & Policy Violation): Scope/domain/verb overreach, `multiplicity_k` overflow, local Python `OpaRegoVerdictEnvelope` denial, PoLP failure (`internal_network_isolated == False`, `container_uid < 1000`, `exposed_cdp_port == 9222`), or OCC mismatch -> Fail-closed transition to `DENIED`.
+- Class 4 (Security & Replay Violation): Reused `dpop_jti` in `task_auth_dpop_nonces`, `pre_state_sha256` continuity break, HMAC/EdDSA verification failure, or `<INST BEGIN>`/`<INST END>`/`<DATA BEGIN>`/`<DATA END>` spoof delimiters -> Immediate persistence into `task_auth_quarantine` and terminal `QUARANTINED`.
+
+### F.4 Negative Invariants (Floor of 5 Required)
+- The task-scoped authorization engine shall never import or invoke an external OPA binary on the hot path and shall never add mandatory runtime dependencies to `pyproject.toml`.
+- The authorization verifier shall never modify or break SHA-256 immutability of vendored `sara/contracts.py`, `sara/schema.sql`, or `sara/blueprint_manifest.json`.
+- The sandbox PoLP evaluator `is_polp_mirror_compliant` shall never return True when `internal_network_isolated` is False, `container_uid` is below 1000, `exposed_cdp_port` equals 9222, or `has_no_sandbox_flag` is True.
+- The DPoP anti-replay store shall never permit execution of a previously committed `dpop_jti` within `task_auth_dpop_nonces` or accept a `pre_state_sha256` digest that breaks session state continuity.
+- The JWT pre-parser `verify_jwt_before_parse` shall never decode or trust claims when `jwt_sig_verified` is False, `jwt_kid` is empty, `token_expiry_sec` lies outside `[60, 3600]`, or `issuer_claim` contains more than one `/` delimiter.
+- The task-auth persistence layer shall never share `occ_version_ledger` with PASAC assurance and shall isolate optimistic concurrency inside `auth_occ_ledger`.
+- The local policy evaluator `verify_opa_fail_closed` shall never return allowed when policy rules are absent, expired, or fail scope subset and multiplicity checks.
+- The MCP tool gateway shall never gate local `evaluate_patch` or `apply_patch` calls behind commercial team license checks and shall keep hot-path lexical and auth evaluation non-blocking within 2.0 ms.
+
+## Appendix G: Cadence Deterministic Strategic Agent Guidance & Proxy AIMD Scheduler (Wave 2 Block D.2 :: #19)
+<!-- Axiom Completeness Index (ACI): 1.0000 | Status: VERIFIED | Bounds: 8/8 -->
+<!-- Attestation Manifest Hash: 34ae93e3f71bcaab59019e9e0139a4b24b69b82c2005b25e5049329f84b1aa2c -->
+
+### G.1 Domain Entities & Bounded Variables
+Deterministic runtime bounds governing `budget/cadence.py`, `budget/cadence_store.py`, and `proxy.py`:
+- Variable `i_base`: integer bounded >= 1 and <= 20 baseline inspection interval steps.
+- Variable `current_interval`: integer bounded >= 1 and <= 50 AIMD inspection cadence interval (`i_base <= I <= i_max`).
+- Variable `delta_step`: integer bounded >= 1 and <= 10 linear AIMD additive increment step.
+- Variable `i_max`: integer bounded >= 2 and <= 50 maximum ceiling for AIMD interval expansion.
+- Variable `proxy_context_token_cap`: integer bounded >= 1 and <= 40000 tokens (HTTP 413 FinOps ceiling).
+- Variable `proxy_max_tokens_cap`: integer bounded >= 1 and <= 4096 output completion tokens ceiling.
+- Variable `proxy_thinking_budget_cap`: integer bounded >= 0 and <= 1024 thinking budget tokens ceiling.
+- Variable `consecutive_tool_errors`: integer bounded >= 0 and <= 1000 deterministic error streak counter.
+Bounds: 8 / 8
+
+### G.2 Deterministic State Machine (FSM)
+Lifecycle states and transition map $\delta(S, E)$ governing deterministic AIMD strategic guidance:
+- States: `EXECUTING_AUTONOMOUS`, `CADENCE_DUE`, `EVALUATING_DETERMINISTIC`, `ADVISORY_APPLIED`, `REPLACEMENT_VETOED`, `ROLLED_BACK`, `COMPLETED` (terminal), `QUARANTINED` (terminal).
+- State transition $\delta(\text{EXECUTING\_AUTONOMOUS}, \text{STEP\_DUE}) \to \text{CADENCE\_DUE}$.
+- State transition $\delta(\text{CADENCE\_DUE}, \text{INSPECT\_SIGNAL\_CLEAN}) \to \text{EVALUATING\_DETERMINISTIC}$.
+- State transition $\delta(\text{EVALUATING\_DETERMINISTIC}, \text{VERDICT\_ADVISORY}) \to \text{ADVISORY\_APPLIED}$ updating `I' = min(i_max, I + delta_step)`.
+- State transition $\delta(\text{EVALUATING\_DETERMINISTIC}, \text{VERDICT\_REPLACEMENT}) \to \text{REPLACEMENT\_VETOED}$ resetting `I' = i_base` (`action_executed = 0`).
+- State transition $\delta(\text{REPLACEMENT\_VETOED}, \text{TRIGGER\_SNAPSHOT\_ROLLBACK}) \to \text{ROLLED\_BACK}$ and $\to \text{EXECUTING\_AUTONOMOUS}$.
+- Terminal States: `COMPLETED`, `QUARANTINED`.
+
+### G.3 Error Taxonomy & Quarantine
+- Class 1 (Transient Fault): SQLite WAL `SQLITE_BUSY` contention -> Bounded retry (max 5 retries) with fail-open proxy continuity if telemetry flush defers.
+- Class 2 (Deterministic Input Fault): Invalid `ScaffoldType` syntax (`^[A-Za-z0-9_.:-]{2,64}$`), negative step index, or out-of-range AIMD interval bounds -> Synchronous Pydantic validation rejection.
+- Class 3 (Business & FinOps Violation): Payload exceeding `40000` estimated tokens (HTTP 413), OCC conflict on `cadence_occ_ledger`, or `action_executed == 1` paired with `REPLACEMENT` -> Deterministic rejection without advancing step.
+- Class 4 (Security & Isolation Violation): Attempted auxiliary external LLM call inside scheduler, mutation of vendored `budget/contracts.py` / `budget/schema.sql`, or unauthorized snapshot target -> Quarantine into `cadence_quarantine`.
+
+### G.4 Negative Invariants (Floor of 5 Required)
+- The Cadence strategic guidance module shall never invoke an auxiliary external LLM or blocking HTTP request during `proxy.py` request evaluation.
+- The Cadence package integration shall never modify or invalidate SHA-256 signatures of vendored `budget/contracts.py`, `budget/schema.sql`, or `budget/blueprint_manifest.json`.
+- The Cadence scheduler shall never mark `action_executed = 1` on a `REPLACEMENT` intervention verdict or permit `current_interval` outside `[i_base, i_max]` and `[1, 50]`.
+- The `proxy.py` integration shall never relax or bypass the FinOps invariants enforcing `40000` estimated token HTTP 413 rejection, `max_tokens <= 4096`, and `thinking.budget_tokens <= 1024`.
+- The `ScaffoldType` validator shall never restrict agent telemetry to a closed benchmark enum and shall accept arbitrary valid agent identifiers matching `^[A-Za-z0-9_.:-]{2,64}$`.
+- The Cadence SQLite WAL store shall never reuse `occ_version_ledger` from other modules and shall isolate optimistic concurrency inside `cadence_occ_ledger`.
+- The `ctxfw.budget` package initializer shall never eagerly import `cadence` or heavy dependencies at module import time and shall never add mandatory dependencies to `pyproject.toml`.

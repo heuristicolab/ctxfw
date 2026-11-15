@@ -4,6 +4,7 @@ SARA Lexical Sanitizer :: Deterministic NFKC & Escape Normalization Engine
 ==========================================================================
 manifest_hash (M3-P2): 8f925c1e7c680c7af68e6f3daa48a5ac734923438762ed8836878a97508ce42e
 manifest_hash (M3-P3): 8d94151e921e2f8eaacb440cb3c1b0d4e0ff6ac80fa217e5830de1c1edec1b13
+manifest_hash (W2-D1): ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
 Normalizes untrusted tool observations via Unicode NFKC, strips zero-width,
 invisible, and bidirectional override characters, removes ANSI CSI escape
 sequences, enforces the 64 KB ceiling and NUL-byte prohibition, and flags
@@ -42,20 +43,24 @@ _COMBINED_HIDDEN_RE = re.compile(
     r"|\x1b(?:\[[0-9;?]*[A-Za-z]|\][^\x07\x1b]*(?:\x07|\x1b\\)|\([0-9A-Za-z]|[@-Z\\-_])"
 )
 
-# Deterministic role-override and prompt context-escape markers
+# Deterministic role-override and prompt context-escape markers (#10 LTBD delimiters strictly `<...>` anchored)
 ROLE_OVERRIDE_RE = re.compile(
     r"(?:</?system>|<\|im_start\|>|<\|im_end\|>|<\|system\|>|\[/?INST\]|</?tool_call>"
+    r"|<\s*(?:INST|DATA)\s+(?:BEGIN|END)\s*>"
     r"|\b(?:System|Assistant|Developer):"
     r"|\bignore\s+(?:all\s+)?(?:previous|prior)\s+instructions\b)",
     re.IGNORECASE,
 )
 
-# Paired role-override block delimiters stripped during STRIP_COMMANDS neutralization
+# Paired role-override block delimiters stripped during STRIP_COMMANDS neutralization.
+# Note: `<DATA BEGIN>.*?<DATA END>` is intentionally excluded here so untrusted data payloads
+# retain their benign content after `ROLE_OVERRIDE_RE` strips the spoofed delimiter tags alone.
 _ROLE_BLOCK_RE = re.compile(
     r"(?:<system>.*?</system>"
     r"|\[INST\].*?\[/INST\]"
     r"|<tool_call>.*?</tool_call>"
-    r"|<\|im_start\|>.*?<\|im_end\|>)",
+    r"|<\|im_start\|>.*?<\|im_end\|>"
+    r"|<\s*INST\s+BEGIN\s*>.*?<\s*INST\s+END\s*>)",
     re.IGNORECASE | re.DOTALL,
 )
 

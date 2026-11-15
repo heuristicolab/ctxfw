@@ -7,6 +7,7 @@ manifest_hash: e58711f27fcc24b86d00be174bced029f3ec73aab400897d6a7aa434782f335c
 manifest_hash_v41_dante: 4a446cfc7aa488cc2b193750e694b95f5b66d694387ecd5b66d2090c0303f6be
 manifest_hash_wave1a: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 manifest_hash_wave1b: ebbcd0d607fa09a71dda690ea76104d762b3f279cde258f64917421d39a249f4
+manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
 Exposes deterministic context pruning, topological bundle resolution,
 axiomatic spec evaluation, SWE-Gate patch verification, and audit ledger querying
 to AI agents (Cursor, Claude Code, Windsurf) using JSON-RPC 2.0.
@@ -19,6 +20,7 @@ import os
 from pathlib import Path
 import re
 import sys
+import time
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
 import uuid
 
@@ -90,6 +92,11 @@ class MCPServer:
         pasac_bas: Optional[Any] = None,
         pasac_risk_state: Optional[Any] = None,
         enforce_pasac_pep: bool = True,
+        task_auth_store: Optional[Any] = None,
+        task_auth_policy: Optional[Any] = None,
+        enforce_task_auth: bool = False,
+        task_auth_hmac_secret: Optional[bytes] = None,
+        task_auth_context: Optional[Any] = None,
     ):
         if allow_unsandboxed_fallback:
             raise ValueError("allow_unsandboxed_fallback shall never be True (PT-005)")
@@ -131,6 +138,11 @@ class MCPServer:
         self._pasac_risk_state = pasac_risk_state
         self._enforce_pasac_pep = bool(enforce_pasac_pep)
         self._pasac_default_cache: Optional[Tuple[Any, Any, Any]] = None
+        self._task_auth_store = task_auth_store
+        self._task_auth_policy = task_auth_policy
+        self._enforce_task_auth = bool(enforce_task_auth)
+        self._task_auth_hmac_secret = task_auth_hmac_secret
+        self._task_auth_context = task_auth_context
         self._guards = tuple(guards) if guards is not None else ()
         self._workspace_guards_cache: Dict[tuple[str, str], tuple[Any, ...]] = {}
         self._param_binding_guards: Dict[str, Any] = self._build_builtin_param_guards()
@@ -706,6 +718,227 @@ class MCPServer:
                 "riskIndexRStar": decision.risk_index_r_star,
             }
         return None
+
+    def _get_task_auth_store(self):
+        """Lazily initialize TaskAuthStore on canonical or overridden task_auth.db path."""
+        if self._task_auth_store is None:
+            from ctxfw.sara.task_auth_store import TaskAuthStore
+            from ctxfw.storage.cache import get_canonical_cache_path
+
+            env_db = os.environ.get("CTXFW_TASK_AUTH_DB")
+            if env_db:
+                db_path = Path(env_db)
+            else:
+                db_path = Path(get_canonical_cache_path()).parent / "task_auth.db"
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+            self._task_auth_store = TaskAuthStore(db_path)
+        return self._task_auth_store
+
+    def set_task_auth_context(
+        self,
+        *,
+        policy: Optional[Any] = None,
+        context: Optional[Any] = None,
+        enforce: Optional[bool] = None,
+        hmac_secret: Optional[bytes] = None,
+    ) -> None:
+        """Update session-level task authorization context without polluting tool arguments."""
+        if policy is not None:
+            self._task_auth_policy = policy
+        if context is not None:
+            self._task_auth_context = context
+        if enforce is not None:
+            self._enforce_task_auth = bool(enforce)
+        if hmac_secret is not None:
+            self._task_auth_hmac_secret = hmac_secret
+
+    def _task_auth_block_payload(
+        self,
+        *,
+        tool_name: str,
+        session_id: str,
+        user_prompt: str,
+        reason: str,
+        state: str = "DENIED",
+        receipt_id: Optional[str] = None,
+        reasons: Optional[Sequence[str]] = None,
+    ) -> Dict[str, Any]:
+        self._record_security_trace(
+            session_id=session_id,
+            user_prompt=user_prompt,
+            plan_summary=f"Task-Auth block on {tool_name}",
+            tool_or_file="sara.task_auth",
+            payload=reason,
+        )
+        out: Dict[str, Any] = {
+            "content": [{"type": "text", "text": f"TASK_AUTH_BLOCKED [{state}]: {reason}"}],
+            "isError": True,
+            "policyViolation": True,
+            "taskAuthBlocked": True,
+            "taskAuthState": state,
+        }
+        if receipt_id:
+            out["taskAuthReceiptId"] = receipt_id
+        if reasons is not None:
+            out["taskAuthReasons"] = list(reasons)
+        return out
+
+    def _evaluate_task_auth_pre_execution(
+        self,
+        *,
+        tool_name: str,
+        session_id: str,
+        user_prompt: str,
+        arguments: Dict[str, Any],
+        call_params: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """Hook 0c: Task-scoped DPoP anti-replay & local OPA policy gate (fail-closed when active)."""
+        env_enforce = os.environ.get("CTXFW_ENFORCE_TASK_AUTH", "").strip().lower() in {"1", "true", "yes"}
+        raw_ctx = call_params.get("task_auth")
+        has_envelope = any(
+            call_params.get(k) is not None
+            for k in ("task_auth", "dpop", "opa_verdict", "task_auth_policy")
+        )
+        active = bool(
+            self._enforce_task_auth
+            or env_enforce
+            or self._task_auth_policy is not None
+            or self._task_auth_context is not None
+            or has_envelope
+        )
+        if not active:
+            return None
+
+        try:
+            from ctxfw.sara.task_auth import (
+                AttackGoal,
+                DpopProofContext,
+                HttpMethodVerb,
+                OpaRegoVerdictEnvelope,
+                StructuredToolCallEnvelope,
+                TaskAuthorityPolicySpec,
+                ToolDomain,
+            )
+
+            ctx_dict: Dict[str, Any] = {}
+            if callable(self._task_auth_context):
+                resolved_ctx = self._task_auth_context(
+                    tool_name=tool_name,
+                    session_id=session_id,
+                    arguments=arguments,
+                    call_params=call_params,
+                )
+                if isinstance(resolved_ctx, Mapping):
+                    ctx_dict.update(resolved_ctx)
+            elif isinstance(self._task_auth_context, Mapping):
+                ctx_dict.update(self._task_auth_context)
+            if isinstance(raw_ctx, Mapping):
+                ctx_dict.update(raw_ctx)
+
+            raw_policy = (
+                call_params.get("task_auth_policy")
+                or ctx_dict.get("policy")
+                or self._task_auth_policy
+            )
+            if raw_policy is None:
+                return self._task_auth_block_payload(
+                    tool_name=tool_name,
+                    session_id=session_id,
+                    user_prompt=user_prompt,
+                    reason="task_auth enforcement active without TaskAuthorityPolicySpec",
+                    state="DENIED",
+                )
+            policy = (
+                raw_policy
+                if isinstance(raw_policy, TaskAuthorityPolicySpec)
+                else TaskAuthorityPolicySpec.model_validate(raw_policy)
+            )
+
+            raw_dpop = call_params.get("dpop") or ctx_dict.get("dpop")
+            if raw_dpop is None:
+                dpop_proof = None
+            elif isinstance(raw_dpop, DpopProofContext):
+                dpop_proof = raw_dpop
+            else:
+                dpop_proof = DpopProofContext.model_validate(raw_dpop)
+
+            raw_opa = call_params.get("opa_verdict") or ctx_dict.get("opa_verdict")
+            if raw_opa is None:
+                opa_verdict = None
+            elif isinstance(raw_opa, OpaRegoVerdictEnvelope):
+                opa_verdict = raw_opa
+            else:
+                opa_verdict = OpaRegoVerdictEnvelope.model_validate(raw_opa)
+
+            domain_val = ToolDomain(str(ctx_dict.get("domain") or "mcp_tool"))
+            verb_val = HttpMethodVerb(str(ctx_dict.get("verb") or "CALL").upper())
+            raw_target = (
+                ctx_dict.get("target_resource")
+                or arguments.get("path")
+                or arguments.get("target_file")
+                or arguments.get("project_root")
+                or ""
+            )
+            call_env = StructuredToolCallEnvelope(
+                call_id=str(ctx_dict.get("call_id") or f"CALL-{uuid.uuid4().hex[:16]}"),
+                task_id=str(ctx_dict.get("task_id") or policy.task_id),
+                session_id=str(ctx_dict.get("session_id") or policy.session_id),
+                domain=domain_val,
+                verb=verb_val,
+                tool_name=str(tool_name),
+                target_resource=str(raw_target)[:512],
+                required_scopes=tuple(ctx_dict.get("required_scopes") or ()),
+                current_multiplicity=int(ctx_dict.get("current_multiplicity") or 0),
+                raw_context_text=str(ctx_dict.get("raw_context_text") or user_prompt)[:65536],
+            )
+
+            hmac_secret = self._task_auth_hmac_secret
+            if hmac_secret is None:
+                env_secret = os.environ.get("CTXFW_TASK_AUTH_HMAC_SECRET", "")
+                hmac_secret = env_secret.encode("utf-8") if env_secret else None
+
+            expected_occ = ctx_dict.get("expected_occ_version")
+            raw_now = ctx_dict.get("now_epoch_sec")
+            if raw_now is None:
+                now_epoch_sec = int(time.time())
+            elif isinstance(raw_now, bool):
+                raise ValueError("now_epoch_sec must be an integer epoch timestamp")
+            else:
+                now_epoch_sec = int(raw_now)
+            attack_goal = AttackGoal(str(ctx_dict.get("attack_goal") or AttackGoal.BENIGN_BASELINE.value))
+            proposed_unsafe = bool(ctx_dict.get("proposed_unsafe_action", False))
+
+            store = self._get_task_auth_store()
+            receipt = store.authorize_and_record(
+                call=call_env,
+                policy=policy,
+                dpop_proof=dpop_proof,
+                opa_verdict=opa_verdict,
+                hmac_secret=hmac_secret,
+                now_epoch_sec=now_epoch_sec,
+                expected_occ_version=int(expected_occ) if expected_occ is not None else None,
+                attack_goal=attack_goal,
+                proposed_unsafe_action=proposed_unsafe,
+            )
+            if not receipt.allowed:
+                return self._task_auth_block_payload(
+                    tool_name=tool_name,
+                    session_id=session_id,
+                    user_prompt=user_prompt,
+                    reason="; ".join(receipt.reasons) or "Task-Auth policy denied",
+                    state=receipt.state.value,
+                    receipt_id=receipt.receipt_id,
+                    reasons=receipt.reasons,
+                )
+            return None
+        except Exception as exc:
+            return self._task_auth_block_payload(
+                tool_name=tool_name,
+                session_id=session_id,
+                user_prompt=user_prompt,
+                reason=f"Fail-closed task_auth validation error: {exc}",
+                state="QUARANTINED",
+            )
 
     def _get_sara_store(self):
         """Lazily initialize SaraStore on canonical sara.db path."""
@@ -2148,6 +2381,17 @@ class MCPServer:
         if pasac_block is not None:
             return ToolResult(pasac_block)
 
+        # 0c. Task-Scoped Paired-Replay Auth, DPoP Anti-Replay & Local OPA Gate (#07/#08/#10)
+        task_auth_block = self._evaluate_task_auth_pre_execution(
+            tool_name=str(tool_name),
+            session_id=session_id,
+            user_prompt=user_prompt,
+            arguments=arguments,
+            call_params=params,
+        )
+        if task_auth_block is not None:
+            return ToolResult(task_auth_block)
+
         # 1. Closed-Loop Security Pre-Execution Interception
         from ctxfw.rules.enforcer import RulesEnforcer, normalize_path
         from ctxfw.rules.contracts import EnforcementVerdict
@@ -2747,39 +2991,25 @@ class MCPServer:
                     sys.stdout.write(output + "\n")
                     sys.stdout.flush()
         finally:
-            if self._tracekit_store is not None:
+            self.close()
+
+    def close(self) -> None:
+        """Close all lazily initialized SQLite stores cleanly."""
+        self.running = False
+        for attr in (
+            "_tracekit_store",
+            "_rules_store",
+            "_tokencast_store",
+            "_sara_store",
+            "_swegate_store",
+            "_mcp_guard_store",
+            "_pasac_store",
+            "_task_auth_store",
+        ):
+            store = getattr(self, attr, None)
+            if store is not None:
                 try:
-                    self._tracekit_store.close()
-                except Exception:
-                    pass
-            if self._rules_store is not None:
-                try:
-                    self._rules_store.close()
-                except Exception:
-                    pass
-            if self._tokencast_store is not None:
-                try:
-                    self._tokencast_store.close()
-                except Exception:
-                    pass
-            if self._sara_store is not None:
-                try:
-                    self._sara_store.close()
-                except Exception:
-                    pass
-            if self._swegate_store is not None:
-                try:
-                    self._swegate_store.close()
-                except Exception:
-                    pass
-            if self._mcp_guard_store is not None:
-                try:
-                    self._mcp_guard_store.close()
-                except Exception:
-                    pass
-            if self._pasac_store is not None:
-                try:
-                    self._pasac_store.close()
+                    store.close()
                 except Exception:
                     pass
 

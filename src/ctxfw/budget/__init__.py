@@ -1,8 +1,10 @@
 # manifest_hash: 862e0dc20133fe81f2ce12812b86d74068db80cce8566a3b71d2d406db72c549
+# manifest_hash_wave2d2: 34ae93e3f71bcaab59019e9e0139a4b24b69b82c2005b25e5049329f84b1aa2c
 """ctxfw.budget -- TokenCast Budgeter vendored blueprint and sovereign engine (milestone 4.0-M2).
 
 CTXFW Axiomatic Gateway (milestone M2): status VERIFIED | ACI 1.0000
 manifest_hash: 862e0dc20133fe81f2ce12812b86d74068db80cce8566a3b71d2d406db72c549
+manifest_hash_wave2d2: 34ae93e3f71bcaab59019e9e0139a4b24b69b82c2005b25e5049329f84b1aa2c
 Sealed blueprint manifest_hash (TokenCast SIG-947678205487bc66, VERIFIED, ACI 1.0000):
     7b7ef06dfc91c02c73bf8117efd362ffecd01cffdb9d0e5a8700be01c874bdae
 
@@ -41,9 +43,11 @@ from typing import TYPE_CHECKING, Any
 
 __all__ = [
     "CONTRACTS_PATH",
+    "CADENCE_SCHEMA_PATH",
     "MANIFEST_PATH",
     "PACKAGE_DIR",
     "SCHEMA_PATH",
+    "load_cadence_schema_sql",
     "load_manifest",
     "load_schema_sql",
     # Engines:
@@ -51,6 +55,38 @@ __all__ = [
     "predict_token_trajectory",
     "CircuitBreaker",
     "TokenCastStore",
+    "CadenceStore",
+    # Cadence Strategic Agent Guidance (Wave 2 D.2 :: #19):
+    "CADENCE_MANIFEST_HASH",
+    "CADENCE_TRANSITIONS",
+    "MAX_CADENCE_INTERVAL",
+    "MAX_DELTA_STEP",
+    "MAX_I_BASE",
+    "MIN_CADENCE_INTERVAL",
+    "PROXY_CONTEXT_TOKEN_CAP",
+    "PROXY_MAX_TOKENS_CAP",
+    "PROXY_THINKING_BUDGET_CAP",
+    "TERMINAL_CADENCE_STATES",
+    "CadenceEvent",
+    "CadenceRunEnvelope",
+    "CadenceState",
+    "CadenceTelemetrySignals",
+    "ErrorClass",
+    "InterventionVerdict",
+    "MisbehaviorCategory",
+    "ScaffoldType",
+    "SchedulerConfig",
+    "SchedulerStateSnapshot",
+    "TokenLeverageTelemetry",
+    "TrajectoryStepProposal",
+    "TwoTierVerdict",
+    "cadence_transition",
+    "compute_token_leverage",
+    "evaluate_deterministic_cadence",
+    "extract_deterministic_cadence_signals",
+    "should_trigger_inspection",
+    "update_inspection_interval",
+    "validate_scaffold_type",
     # Architecture directive aliases:
     "TokenBudget",
     "CostProjection",
@@ -80,7 +116,43 @@ __all__ = [
 PACKAGE_DIR = Path(__file__).resolve().parent
 CONTRACTS_PATH = PACKAGE_DIR / "contracts.py"
 SCHEMA_PATH = PACKAGE_DIR / "schema.sql"
+CADENCE_SCHEMA_PATH = PACKAGE_DIR / "cadence_schema.sql"
 MANIFEST_PATH = PACKAGE_DIR / "blueprint_manifest.json"
+
+_CADENCE_EXPORTS = frozenset(
+    {
+        "CADENCE_MANIFEST_HASH",
+        "CADENCE_TRANSITIONS",
+        "MAX_CADENCE_INTERVAL",
+        "MAX_DELTA_STEP",
+        "MAX_I_BASE",
+        "MIN_CADENCE_INTERVAL",
+        "PROXY_CONTEXT_TOKEN_CAP",
+        "PROXY_MAX_TOKENS_CAP",
+        "PROXY_THINKING_BUDGET_CAP",
+        "TERMINAL_CADENCE_STATES",
+        "CadenceEvent",
+        "CadenceRunEnvelope",
+        "CadenceState",
+        "CadenceTelemetrySignals",
+        "ErrorClass",
+        "InterventionVerdict",
+        "MisbehaviorCategory",
+        "ScaffoldType",
+        "SchedulerConfig",
+        "SchedulerStateSnapshot",
+        "TokenLeverageTelemetry",
+        "TrajectoryStepProposal",
+        "TwoTierVerdict",
+        "cadence_transition",
+        "compute_token_leverage",
+        "evaluate_deterministic_cadence",
+        "extract_deterministic_cadence_signals",
+        "should_trigger_inspection",
+        "update_inspection_interval",
+        "validate_scaffold_type",
+    }
+)
 
 _ALIASES: dict[str, str] = {
     "TokenBudget": "SessionTokenBudgetDTO",
@@ -93,6 +165,11 @@ _ALIASES: dict[str, str] = {
 def load_schema_sql() -> str:
     """Return the sealed DDL text exactly as vendored (UTF-8)."""
     return SCHEMA_PATH.read_text(encoding="utf-8")
+
+
+def load_cadence_schema_sql() -> str:
+    """Return the Wave 2 D.2 Cadence SQLite WAL DDL text (UTF-8)."""
+    return CADENCE_SCHEMA_PATH.read_text(encoding="utf-8")
 
 
 def load_manifest() -> dict[str, Any]:
@@ -113,6 +190,14 @@ def __getattr__(name: str) -> Any:
         from . import store
 
         return getattr(store, name)
+    if name == "CadenceStore":
+        from . import cadence_store
+
+        return getattr(cadence_store, name)
+    if name in _CADENCE_EXPORTS:
+        from . import cadence
+
+        return getattr(cadence, name)
     if name in _ALIASES:
         from . import contracts
 
@@ -150,6 +235,39 @@ if TYPE_CHECKING:
         estimate_cost_usd,
         transition,
     )
+    from .cadence import (
+        CADENCE_MANIFEST_HASH,
+        CADENCE_TRANSITIONS,
+        MAX_CADENCE_INTERVAL,
+        MAX_DELTA_STEP,
+        MAX_I_BASE,
+        MIN_CADENCE_INTERVAL,
+        PROXY_CONTEXT_TOKEN_CAP,
+        PROXY_MAX_TOKENS_CAP,
+        PROXY_THINKING_BUDGET_CAP,
+        TERMINAL_CADENCE_STATES,
+        CadenceEvent,
+        CadenceRunEnvelope,
+        CadenceState,
+        CadenceTelemetrySignals,
+        ErrorClass,
+        InterventionVerdict,
+        MisbehaviorCategory,
+        ScaffoldType,
+        SchedulerConfig,
+        SchedulerStateSnapshot,
+        TokenLeverageTelemetry,
+        TrajectoryStepProposal,
+        TwoTierVerdict,
+        cadence_transition,
+        compute_token_leverage,
+        evaluate_deterministic_cadence,
+        extract_deterministic_cadence_signals,
+        should_trigger_inspection,
+        update_inspection_interval,
+        validate_scaffold_type,
+    )
+    from .cadence_store import CadenceStore
     from .forecaster import TokenCastForecaster, predict_token_trajectory
     from .store import TokenCastStore
 

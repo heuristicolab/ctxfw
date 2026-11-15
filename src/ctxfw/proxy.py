@@ -2,6 +2,7 @@
 src/ctxfw/proxy.py — Perimeter Reverse Proxy Service (v3.5.0)
 Manifest Hash: 22765740d4ee59328c52f4259f862ac6c389a2cb8d863021cf64fd0027f22310
 manifest_hash_wave1c: 00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762
+manifest_hash_wave2d2: 34ae93e3f71bcaab59019e9e0139a4b24b69b82c2005b25e5049329f84b1aa2c
 Transparent HTTP reverse proxy implementing the Fail-Open Context Firewall policy
 for OpenAI (/v1/chat/completions) and Anthropic (/v1/messages) protocols.
 Enforces FinOps Policy Governance (model clamping, token caps, thinking budget, circuit breaker).
@@ -94,6 +95,124 @@ def get_telemetry_ledger(custom_app: Optional[FastAPI] = None) -> TelemetryLedge
     if not hasattr(target_app.state, "telemetry_ledger") or target_app.state.telemetry_ledger is None:
         target_app.state.telemetry_ledger = TelemetryLedger()
     return target_app.state.telemetry_ledger
+
+
+def get_cadence_store(custom_app: Optional[FastAPI] = None):
+    """Lazily initialize CadenceStore bound to CTXFW_CADENCE_DB or current cache directory."""
+    from pathlib import Path
+    from ctxfw.budget.cadence_store import CadenceStore
+    from ctxfw.storage.cache import get_canonical_cache_path
+
+    target_app = custom_app or app
+    env_db = os.environ.get("CTXFW_CADENCE_DB")
+    if env_db:
+        desired_path = Path(env_db)
+    else:
+        cache = get_cache(target_app)
+        cache_db = getattr(cache, "db_path", None)
+        if cache_db and str(cache_db) != ":memory:":
+            desired_path = Path(cache_db).parent / "cadence.db"
+        else:
+            desired_path = Path(get_canonical_cache_path()).parent / "cadence.db"
+
+    existing = getattr(target_app.state, "cadence_store", None)
+    existing_path = getattr(existing, "_db_path", None) if existing is not None else None
+    if existing is None or existing_path != desired_path or getattr(existing, "_conn", None) is None:
+        if existing is not None:
+            try:
+                existing.close()
+            except Exception:
+                pass
+        target_app.state.cadence_store = CadenceStore(desired_path)
+    return target_app.state.cadence_store
+
+
+def evaluate_proxy_cadence(
+    custom_app: Optional[FastAPI],
+    raw_body: Dict[str, Any],
+    compacted_body: Dict[str, Any],
+    *,
+    tokens_saved: int,
+    request: Optional[Request] = None,
+) -> Dict[str, str]:
+    """Deterministically evaluate AIMD cadence (#19) with zero auxiliary LLMs."""
+    try:
+        from ctxfw.budget.cadence import (
+            SchedulerConfig,
+            TrajectoryStepProposal,
+            compute_token_leverage,
+            extract_deterministic_cadence_signals,
+            TokenLeverageTelemetry,
+        )
+
+        target_app = custom_app or app
+        req_headers = request.headers if request is not None else {}
+        session_id = (
+            req_headers.get("X-Context-Firewall-Session")
+            or str(raw_body.get("session_id") or "")
+            or "SES-proxy-default"
+        )[:128]
+        run_id = (
+            req_headers.get("X-Context-Firewall-Run")
+            or str(raw_body.get("cadence_run_id") or "")
+            or f"RUN-{session_id}"
+        )[:128]
+        scaffold_hdr = req_headers.get("X-Context-Firewall-Scaffold")
+
+        est_orig = estimate_payload_tokens(raw_body)
+        est_comp = estimate_payload_tokens(compacted_body)
+        scaffold, step_idx, signals = extract_deterministic_cadence_signals(
+            raw_body,
+            tokens_saved=tokens_saved,
+            estimated_tokens=est_orig,
+            trace_signals=getattr(target_app.state, "trace_signals", None),
+            tokencast_signals=getattr(target_app.state, "tokencast_signals", None),
+            scaffold_override=scaffold_hdr,
+        )
+
+        config = getattr(target_app.state, "cadence_config", None)
+        if not isinstance(config, SchedulerConfig):
+            config = SchedulerConfig(scaffold_type=scaffold)
+        elif str(config.scaffold_type) != str(scaffold):
+            config = config.model_copy(update={"scaffold_type": scaffold})
+
+        store = get_cadence_store(target_app)
+        snap = store.ensure_run(run_id=run_id, session_id=session_id, config=config)
+        effective_last = -1 if step_idx < snap.last_inspection_step else snap.last_inspection_step
+        proposal = TrajectoryStepProposal(
+            proposal_id=f"PROP-{run_id}-{step_idx}-occ{snap.occ_version}",
+            run_id=run_id,
+            session_id=session_id,
+            scaffold_type=scaffold,
+            step_index=step_idx,
+            last_inspection_step=effective_last,
+            current_interval=snap.current_interval,
+            action_summary=f"proxy_step:{len(raw_body.get('messages', []) if isinstance(raw_body.get('messages'), list) else [])}",
+            signals=signals,
+        )
+        verdict = store.evaluate_and_record_step(
+            proposal=proposal,
+            config=config,
+            snapshot_store=getattr(target_app.state, "snapshot_store", None),
+            snapshot_run_id=signals.snapshot_run_id,
+            cache=get_cache(target_app),
+        )
+        leverage = TokenLeverageTelemetry(
+            run_id=run_id,
+            step_index=step_idx,
+            tokens_without_guidance=est_orig,
+            tokens_with_guidance=est_comp,
+            token_leverage_ratio=compute_token_leverage(est_orig, est_comp),
+        )
+        store.record_token_leverage(leverage)
+        return {
+            "X-Cadence-Verdict": verdict.verdict.value,
+            "X-Cadence-Interval": str(verdict.next_interval),
+            "X-Cadence-Action-Executed": str(verdict.action_executed),
+            "X-Cadence-Category": verdict.category.value,
+        }
+    except Exception:
+        return {}
 
 
 def compact_code_snippet(
@@ -836,13 +955,13 @@ def list_models():
     }
 
 
-@app.post("/v1/chat/completions")
-async def chat_completions(
+async def _proxy_completion_request(
     request: Request,
     background_tasks: BackgroundTasks,
-    x_context_firewall_bypass: Optional[str] = Header(None, alias="X-Context-Firewall-Bypass"),
-):
-    """OpenAI-compatible chat completions proxy endpoint supporting full-duplex SSE streaming."""
+    x_context_firewall_bypass: Optional[str],
+    upstream_url: str,
+) -> Response:
+    """Shared Fail-Open / FinOps / TraceLite / Cadence completion pipeline."""
     t0 = time.perf_counter()
     raw_body = await request.json()
 
@@ -858,6 +977,7 @@ async def chat_completions(
         payload = raw_body
         tokens_saved = 0
         status_tag = "bypassed"
+        cadence_headers: Dict[str, str] = {}
     else:
         try:
             payload, tokens_saved = inspect_and_compact_payload(raw_body, cache)
@@ -870,25 +990,47 @@ async def chat_completions(
             tokens_saved = 0
             status_tag = "fail-open"
 
-    latency_ms = (time.perf_counter() - t0) * 1000
+        cadence_headers = evaluate_proxy_cadence(
+            request.app,
+            raw_body,
+            payload,
+            tokens_saved=tokens_saved,
+            request=request,
+        )
 
-    upstream_base = os.environ.get("UPSTREAM_BASE_URL", DEFAULT_OPENAI_UPSTREAM)
-    upstream_url = f"{upstream_base.rstrip('/')}/v1/chat/completions"
+    latency_ms = (time.perf_counter() - t0) * 1000
 
     extra_headers = {
         "X-Tokens-Saved": str(tokens_saved),
         "X-Firewall-Latency-Ms": f"{latency_ms:.3f}",
         "X-Firewall-Status": status_tag,
+        **cadence_headers,
     }
 
     if not bypass and tokens_saved >= 0:
         record_request_telemetry(request.app, raw_body, tokens_saved, background_tasks)
 
     resp = await forward_upstream(request, upstream_url, payload, extra_headers=extra_headers)
-    resp.headers["X-Tokens-Saved"] = str(tokens_saved)
-    resp.headers["X-Firewall-Latency-Ms"] = f"{latency_ms:.3f}"
-    resp.headers["X-Firewall-Status"] = status_tag
+    for k, v in extra_headers.items():
+        resp.headers[k] = v
     return resp
+
+
+@app.post("/v1/chat/completions")
+async def chat_completions(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    x_context_firewall_bypass: Optional[str] = Header(None, alias="X-Context-Firewall-Bypass"),
+):
+    """OpenAI-compatible chat completions proxy endpoint supporting full-duplex SSE streaming."""
+    upstream_base = os.environ.get("UPSTREAM_BASE_URL", DEFAULT_OPENAI_UPSTREAM)
+    upstream_url = f"{upstream_base.rstrip('/')}/v1/chat/completions"
+    return await _proxy_completion_request(
+        request=request,
+        background_tasks=background_tasks,
+        x_context_firewall_bypass=x_context_firewall_bypass,
+        upstream_url=upstream_url,
+    )
 
 
 @app.post("/v1/messages")
@@ -898,52 +1040,18 @@ async def messages_completion(
     x_context_firewall_bypass: Optional[str] = Header(None, alias="X-Context-Firewall-Bypass"),
 ):
     """Anthropic-compatible messages proxy endpoint supporting full-duplex SSE streaming."""
-    t0 = time.perf_counter()
-    raw_body = await request.json()
-
-    bypass = x_context_firewall_bypass is not None and x_context_firewall_bypass.lower() in {"true", "1"}
-    cache = get_cache(request.app)
-
-    if bypass:
-        if estimate_payload_tokens(raw_body) > 40000:
-            raise HTTPException(
-                status_code=413,
-                detail="FinOps Limit: Payload context exceeds 40k tokens",
-            )
-        payload = raw_body
-        tokens_saved = 0
-        status_tag = "bypassed"
-    else:
-        try:
-            payload, tokens_saved = inspect_and_compact_payload(raw_body, cache)
-            status_tag = "compacted" if tokens_saved > 0 else "pass-through"
-        except HTTPException:
-            raise
-        except Exception:
-            # Fail-open
-            payload = raw_body
-            tokens_saved = 0
-            status_tag = "fail-open"
-
-    latency_ms = (time.perf_counter() - t0) * 1000
-
-    upstream_base = os.environ.get("ANTHROPIC_UPSTREAM_BASE_URL") or os.environ.get("UPSTREAM_BASE_URL") or DEFAULT_ANTHROPIC_UPSTREAM
+    upstream_base = (
+        os.environ.get("ANTHROPIC_UPSTREAM_BASE_URL")
+        or os.environ.get("UPSTREAM_BASE_URL")
+        or DEFAULT_ANTHROPIC_UPSTREAM
+    )
     upstream_url = f"{upstream_base.rstrip('/')}/v1/messages"
-
-    extra_headers = {
-        "X-Tokens-Saved": str(tokens_saved),
-        "X-Firewall-Latency-Ms": f"{latency_ms:.3f}",
-        "X-Firewall-Status": status_tag,
-    }
-
-    if not bypass and tokens_saved >= 0:
-        record_request_telemetry(request.app, raw_body, tokens_saved, background_tasks)
-
-    resp = await forward_upstream(request, upstream_url, payload, extra_headers=extra_headers)
-    resp.headers["X-Tokens-Saved"] = str(tokens_saved)
-    resp.headers["X-Firewall-Latency-Ms"] = f"{latency_ms:.3f}"
-    resp.headers["X-Firewall-Status"] = status_tag
-    return resp
+    return await _proxy_completion_request(
+        request=request,
+        background_tasks=background_tasks,
+        x_context_firewall_bypass=x_context_firewall_bypass,
+        upstream_url=upstream_url,
+    )
 
 
 # =========================================================================
