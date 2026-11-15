@@ -1,4 +1,5 @@
 # manifest_hash: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
+# manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
 """
 ctxfw.mcp_guard — MCP Tool Poisoning Firewall & Capability Laundering Guard
 ===========================================================================
@@ -23,6 +24,7 @@ def load_schema_sql() -> str:
 
 _LAZY_SUBMODULES = ("contracts", "store")
 _LAZY_SYMBOLS: Dict[str, Tuple[str, str]] = {
+    "CapabilityLaunderingCheckResult": ("ctxfw.mcp_guard.contracts", "CapabilityLaunderingCheckResult"),
     "ChannelSurface": ("ctxfw.mcp_guard.contracts", "ChannelSurface"),
     "ConfinementCheckResult": ("ctxfw.mcp_guard.contracts", "ConfinementCheckResult"),
     "DEFAULT_MAX_DECODE_ROUNDS": ("ctxfw.mcp_guard.contracts", "DEFAULT_MAX_DECODE_ROUNDS"),
@@ -35,19 +37,25 @@ _LAZY_SYMBOLS: Dict[str, Tuple[str, str]] = {
     "MAX_AUTHORIZED_ROOTS": ("ctxfw.mcp_guard.contracts", "MAX_AUTHORIZED_ROOTS"),
     "MAX_DECODE_ROUNDS": ("ctxfw.mcp_guard.contracts", "MAX_DECODE_ROUNDS"),
     "MAX_DESCRIPTION_CHARS": ("ctxfw.mcp_guard.contracts", "MAX_DESCRIPTION_CHARS"),
+    "MUTATING_CAPABILITY_KEYWORDS": ("ctxfw.mcp_guard.contracts", "MUTATING_CAPABILITY_KEYWORDS"),
     "McpGuardStore": ("ctxfw.mcp_guard.store", "McpGuardStore"),
     "McpToolContractSpec": ("ctxfw.mcp_guard.contracts", "McpToolContractSpec"),
     "OracleVerdict": ("ctxfw.mcp_guard.contracts", "OracleVerdict"),
+    "PairedContainmentVerdict": ("ctxfw.mcp_guard.contracts", "PairedContainmentVerdict"),
+    "PairedDynamicValidation": ("ctxfw.mcp_guard.contracts", "PairedDynamicValidation"),
     "ParameterBindingGuard": ("ctxfw.mcp_guard.contracts", "ParameterBindingGuard"),
     "PoisonScanFinding": ("ctxfw.mcp_guard.contracts", "PoisonScanFinding"),
     "QUARANTINE_RISK_THRESHOLD": ("ctxfw.mcp_guard.contracts", "QUARANTINE_RISK_THRESHOLD"),
     "SarifBypassFinding": ("ctxfw.mcp_guard.contracts", "SarifBypassFinding"),
     "SarifRuleId": ("ctxfw.mcp_guard.contracts", "SarifRuleId"),
     "TERMINAL_FAILURE_STATES": ("ctxfw.mcp_guard.contracts", "TERMINAL_FAILURE_STATES"),
+    "ToolCapabilityProfile": ("ctxfw.mcp_guard.contracts", "ToolCapabilityProfile"),
     "ToolRegistrationPin": ("ctxfw.mcp_guard.contracts", "ToolRegistrationPin"),
     "ValidationVerdict": ("ctxfw.mcp_guard.contracts", "ValidationVerdict"),
     "canonicalize_mcp_path": ("ctxfw.mcp_guard.contracts", "canonicalize_mcp_path"),
     "compute_tool_pin_hash": ("ctxfw.mcp_guard.contracts", "compute_tool_pin_hash"),
+    "evaluate_capability_laundering": ("ctxfw.mcp_guard.contracts", "evaluate_capability_laundering"),
+    "evaluate_paired_containment": ("ctxfw.mcp_guard.contracts", "evaluate_paired_containment"),
     "has_invisible_or_bidi_unicode": ("ctxfw.mcp_guard.contracts", "has_invisible_or_bidi_unicode"),
     "is_component_confined": ("ctxfw.mcp_guard.contracts", "is_component_confined"),
     "scan_description_risk": ("ctxfw.mcp_guard.contracts", "scan_description_risk"),

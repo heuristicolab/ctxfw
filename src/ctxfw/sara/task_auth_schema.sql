@@ -1,5 +1,6 @@
 -- manifest_hash: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
--- Wave 2 Block D.1 :: Task-Scoped Paired-Replay Authorization Schema (#07)
+-- manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
+-- Wave 2 Block D.1 + E.1 (#07 + #28) :: Task-Scoped Paired-Replay Authorization & Monotonic Epoch Schema
 -- Isolated SQLite WAL tables including auth_occ_ledger (never colliding with occ_version_ledger).
 
 CREATE TABLE IF NOT EXISTS task_auth_policies (
@@ -101,3 +102,27 @@ CREATE INDEX IF NOT EXISTS idx_task_auth_dpop_session
     ON task_auth_dpop_nonces (session_id, consumed_at_utc);
 CREATE INDEX IF NOT EXISTS idx_task_auth_quarantine_session
     ON task_auth_quarantine (session_id, recorded_at_utc);
+
+-- Wave 2 Block E.1 (#28): Monotonic Epoch Freshness Extensions
+CREATE TABLE IF NOT EXISTS task_auth_epoch_scopes (
+    scope_id TEXT PRIMARY KEY CHECK(length(scope_id) BETWEEN 4 AND 128),
+    session_id TEXT NOT NULL,
+    last_consumed_k INTEGER NOT NULL CHECK(last_consumed_k >= 0),
+    updated_at_utc TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS task_auth_epoch_quarantine (
+    quarantine_id TEXT PRIMARY KEY,
+    scope_id TEXT NOT NULL CHECK(length(scope_id) BETWEEN 4 AND 128),
+    session_id TEXT NOT NULL,
+    call_id TEXT NOT NULL,
+    attempted_epoch_k INTEGER NOT NULL,
+    last_consumed_k INTEGER NOT NULL,
+    error_class TEXT NOT NULL CHECK(error_class = 'SECURITY'),
+    reason TEXT NOT NULL,
+    attestation_sha256 TEXT NOT NULL CHECK(length(attestation_sha256) = 64),
+    recorded_at_utc TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_auth_epoch_quarantine_scope
+    ON task_auth_epoch_quarantine (scope_id, recorded_at_utc);

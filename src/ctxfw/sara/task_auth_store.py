@@ -1,10 +1,12 @@
 # manifest_hash: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
 """
-SARA Task-Scoped Paired-Replay SQLite WAL Store (#07)
-=====================================================
+SARA Task-Scoped Paired-Replay SQLite WAL Store (#07 + #28)
+===========================================================
+manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
 Atomic persistence for task policies, durable DPoP anti-replay JTI nonces,
 continuous `pre_state_sha256` state tracking, append-only `auth_occ_ledger`
-(isolated from `occ_version_ledger`), and quarantine forensics.
+(isolated from `occ_version_ledger`), optional monotonic epoch freshness (#28),
+and quarantine forensics.
 """
 from __future__ import annotations
 
@@ -185,8 +187,10 @@ class TaskAuthStore:
         expected_occ_version: Optional[int] = None,
         attack_goal: AttackGoal = AttackGoal.BENIGN_BASELINE,
         proposed_unsafe_action: bool = False,
+        monotonic_epoch_k: Optional[int] = None,
+        epoch_scope_id: Optional[str] = None,
     ) -> PairedReplayAuthorizationReceipt:
-        """Atomically verify DPoP anti-replay, TTL, state continuity, multiplicity, local OPA, and OCC ledger."""
+        """Atomically verify DPoP anti-replay, TTL, state continuity, multiplicity, local OPA, OCC, and optional epoch freshness."""
         now = _utc_now()
         effective_now = int(time.time()) if now_epoch_sec is None else int(now_epoch_sec)
 
@@ -236,6 +240,69 @@ class TaskAuthStore:
                     if seen_row is not None:
                         seen_jtis.add(dpop_proof.dpop_jti)
 
+                epoch_scope_key: Optional[str] = None
+                if monotonic_epoch_k is not None:
+                    from ctxfw.sara.provenance import evaluate_monotonic_epoch
+
+                    epoch_scope_key = epoch_scope_id or call.session_id
+                    if len(epoch_scope_key) < 4:
+                        epoch_scope_key = f"scope:{epoch_scope_key}"
+                    ep_row = conn.execute(
+                        "SELECT last_consumed_k FROM task_auth_epoch_scopes WHERE scope_id = ?",
+                        (epoch_scope_key,),
+                    ).fetchone()
+                    last_k = int(ep_row[0]) if ep_row is not None else -1
+                    epoch_verdict = evaluate_monotonic_epoch(
+                        scope_id=epoch_scope_key,
+                        epoch_k=monotonic_epoch_k,
+                        last_consumed_k=last_k,
+                    )
+                    if not epoch_verdict.allowed:
+                        from ctxfw.sara.task_auth import _build_receipt
+
+                        receipt = _build_receipt(
+                            call=effective_call,
+                            policy=effective_policy,
+                            state=AuthReplayState.QUARANTINED,
+                            error_class=ReplayErrorClass.SECURITY,
+                            allowed=False,
+                            pre_sha=led_sha or ("0" * 64),
+                            dpop_jti=(dpop_proof.dpop_jti if dpop_proof is not None else "stale_epoch"),
+                            attack_goal=attack_goal,
+                            proposed_unsafe_action=proposed_unsafe_action,
+                            reasons=(epoch_verdict.reason,),
+                        )
+                        q_seed = f"epq:{epoch_scope_key}:{call.call_id}:{monotonic_epoch_k}:{now}"
+                        eq_id = f"EPQ-{hashlib.sha256(q_seed.encode('utf-8')).hexdigest()[:16]}"
+                        conn.execute(
+                            "INSERT INTO task_auth_epoch_quarantine "
+                            "(quarantine_id, scope_id, session_id, call_id, attempted_epoch_k, "
+                            "last_consumed_k, error_class, reason, attestation_sha256, recorded_at_utc) "
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            (
+                                eq_id,
+                                epoch_scope_key,
+                                call.session_id,
+                                call.call_id,
+                                int(monotonic_epoch_k),
+                                int(last_k),
+                                "SECURITY",
+                                epoch_verdict.reason,
+                                epoch_verdict.attestation_sha256,
+                                now,
+                            ),
+                        )
+                        self._persist_decision_rows(
+                            conn=conn,
+                            receipt=receipt,
+                            call=effective_call,
+                            dpop_proof=dpop_proof,
+                            current_occ=current_occ,
+                            now=now,
+                        )
+                        conn.execute("COMMIT;")
+                        return receipt
+
                 if expected_occ_version is not None and expected_occ_version != current_occ:
                     receipt = self._occ_mismatch_receipt(
                         call=effective_call,
@@ -268,6 +335,16 @@ class TaskAuthStore:
                     current_occ=current_occ,
                     now=now,
                 )
+                if receipt.allowed and monotonic_epoch_k is not None and epoch_scope_key is not None:
+                    conn.execute(
+                        "INSERT INTO task_auth_epoch_scopes (scope_id, session_id, last_consumed_k, updated_at_utc) "
+                        "VALUES (?, ?, ?, ?) "
+                        "ON CONFLICT(scope_id) DO UPDATE SET "
+                        "session_id = excluded.session_id, "
+                        "last_consumed_k = excluded.last_consumed_k, "
+                        "updated_at_utc = excluded.updated_at_utc",
+                        (epoch_scope_key, call.session_id, int(monotonic_epoch_k), now),
+                    )
                 conn.execute("COMMIT;")
                 return receipt
             except Exception:
@@ -432,5 +509,35 @@ class TaskAuthStore:
                 (session_id,),
             ).fetchone()
             return int(row[0]) if row else 0
+
+        return self._run_with_retry(_op)
+
+    def get_last_consumed_epoch(self, scope_id: str) -> int:
+        """Return latest consumed monotonic epoch k for scope_id, or -1 if uninitialized (#28)."""
+        def _op() -> int:
+            conn = self._conn_or_raise()
+            row = conn.execute(
+                "SELECT last_consumed_k FROM task_auth_epoch_scopes WHERE scope_id = ?",
+                (scope_id,),
+            ).fetchone()
+            return int(row[0]) if row is not None else -1
+
+        return self._run_with_retry(_op)
+
+    def list_epoch_quarantines(self, scope_id: Optional[str] = None) -> list[dict]:
+        """List persisted stale-epoch replay quarantine rows (#28)."""
+        def _op() -> list[dict]:
+            conn = self._conn_or_raise()
+            if scope_id is None:
+                cur = conn.execute(
+                    "SELECT * FROM task_auth_epoch_quarantine ORDER BY recorded_at_utc ASC"
+                )
+            else:
+                cur = conn.execute(
+                    "SELECT * FROM task_auth_epoch_quarantine WHERE scope_id = ? ORDER BY recorded_at_utc ASC",
+                    (scope_id,),
+                )
+            cols = [str(d[0]) for d in (cur.description or ())]
+            return [dict(zip(cols, row)) for row in cur.fetchall()]
 
         return self._run_with_retry(_op)

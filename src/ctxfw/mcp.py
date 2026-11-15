@@ -8,6 +8,8 @@ manifest_hash_v41_dante: 4a446cfc7aa488cc2b193750e694b95f5b66d694387ecd5b66d2090
 manifest_hash_wave1a: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 manifest_hash_wave1b: ebbcd0d607fa09a71dda690ea76104d762b3f279cde258f64917421d39a249f4
 manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
+manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
+manifest_hash_wave2e2: bc6e604a3faf8a75b3d6402b523047e481f35c0d62afca3056114337021196e0
 Exposes deterministic context pruning, topological bundle resolution,
 axiomatic spec evaluation, SWE-Gate patch verification, and audit ledger querying
 to AI agents (Cursor, Claude Code, Windsurf) using JSON-RPC 2.0.
@@ -97,6 +99,11 @@ class MCPServer:
         enforce_task_auth: bool = False,
         task_auth_hmac_secret: Optional[bytes] = None,
         task_auth_context: Optional[Any] = None,
+        provenance_store: Optional[Any] = None,
+        enforce_provenance: bool = False,
+        provenance_max_depth: int = 32,
+        capability_profiles: Optional[Dict[str, Any]] = None,
+        sensitive_sink_tools: Optional[tuple[str, ...]] = None,
     ):
         if allow_unsandboxed_fallback:
             raise ValueError("allow_unsandboxed_fallback shall never be True (PT-005)")
@@ -143,6 +150,24 @@ class MCPServer:
         self._enforce_task_auth = bool(enforce_task_auth)
         self._task_auth_hmac_secret = task_auth_hmac_secret
         self._task_auth_context = task_auth_context
+        self._provenance_store = provenance_store
+        self._enforce_provenance = bool(
+            enforce_provenance
+            or os.environ.get("CTXFW_ENFORCE_PROVENANCE", "").strip().lower()
+            in ("1", "true", "yes")
+        )
+        self._provenance_max_depth = max(1, min(64, int(provenance_max_depth)))
+        self._capability_profiles: Dict[str, Any] = (
+            dict(capability_profiles) if capability_profiles is not None else {}
+        )
+        self._sensitive_sink_tools: frozenset[str] = frozenset(
+            sensitive_sink_tools
+            if sensitive_sink_tools is not None
+            else ("apply_patch", "evaluate_patch")
+        )
+        self._session_provenance_edges: Dict[str, list[Any]] = {}
+        self._session_last_prov_node: Dict[str, str] = {}
+        self._session_external_nodes: Dict[str, set[str]] = {}
         self._guards = tuple(guards) if guards is not None else ()
         self._workspace_guards_cache: Dict[tuple[str, str], tuple[Any, ...]] = {}
         self._param_binding_guards: Dict[str, Any] = self._build_builtin_param_guards()
@@ -751,6 +776,196 @@ class MCPServer:
             self._enforce_task_auth = bool(enforce)
         if hmac_secret is not None:
             self._task_auth_hmac_secret = hmac_secret
+
+    def _get_provenance_store(self):
+        """Lazily initialize ProvenanceStore on canonical or overridden provenance.db path (#31/#28)."""
+        if self._provenance_store is None:
+            from ctxfw.sara.provenance_store import ProvenanceStore
+            from ctxfw.storage.cache import get_canonical_cache_path
+
+            env_db = os.environ.get("CTXFW_PROVENANCE_DB")
+            if env_db:
+                db_path = Path(env_db)
+            else:
+                db_path = Path(get_canonical_cache_path()).parent / "provenance.db"
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+            self._provenance_store = ProvenanceStore(db_path)
+        return self._provenance_store
+
+    def set_provenance_context(
+        self,
+        *,
+        enforce: Optional[bool] = None,
+        max_depth: Optional[int] = None,
+        capability_profiles: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Update session-level causal provenance and capability laundering configuration."""
+        if enforce is not None:
+            self._enforce_provenance = bool(enforce)
+        if max_depth is not None:
+            self._provenance_max_depth = max(1, min(64, int(max_depth)))
+        if capability_profiles is not None:
+            self._capability_profiles = dict(capability_profiles)
+
+    def record_provenance_edge(
+        self,
+        session_id: str,
+        edge: Any,
+        *,
+        external_sources: Optional[Sequence[str]] = None,
+    ) -> None:
+        """Record a causal provenance edge in memory and persist digest-only metadata in WAL."""
+        self._session_provenance_edges.setdefault(session_id, []).append(edge)
+        self._session_last_prov_node[session_id] = edge.dst_node
+        if external_sources:
+            self._session_external_nodes.setdefault(session_id, set()).update(external_sources)
+        if self._enforce_provenance or self._provenance_store is not None:
+            self._get_provenance_store().record_edge(session_id=session_id, edge=edge)
+
+    def _evaluate_provenance_and_capability_pre_execution(
+        self,
+        *,
+        tool_name: str,
+        session_id: str,
+        arguments: Dict[str, Any],
+        guard_store: Any,
+        guard_server_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Gate 0d: #04 capability laundering check and #31 causal provenance sink verification."""
+        if tool_name in self._capability_profiles:
+            from ctxfw.mcp_guard.contracts import evaluate_capability_laundering
+
+            profile = self._capability_profiles[tool_name]
+            param_guard = self._param_binding_guards.get(tool_name)
+            if guard_store is not None:
+                cap_res = guard_store.evaluate_and_record_capability_laundering(
+                    profile,
+                    parameter_guard=param_guard,
+                    raw_arguments=arguments,
+                )
+            else:
+                cap_res = evaluate_capability_laundering(
+                    profile,
+                    parameter_guard=param_guard,
+                    raw_arguments=arguments,
+                )
+            if cap_res.laundering_detected or not cap_res.allowed:
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"CAPABILITY_LAUNDERING_BLOCKED: {cap_res.reason}",
+                        }
+                    ],
+                    "isError": True,
+                    "policyViolation": True,
+                    "capabilityLaundering": True,
+                    "terminalState": cap_res.terminal_state.value,
+                    "serverId": guard_server_id,
+                }
+
+        if not self._enforce_provenance:
+            return None
+
+        edges = list(self._session_provenance_edges.get(session_id, ()))
+        if not edges or tool_name not in self._sensitive_sink_tools:
+            return None
+
+        from ctxfw.sara.provenance import (
+            AlignmentStatus,
+            IntentExecGraphEdge,
+            ProvenanceClassification,
+            digest_payload_sha256,
+        )
+
+        last_node = self._session_last_prov_node.get(session_id, "PLAN_ROOT")
+        sink_node = f"SINK_{tool_name}"
+        seq_id = len(edges) + 1
+        sink_edge = IntentExecGraphEdge(
+            edge_id=f"EDG-SINK-{seq_id:04d}",
+            src_node=last_node,
+            dst_node=sink_node,
+            tool_name=tool_name,
+            alignment_status=AlignmentStatus.ALIGNED,
+            tool_succeeded=True,
+            payload_sha256=digest_payload_sha256(f"{tool_name}:{sorted(arguments.keys())}"),
+        )
+        candidate_edges = edges + [sink_edge]
+        ext_nodes = frozenset(self._session_external_nodes.get(session_id, ()))
+        trace = self._get_provenance_store().evaluate_and_record_trace(
+            session_id=session_id,
+            sink_node=sink_node,
+            external_nodes=ext_nodes,
+            edges=candidate_edges,
+            max_depth=self._provenance_max_depth,
+        )
+        if trace.classification == ProvenanceClassification.IPI_CONFIRMED:
+            path_repr = " -> ".join(trace.provenance_path)
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"PROVENANCE_IPI_BLOCKED: IPI_CONFIRMED via {path_repr} (depth_truncated={trace.depth_truncated})",
+                    }
+                ],
+                "isError": True,
+                "policyViolation": True,
+                "provenanceQuarantined": True,
+                "classification": trace.classification.value,
+                "terminalState": trace.terminal_state.value,
+            }
+        return None
+
+    def _record_post_tool_provenance(
+        self,
+        *,
+        tool_name: str,
+        session_id: str,
+        result: Dict[str, Any],
+    ) -> None:
+        """Record digest-only post-tool observation edge when provenance enforcement is active."""
+        if not self._enforce_provenance:
+            return
+        if tool_name in self._sensitive_sink_tools:
+            return
+
+        from ctxfw.sara.lexical import LexicalSanitizer
+        from ctxfw.sara.provenance import (
+            AlignmentStatus,
+            IntentExecGraphEdge,
+            digest_payload_sha256,
+        )
+
+        text_parts = [
+            str(item.get("text", ""))
+            for item in result.get("content", ())
+            if isinstance(item, dict) and item.get("text")
+        ]
+        combined_text = "\n".join(text_parts)
+        san = LexicalSanitizer().sanitize(combined_text)
+        misaligned = bool(
+            result.get("saraQuarantined")
+            or san.escape_detected
+            or len(san.role_override_markers) > 0
+        )
+        edges = self._session_provenance_edges.setdefault(session_id, [])
+        step_idx = len(edges) + 1
+        ext_node = f"EXT_{tool_name}_{step_idx}"
+        obs_node = f"OBS_{tool_name}_{step_idx}"
+        edge = IntentExecGraphEdge(
+            edge_id=f"EDG-OBS-{step_idx:04d}",
+            src_node=ext_node,
+            dst_node=obs_node,
+            tool_name=tool_name,
+            alignment_status=(AlignmentStatus.MISALIGNED if misaligned else AlignmentStatus.ALIGNED),
+            tool_succeeded=(not bool(result.get("isError"))) or bool(result.get("saraQuarantined")),
+            payload_sha256=digest_payload_sha256(combined_text or tool_name),
+        )
+        self.record_provenance_edge(
+            session_id,
+            edge,
+            external_sources=(ext_node,),
+        )
 
     def _task_auth_block_payload(
         self,
@@ -2274,9 +2489,12 @@ class MCPServer:
         if not isinstance(arguments, dict):
             arguments = {}
 
+        meta = params.get("_meta")
+        meta_session = meta.get("session_id") if isinstance(meta, dict) else None
         session_id = (
             arguments.get("session_id")
             or params.get("session_id")
+            or meta_session
             or self.session_id
         )
         if not session_id or not re.match(r"^SES-[A-Za-z0-9_-]{4,64}$", str(session_id)):
@@ -2391,6 +2609,17 @@ class MCPServer:
         )
         if task_auth_block is not None:
             return ToolResult(task_auth_block)
+
+        # 0d. Capability Laundering (#04) & Causal Multi-Step Provenance (#31) Gate
+        provenance_block = self._evaluate_provenance_and_capability_pre_execution(
+            tool_name=str(tool_name),
+            session_id=session_id,
+            arguments=arguments,
+            guard_store=guard_store,
+            guard_server_id=guard_server_id,
+        )
+        if provenance_block is not None:
+            return ToolResult(provenance_block)
 
         # 1. Closed-Loop Security Pre-Execution Interception
         from ctxfw.rules.enforcer import RulesEnforcer, normalize_path
@@ -2890,6 +3119,11 @@ class MCPServer:
 
         if not result.get("saraQuarantined") and not result.get("sweGateRecorded"):
             self._record_shadow_audit(params, result)
+        self._record_post_tool_provenance(
+            tool_name=str(tool_name),
+            session_id=session_id,
+            result=result,
+        )
         return ToolResult(result)
 
     def dispatch(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -3005,6 +3239,7 @@ class MCPServer:
             "_mcp_guard_store",
             "_pasac_store",
             "_task_auth_store",
+            "_provenance_store",
         ):
             store = getattr(self, attr, None)
             if store is not None:

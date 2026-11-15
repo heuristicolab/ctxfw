@@ -5,6 +5,8 @@ CTXFW Axiomatic Gateway (milestone M3-P2): status VERIFIED | ACI 1.0000
 manifest_hash: 8f925c1e7c680c7af68e6f3daa48a5ac734923438762ed8836878a97508ce42e
 manifest_hash_wave1b: ebbcd0d607fa09a71dda690ea76104d762b3f279cde258f64917421d39a249f4
 manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
+manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
+manifest_hash_wave2e2: bc6e604a3faf8a75b3d6402b523047e481f35c0d62afca3056114337021196e0
 Sealed blueprint manifest_hash (SARA SIG-0d2acf53b92882b0, VERIFIED, ACI 1.0000):
     51d819312f8dd802981a7b7d97b9d6397316738ded76c94161a9f147411c94ea
 Sealed blueprint manifest_hash (#18 PASAC SIG-97ba08207eca7295, VERIFIED, ACI 1.0000):
@@ -52,12 +54,14 @@ from typing import TYPE_CHECKING, Any
 
 __all__ = [
     "ASSURANCE_SCHEMA_PATH",
+    "PROVENANCE_SCHEMA_PATH",
     "TASK_AUTH_SCHEMA_PATH",
     "CONTRACTS_PATH",
     "MANIFEST_PATH",
     "PACKAGE_DIR",
     "SCHEMA_PATH",
     "load_assurance_schema_sql",
+    "load_provenance_schema_sql",
     "load_task_auth_schema_sql",
     "load_manifest",
     "load_schema_sql",
@@ -70,7 +74,37 @@ __all__ = [
     "AuditSink",
     "SaraStore",
     "PasacAssuranceStore",
+    "ProvenanceStore",
     "TaskAuthStore",
+    # Wave 2 E.1 provenance & epoch exports:
+    "PROVENANCE_MANIFEST_HASH",
+    "PROVENANCE_TRANSITIONS",
+    "TERMINAL_PROVENANCE_STATES",
+    "AlignmentStatus",
+    "IntentExecGraphEdge",
+    "MonotonicEpochVerdict",
+    "PredicateState",
+    "ProvenanceClassification",
+    "ProvenanceErrorClass",
+    "ProvenanceEvent",
+    "ProvenanceState",
+    "ProvenanceTraceResult",
+    "compute_epoch_attestation",
+    "compute_provenance_attestation",
+    "digest_payload_sha256",
+    "evaluate_frame_alignment",
+    "evaluate_monotonic_epoch",
+    "evaluate_relation_alignment",
+    "provenance_transition",
+    "prune_graph_edges",
+    "trace_ipi_provenance",
+    # Wave 2 E.2 lexical multilingual & slot symmetry exports:
+    "IntraTokenConfusableFinding",
+    "SlotSymmetryResult",
+    "detect_intra_token_confusables",
+    "fold_confusables",
+    "validate_language_tag",
+    "verify_symmetric_slot_preservation",
     "derive_quarantine_id",
     # Task-Scoped Paired-Replay Auth, Sandbox PoLP & Spoof Delimiters (Wave 2 D.1 :: #07 + #08 + #10):
     "AUTH_REPLAY_TRANSITIONS",
@@ -177,8 +211,46 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 CONTRACTS_PATH = PACKAGE_DIR / "contracts.py"
 SCHEMA_PATH = PACKAGE_DIR / "schema.sql"
 ASSURANCE_SCHEMA_PATH = PACKAGE_DIR / "assurance_schema.sql"
+PROVENANCE_SCHEMA_PATH = PACKAGE_DIR / "provenance_schema.sql"
 TASK_AUTH_SCHEMA_PATH = PACKAGE_DIR / "task_auth_schema.sql"
 MANIFEST_PATH = PACKAGE_DIR / "blueprint_manifest.json"
+
+_PROVENANCE_EXPORTS = frozenset(
+    {
+        "PROVENANCE_MANIFEST_HASH",
+        "PROVENANCE_TRANSITIONS",
+        "TERMINAL_PROVENANCE_STATES",
+        "AlignmentStatus",
+        "IntentExecGraphEdge",
+        "MonotonicEpochVerdict",
+        "PredicateState",
+        "ProvenanceClassification",
+        "ProvenanceErrorClass",
+        "ProvenanceEvent",
+        "ProvenanceState",
+        "ProvenanceTraceResult",
+        "compute_epoch_attestation",
+        "compute_provenance_attestation",
+        "digest_payload_sha256",
+        "evaluate_frame_alignment",
+        "evaluate_monotonic_epoch",
+        "evaluate_relation_alignment",
+        "provenance_transition",
+        "prune_graph_edges",
+        "trace_ipi_provenance",
+    }
+)
+
+_LEXICAL_E2_EXPORTS = frozenset(
+    {
+        "IntraTokenConfusableFinding",
+        "SlotSymmetryResult",
+        "detect_intra_token_confusables",
+        "fold_confusables",
+        "validate_language_tag",
+        "verify_symmetric_slot_preservation",
+    }
+)
 
 _SUBMODULES = frozenset(
     {
@@ -190,6 +262,8 @@ _SUBMODULES = frozenset(
         "store",
         "assurance",
         "assurance_store",
+        "provenance",
+        "provenance_store",
         "task_auth",
         "task_auth_store",
     }
@@ -280,6 +354,11 @@ def load_assurance_schema_sql() -> str:
     return ASSURANCE_SCHEMA_PATH.read_text(encoding="utf-8")
 
 
+def load_provenance_schema_sql() -> str:
+    """Return the Wave 2 E.1 causal provenance & monotonic epoch SQLite WAL DDL text (UTF-8)."""
+    return PROVENANCE_SCHEMA_PATH.read_text(encoding="utf-8")
+
+
 def load_task_auth_schema_sql() -> str:
     """Return the Wave 2 D.1 task-auth SQLite WAL DDL text (UTF-8)."""
     return TASK_AUTH_SCHEMA_PATH.read_text(encoding="utf-8")
@@ -329,6 +408,18 @@ def __getattr__(name: str) -> Any:
         from . import task_auth
 
         return getattr(task_auth, name)
+    if name == "ProvenanceStore":
+        from . import provenance_store
+
+        return getattr(provenance_store, name)
+    if name in _PROVENANCE_EXPORTS:
+        from . import provenance
+
+        return getattr(provenance, name)
+    if name in _LEXICAL_E2_EXPORTS:
+        from . import lexical
+
+        return getattr(lexical, name)
     if name == "pasac_transition":
         from . import assurance
 

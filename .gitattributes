@@ -114,4 +114,19 @@ src/ctxfw/proxy.py -text
 SPEC.axioms.md -text
 tests/test_task_auth.py -text
 tests/test_cadence_scheduler.py -text
+src/ctxfw/sara/__init__.py -text
+src/ctxfw/sara/lexical.py -text
+src/ctxfw/sara/induction.py -text
+src/ctxfw/sara/provenance.py -text
+src/ctxfw/sara/provenance_schema.sql -text
+src/ctxfw/sara/provenance_store.py -text
+src/ctxfw/sara/task_auth_schema.sql -text
+src/ctxfw/sara/task_auth_store.py -text
+src/ctxfw/mcp_guard/__init__.py -text
+src/ctxfw/mcp_guard/schema.sql -text
+src/ctxfw/mcp_guard/store.py -text
+src/ctxfw/storage/snapshot_schema.sql -text
+src/ctxfw/storage/snapshots.py -text
+tests/test_provenance_and_containment.py -text
+tests/test_lexical_multilingual.py -text
 

@@ -1,6 +1,7 @@
 -- src/ctxfw/storage/snapshot_schema.sql — Sandbox Snapshot Rollback & Go-Explore WAL DDL
 -- manifest_hash: 00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762
 -- blueprint_manifest_hash: 7fb2c154c3f3e904d0e70445120a150a7d8d59cd7349cf13316421ffc816fc55
+-- manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
 
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
@@ -191,3 +192,27 @@ END;
 
 CREATE INDEX IF NOT EXISTS idx_snapshot_quarantine_run
 ON snapshot_quarantine_entries(run_id, created_seq);
+
+-- Wave 2 Block E.1 (#28): Opt-in Monotonic Epoch Freshness Verification
+CREATE TABLE IF NOT EXISTS snapshot_monotonic_epochs (
+    scope_id TEXT PRIMARY KEY CHECK(length(scope_id) BETWEEN 4 AND 128),
+    run_id TEXT NOT NULL,
+    last_consumed_k INTEGER NOT NULL CHECK(last_consumed_k >= 0),
+    attestation_sha256 TEXT NOT NULL CHECK(length(attestation_sha256) = 64),
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS snapshot_epoch_quarantine (
+    quarantine_id TEXT PRIMARY KEY,
+    scope_id TEXT NOT NULL,
+    run_id TEXT NOT NULL,
+    attempted_epoch_k INTEGER NOT NULL,
+    last_consumed_k INTEGER NOT NULL,
+    error_class TEXT NOT NULL CHECK(error_class = 'SECURITY'),
+    reason TEXT NOT NULL,
+    attestation_sha256 TEXT NOT NULL CHECK(length(attestation_sha256) = 64),
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_snapshot_epoch_quarantine_scope
+ON snapshot_epoch_quarantine(scope_id, created_at);

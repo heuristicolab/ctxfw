@@ -1,4 +1,5 @@
 # manifest_hash: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
+# manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
 """
 ctxfw.mcp_guard.store — SQLite WAL Security Persistence & Immutable Ledgers
 ============================================================================
@@ -20,6 +21,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
 
 from ctxfw.mcp_guard.contracts import (
     MAX_DESCRIPTION_CHARS,
+    CapabilityLaunderingCheckResult,
     ChannelSurface,
     ConfinementCheckResult,
     FirewallDecisionDTO,
@@ -28,11 +30,14 @@ from ctxfw.mcp_guard.contracts import (
     InferredSandboxBoundary,
     McpToolContractSpec,
     OracleVerdict,
+    PairedDynamicValidation,
     ParameterBindingGuard,
     PoisonScanFinding,
+    ToolCapabilityProfile,
     ToolRegistrationPin,
     ValidationVerdict,
     compute_tool_pin_hash,
+    evaluate_capability_laundering,
     scan_description_risk,
     transition_firewall_state,
     utc_now_iso,
@@ -567,6 +572,138 @@ class McpGuardStore:
         """List all parameter binding verification logs."""
         with self._lock:
             return [dict(r) for r in self._conn.execute("SELECT * FROM param_binding_audits ORDER BY audited_at_utc").fetchall()]
+
+    def record_paired_containment(self, validation: PairedDynamicValidation) -> str:
+        """Persist paired dynamic PoC containment audit row (#04) atomically."""
+        seq = next(self._seq_counter)
+        now = utc_now_iso()
+        audit_id = _new_id(
+            "PCNT",
+            f"{seq}:{validation.boundary_id}:{validation.server_id}:{validation.tool_name}:{now}",
+        )
+
+        def _tx(conn: sqlite3.Connection) -> str:
+            conn.execute(
+                """
+                INSERT INTO paired_containment_audits (
+                    audit_id, boundary_id, server_id, tool_name,
+                    poc1_disclosed, poc2_benign_denied, poc3_disclosed,
+                    canary_overlap_count, verdict, allowed, reason,
+                    attestation_sha256, audited_at_utc
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    audit_id,
+                    validation.boundary_id,
+                    validation.server_id,
+                    validation.tool_name,
+                    int(validation.poc1_disclosed),
+                    int(validation.poc2_benign_denied),
+                    int(validation.poc3_disclosed),
+                    int(validation.canary_overlap_count),
+                    validation.verdict.value,
+                    int(validation.allowed),
+                    validation.reason,
+                    validation.attestation_sha256,
+                    now,
+                ),
+            )
+            return audit_id
+
+        return self._atomic(_tx)
+
+    def evaluate_and_record_capability_laundering(
+        self,
+        profile: ToolCapabilityProfile,
+        *,
+        contract: Optional[McpToolContractSpec] = None,
+        parameter_guard: Optional[ParameterBindingGuard] = None,
+        raw_arguments: Optional[Dict[str, Any]] = None,
+        quarantine_on_violation: bool = True,
+    ) -> CapabilityLaunderingCheckResult:
+        """Evaluate #04 capability laundering and persist immutable audit + optional quarantine."""
+        result = evaluate_capability_laundering(
+            profile,
+            contract=contract,
+            parameter_guard=parameter_guard,
+            raw_arguments=raw_arguments,
+        )
+        seq = next(self._seq_counter)
+        now = utc_now_iso()
+        audit_id = _new_id(
+            "CLND",
+            f"{seq}:{result.server_id}:{result.tool_name}:{result.attestation_sha256}:{now}",
+        )
+
+        def _tx(conn: sqlite3.Connection) -> CapabilityLaunderingCheckResult:
+            conn.execute(
+                """
+                INSERT INTO capability_laundering_audits (
+                    audit_id, server_id, tool_name, declared_readonly,
+                    allowed, laundering_detected, terminal_state,
+                    violations_json, reason, attestation_sha256, audited_at_utc
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    audit_id,
+                    result.server_id,
+                    result.tool_name,
+                    int(bool(profile.declared_readonly or (contract is not None and contract.declared_readonly))),
+                    int(result.allowed),
+                    int(result.laundering_detected),
+                    result.terminal_state.value,
+                    json.dumps(list(result.violations), ensure_ascii=True, separators=(",", ":")),
+                    result.reason,
+                    result.attestation_sha256,
+                    now,
+                ),
+            )
+            if result.laundering_detected and quarantine_on_violation:
+                q_id = _new_id(
+                    "QRN",
+                    f"{seq}:cap:{result.server_id}:{result.tool_name}:{result.attestation_sha256}:{now}",
+                )
+                conn.execute(
+                    """
+                    INSERT INTO poisoning_quarantine (
+                        quarantine_id, server_id, tool_name, terminal_state,
+                        vector, evidence_sha256, reason, quarantined_at_utc
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        q_id,
+                        result.server_id,
+                        result.tool_name,
+                        FirewallState.CONFINED_DENY.value,
+                        "PT-005",
+                        result.attestation_sha256,
+                        result.reason,
+                        now,
+                    ),
+                )
+            return result
+
+        return self._atomic(_tx)
+
+    def list_paired_containment_audits(self) -> List[Dict[str, Any]]:
+        """List all persisted paired containment audit records (#04)."""
+        with self._lock:
+            return [
+                dict(r)
+                for r in self._conn.execute(
+                    "SELECT * FROM paired_containment_audits ORDER BY audited_at_utc"
+                ).fetchall()
+            ]
+
+    def list_capability_laundering_audits(self) -> List[Dict[str, Any]]:
+        """List all persisted capability laundering audit records (#04)."""
+        with self._lock:
+            return [
+                dict(r)
+                for r in self._conn.execute(
+                    "SELECT * FROM capability_laundering_audits ORDER BY audited_at_utc"
+                ).fetchall()
+            ]
 
     def close(self) -> None:
         """Close the SQLite WAL database connection cleanly."""

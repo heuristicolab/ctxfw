@@ -6,6 +6,7 @@ manifest_hash (M3-P2): 8f925c1e7c680c7af68e6f3daa48a5ac734923438762ed8836878a975
 manifest_hash (M3-P3): 8d94151e921e2f8eaacb440cb3c1b0d4e0ff6ac80fa217e5830de1c1edec1b13
 manifest_hash_wave1a: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
+manifest_hash_wave2e2: bc6e604a3faf8a75b3d6402b523047e481f35c0d62afca3056114337021196e0
 Scans untrusted tool observations for imperative shell commands, file path access,
 role-override injections, and hidden escape sequences. Computes a deterministic
 risk_score in [0.0, 1.0] (strictly rejecting NaN/Inf) under default-deny policy rules.
@@ -29,7 +30,10 @@ from ctxfw.sara.contracts import (
     InductionDirectiveDTO,
     RawToolObservationDTO,
 )
-from ctxfw.sara.lexical import LexicalSanitizer
+from ctxfw.sara.lexical import (
+    ROLE_OVERRIDE_RE,
+    LexicalSanitizer,
+)
 
 # Architectural aliases
 UntrustedObservationDTO = RawToolObservationDTO
@@ -65,13 +69,7 @@ _CRITICAL_HIDDEN_RE = re.compile(
 )
 
 # 2. Role override & prompt context escape markers (#10 LTBD delimiters strictly `<...>` anchored)
-_ROLE_RE = re.compile(
-    r"(?:</?system>|<\|im_start\|>|<\|im_end\|>|<\|system\|>|\[/?INST\]|</?tool_call>"
-    r"|<\s*(?:INST|DATA)\s+(?:BEGIN|END)\s*>"
-    r"|\b(?:System|Assistant|Developer):"
-    r"|\bignore\s+(?:all\s+)?(?:previous|prior)\s+instructions\b)",
-    re.IGNORECASE,
-)
+_ROLE_RE = ROLE_OVERRIDE_RE
 
 _ROLE_CLOSING_RE = re.compile(
     r"^(?:</system>|\[/INST\]|</tool_call>|<\|im_end\|>)$",
@@ -79,14 +77,24 @@ _ROLE_CLOSING_RE = re.compile(
 )
 
 _ROLE_IGNORE_RE = re.compile(
-    r"\bignore\s+(?:all\s+)?(?:previous|prior)\s+instructions\b",
+    r"(?:\b(?:ignore|disregard|forget|override)\s+(?:all\s+)?(?:previous|prior)\s+instructions\b"
+    r"|\b(?:ignora|ignorar|olvida|olvidar|omite|omitir|anula|anular)\s+(?:todas\s+)?(?:las\s+)?instrucciones\s+(?:anteriores|previas)\b"
+    r"|\b(?:ignore[zr]?|oublie[zr]?)\s+(?:toutes\s+)?(?:les\s+)?instructions\s+(?:pr\u00e9c\u00e9dentes|precedentes|ant\u00e9rieures|anterieures)\b"
+    r"|\b(?:ignoriere|ignorieren\s+Sie|vergiss|vergesse[n]?)\s+(?:alle\s+)?(?:vorherigen|bisherigen|fr\u00fcheren|fruheren)\s+Anweisungen\b"
+    r"|\b(?:ignore|ignorar|esque\u00e7a|esqueca|desconsidere)\s+(?:todas\s+)?(?:as\s+)?instru(?:\u00e7\u00f5es|coes)\s+(?:anteriores|pr\u00e9vias|previas)\b"
+    r"|(?:忽略|无视|無視)(?:所有)?(?:之前|先前|以前|前面)的?(?:指令|指示|提示)"
+    r"|(?:以前|これまで|先ほど|すべて)の指示を(?:無視|忘れ)(?:して|せよ|しろ)?"
+    r"|(?:이전|기존)\s*지시(?:사항)?을?\s*무시(?:하세요|해라|해)?)",
     re.IGNORECASE,
 )
 
 _ROLE_OPENING_RE = re.compile(
     r"(?:<system>|<\|im_start\|>|<\|system\|>|\[INST\]|<tool_call>"
     r"|<\s*(?:INST|DATA)\s+(?:BEGIN|END)\s*>"
-    r"|\b(?:System|Assistant|Developer):)",
+    r"|\b(?:System|Assistant|Developer):"
+    r"|(?:^|\n)\s*(?:Sistema|Asistente|Desarrollador"
+    r"|Syst\u00e8me|Systeme|D\u00e9veloppeur|Developpeur"
+    r"|Assistent|Entwickler|Assistente|Desenvolvedor):)",
     re.IGNORECASE,
 )
 
@@ -416,13 +424,15 @@ class InductionParser:
         clean_text = sanitized_res.sanitized_text
         cmd_scan_text = _collapse_line_continuations(clean_text)
 
-        # 2. Scan clean_text for ROLE_OVERRIDE markers
+        # 2. Scan clean_text & confusable/multilingual sanitization markers for ROLE_OVERRIDE
+        seen_role_texts: set[str] = set()
         for m in _ROLE_RE.finditer(clean_text):
             if len(tier_critical) >= MAX_DIRECTIVES_PER_OBS:
                 break
             text_val = m.group(0).strip()[:MAX_DIRECTIVE_TEXT_CHARS]
             if not text_val:
                 continue
+            seen_role_texts.add(text_val)
             start_off, end_off = _clamp_span(m.start(), m.end())
             tier_critical.append(
                 InductionDirectiveDTO(
@@ -430,6 +440,23 @@ class InductionParser:
                     directive_text=text_val,
                     start_offset=start_off,
                     end_offset=end_off,
+                    confidence=0.95,
+                    within_allowlist=False,
+                )
+            )
+        for raw_marker in sanitized_res.role_override_markers:
+            if len(tier_critical) >= MAX_DIRECTIVES_PER_OBS:
+                break
+            marker_val = raw_marker.strip()[:MAX_DIRECTIVE_TEXT_CHARS]
+            if not marker_val or marker_val in seen_role_texts:
+                continue
+            seen_role_texts.add(marker_val)
+            tier_critical.append(
+                InductionDirectiveDTO(
+                    directive_kind=DirectiveKind.ROLE_OVERRIDE,
+                    directive_text=marker_val,
+                    start_offset=0,
+                    end_offset=0,
                     confidence=0.95,
                     within_allowlist=False,
                 )

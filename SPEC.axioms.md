@@ -252,3 +252,81 @@ Lifecycle states and transition map $\delta(S, E)$ governing deterministic AIMD 
 - The `ScaffoldType` validator shall never restrict agent telemetry to a closed benchmark enum and shall accept arbitrary valid agent identifiers matching `^[A-Za-z0-9_.:-]{2,64}$`.
 - The Cadence SQLite WAL store shall never reuse `occ_version_ledger` from other modules and shall isolate optimistic concurrency inside `cadence_occ_ledger`.
 - The `ctxfw.budget` package initializer shall never eagerly import `cadence` or heavy dependencies at module import time and shall never add mandatory dependencies to `pyproject.toml`.
+
+## Appendix H — Wave 2 Block E.1 (#31 Causal Provenance, #04 Capability Laundering, #28 Monotonic Epoch Freshness)
+- **Status**: `VERIFIED` | **ACI**: `1.0000`
+- **manifest_hash**: `b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a`
+
+### H.1 Domain Bounds
+- Causal traversal depth: `max_depth` in `[1..64]` (`DEFAULT_MAX_CHAIN_DEPTH = 32`); per-session edge count bounded at `[0..10000]`.
+- Identifier pattern: `^[A-Za-z0-9_.:-]{4,64}$`; digest fields `^[a-f0-9]{64}$`.
+- Monotonic epoch counter: `epoch_k` in `[0..2147483647]` (`last_consumed_k` in `[-1..2147483647]`).
+- Capability laundering bounds: `canary_overlap_count` validated strictly `== 0` in `InferredSandboxBoundary`; paired PoC outcomes strictly boolean with `CONTAINED_PASS` requiring `poc1_disclosed = True`, `poc2_benign_denied = False`, `poc3_disclosed = False`, `canary_overlap_count = 0`.
+- Strict Gate G9 preservation: `src/ctxfw/sara/contracts.py`, `src/ctxfw/sara/schema.sql`, and `src/ctxfw/sara/blueprint_manifest.json` remain unmodified byte-for-byte.
+
+### H.2 Finite-State Machine
+- Provenance states: `IDLE` -> `PRECHECK_VALIDATED` -> `GRAPH_RECORDING` -> `PROVENANCE_TRACED` -> terminal (`CLEAN_VERIFIED`, `DRIFT_LOGGED`, `QUARANTINED_IPI`, `QUARANTINED_LAUNDERING`, `REJECTED_STALE_EPOCH`).
+- Transitions `delta(S, E)`:
+  - `delta(IDLE, INIT_SCOPE) = PRECHECK_VALIDATED`
+  - `delta(PRECHECK_VALIDATED, EPOCH_STALE_OR_REPLAY) = REJECTED_STALE_EPOCH`
+  - `delta(PRECHECK_VALIDATED, CANARY_OVERLAP_OR_POC1_INERT) = QUARANTINED_LAUNDERING`
+  - `delta(PRECHECK_VALIDATED, READONLY_CAPABILITY_MISMATCH) = QUARANTINED_LAUNDERING`
+  - `delta(PRECHECK_VALIDATED, EPOCH_FRESH_AND_CONTAINED) = GRAPH_RECORDING`
+  - `delta(GRAPH_RECORDING, TOOL_CALL_RECORDED) = PROVENANCE_TRACED`
+  - `delta(PROVENANCE_TRACED, VERIFY_CLEAN_BENIGN) = CLEAN_VERIFIED`
+  - `delta(PROVENANCE_TRACED, VERIFY_BENIGN_DRIFT) = DRIFT_LOGGED`
+  - `delta(PROVENANCE_TRACED, DETECT_IPI_OR_DEPTH_TRUNCATED) = QUARANTINED_IPI`
+
+### H.3 Error Taxonomy
+- Class 1 (Transient Fault): SQLite WAL lock/busy -> Exponential backoff retry (max 5 attempts) preserving rollback atomicity.
+- Class 2 (Deterministic Input Fault): Invalid node/scope regex, `max_depth` outside `[1..64]`, or post-terminal FSM call -> Synchronous validation failure.
+- Class 3 (Business Invariant Fault): Benign agent drift without external root (`BENIGN_AGENT_DRIFT`) -> Logged to `DRIFT_LOGGED` with `BUSINESS` classification without false IPI quarantine.
+- Class 4 (Security & Isolation Violation): Multi-hop IPI ancestry (`IPI_CONFIRMED`), depth truncation (`depth_truncated=True`), canary overlap (`canary_overlap_count > 0`), readonly capability mismatch, or stale epoch replay (`epoch_k <= last_consumed_k`) -> Fail-closed quarantine.
+
+### H.4 Negative Invariants (Floor of 10 Verified)
+1. The backward BFS provenance tracer (`#31`) shall never stop traversing on `ALIGNED` edges when searching for upstream `MISALIGNED` external transitions; all active multi-hop paths tracking `(node, seen_misaligned)` must be explored within `max_depth`.
+2. The provenance engine shall never classify `IPI_CONFIRMED` as clean or suppress `depth_truncated=True` to `CLEAN_BENIGN`; truncated ancestry within active edges shall never bypass fail-closed quarantine (`QUARANTINED_IPI`).
+3. Mutual-exclusion Pydantic and SQLite CHECK constraints shall never allow `CLEAN_BENIGN`, `BENIGN_AGENT_DRIFT`, or `IPI_CONFIRMED` states to overlap or diverge from their required boolean flags.
+4. `provenance_store.py` shall never reuse `occ_version_ledger`, `auth_occ_ledger`, or `cadence_occ_ledger` and shall never persist raw untrusted prompt/tool payloads (only SHA-256 digests).
+5. `InferredSandboxBoundary` and `evaluate_paired_containment` (`#04`) shall never emit `CONTAINED_PASS` when `poc1_disclosed=False` (inert PoC-1), `poc2_benign_denied=True`, `poc3_disclosed=True`, or `canary_overlap_count > 0`.
+6. Capability laundering evaluation (`#04`) shall never allow a `declared_readonly=True` tool to execute mutating or write/exec/spawn capabilities or unknown unbound arguments bypassing `ParameterBindingGuard`.
+7. The monotonic epoch freshness engine (`#28`) shall never advance `last_consumed_k` or accept an operation when `epoch_k <= last_consumed_k`, routing stale or replayed epochs deterministically to `REJECTED_STALE_EPOCH` with `SECURITY` quarantine persistence.
+8. Optional monotonic epoch tracking inside `TaskAuthStore` and `SandboxSnapshotStore` shall never break backward compatibility or alter existing `self._run_epochs` behavior when epoch arguments are omitted.
+9. Gate G9 sealed vendored artifacts under `src/ctxfw/sara/` (`contracts.py`, `schema.sql`, `blueprint_manifest.json`) shall never be modified; `ProvenanceStore` shall never leak open handles (`MCPServer.close()` closes `_provenance_store`).
+10. Block E.1 integration shall never introduce mandatory runtime dependencies in `pyproject.toml`, eager-import heavy modules in `sara/__init__.py` / `mcp_guard/__init__.py`, or embed CRLF bytes or `# type: ignore` suppressions.
+
+## Appendix I — Wave 2 Block E.2 (#13 Multilingual Role-Override, Intra-Token Confusable Hygiene & Symmetric Slot Verification)
+- **Status**: `VERIFIED` | **ACI**: `1.0000`
+- **manifest_hash**: `bc6e604a3faf8a75b3d6402b523047e481f35c0d62afca3056114337021196e0`
+
+### I.1 Domain Bounds
+- Input text ceiling: `<= 65536` UTF-8 characters (`MAX_RAW_LENGTH` in `LexicalSanitizer`); NUL byte `\x00` strictly rejected or flagged.
+- Language tag selector (`validate_language_tag`): BCP-47 pattern `^(?:auto|[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3})$` in `[2..35]` chars.
+- Symmetric slot verification: `[0..8192]` slots, each non-empty `[1..256]` chars without `\x00`, SHA-256 `slot_hash` equality `^[a-f0-9]{64}$`.
+- Confusable findings bounded at `<= 64` per scan, evaluating intra-token script runs only (zero cross-token penalties on valid UTF-8 ES/PT/FR/DE/CJK comments/docstrings mixed with ASCII code).
+
+### I.2 Finite-State Machine
+- Normalization & verification states: `RAW_INPUT` -> `NFKC_AND_ESCAPES_STRIPPED` -> `CONFUSABLE_AND_OVERRIDE_SCANNED` -> `SYMMETRIC_SLOTS_VERIFIED` -> terminal (`SANITIZED_CLEAN`, `ESCAPE_OR_CONFUSABLE_FLAGGED`, `SLOT_SYMMETRY_VIOLATION`, `INPUT_BOUND_REJECTED`).
+- Transitions `delta(S, E)`:
+  - `delta(RAW_INPUT,EXCEEDS_MAX_LEN_OR_INVALID_LANG) = INPUT_BOUND_REJECTED`
+  - `delta(RAW_INPUT, VALID_UTF8_BOUNDED) = NFKC_AND_ESCAPES_STRIPPED`
+  - `delta(NFKC_AND_ESCAPES_STRIPPED, ROLE_OVERRIDE_OR_CONFU_DETECTED) = ESCAPE_OR_CONFUSABLE_FLAGGED`
+  - `delta(NFKC_AND_ESCAPES_STRIPPED, CLEAN_LEXICAL_TOKENS) = CONFUSABLE_AND_OVERRIDE_SCANNED`
+  - `delta(CONFUSABLE_AND_OVERRIDE_SCANNED, SLOT_HASH_MISMATCH) = SLOT_SYMMETRY_VIOLATION`
+  - `delta(CONFUSABLE_AND_OVERRIDE_SCANNED, SLOT_HASH_MATCH) = SANITIZED_CLEAN`
+
+### I.3 Error Taxonomy
+- Class 1 (Transient Fault): Not applicable in pure deterministic CPU string/AST transformation (total stateless execution).
+- Class 2 (Deterministic Input Fault): Invalid BCP-47 language tag, non-string input, empty/oversized slot token, or oversized `raw > 65536` -> Synchronous `ValueError` / bound rejection.
+- Class 3 (Business Invariant Fault): AST slot emission mismatch (`missing_slots` or `extra_slots` causing `slot_hash` divergence) -> `SlotSymmetryResult(verified=False)` rejecting lossy rewrite.
+- Class 4 (Security & Isolation Violation): Multilingual role-override payload, invisible/bidi control chars, or intra-token homoglyph spoof -> Flagged deterministically in `role_override_markers` and `escape_detected=True`, propagated into SARA risk scoring and provenance alignment.
+
+### I.4 Negative Invariants (Floor of 8 Verified)
+1. The multilingual lexical hygiene engine (`#13`) shall never apply global cross-token script-mixing penalties across separate tokens in benign UTF-8 ES, PT, FR, DE, or CJK comments/docstrings coexisting with ASCII identifiers in `prune_file` or `resolve_context_bundle`.
+2. `LexicalSanitizer.sanitize(raw: str, *, reject_null_bytes: bool = False)` shall never break backward-compatible call signatures or corrupt legitimate UTF-8 strings (such as accented Spanish/Portuguese letters or valid Japanese/Chinese identifiers).
+3. Intra-token homoglyph detection shall never permit mixed confusable scripts (e.g., `LATIN` + `CYRILLIC`/`GREEK`) or pure confusable keyword spoofs within a single token to evade `role_override_markers` or `escape_detected=True`.
+4. Multilingual role-override patterns shall never silently miss override imperative/delimiter injections expressed in ES, FR, DE, PT, ZH, JA, or KO in either `LexicalSanitizer` or `InductionParser`.
+5. `verify_symmetric_slot_preservation` shall never return `verified=True` when preserved input slots and re-emitted output slots differ by omission (`missing_slots`), injection (`extra_slots`), count, or SHA-256 `slot_hash`.
+6. Language selector validation (`validate_language_tag`) shall never accept unbounded, newline-injected, or path/script-containing strings outside `LANGUAGE_TAG_RE` (`[2..35]` chars).
+7. `sara/__init__.py` shall never load `provenance` or `provenance_store` eagerly at import time so cold-import RSS stays under `< 45 MB`.
+8. Block E.2 changes shall never introduce `# type: ignore`, CRLF bytes, mandatory runtime dependencies, or mutations to Gate G9 sealed vendored files.

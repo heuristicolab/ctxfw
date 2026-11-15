@@ -1,5 +1,6 @@
 # manifest_hash: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 # manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
+# manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
 """
 ctxfw.mcp_guard.contracts — Axiomatic Contracts, FSM & Deterministic Security Engines
 =======================================================================================
@@ -395,6 +396,7 @@ class McpToolContractSpec(BaseModel):
     authorized_roots: Tuple[str, ...] = Field(min_length=1, max_length=MAX_AUTHORIZED_ROOTS)
     allow_unsandboxed_fallback: bool = False
     follow_symlinks: bool = False
+    declared_readonly: bool = False
 
     @field_validator("allow_unsandboxed_fallback")
     @classmethod
@@ -433,6 +435,14 @@ class InferredSandboxBoundary(BaseModel):
         "~/.ssh/id_rsa",
         "~/.aws/credentials",
     )
+    canary_overlap_count: int = Field(default=0, ge=0)
+
+    @field_validator("canary_overlap_count")
+    @classmethod
+    def _forbid_canary_overlap(cls, value: int) -> int:
+        if value != 0:
+            raise ValueError("canary_overlap_count shall never exceed 0 in an inferred boundary")
+        return value
 
     @field_validator("authorized_roots")
     @classmethod
@@ -453,6 +463,269 @@ class InferredSandboxBoundary(BaseModel):
                 if canary_path is not None and (canary_path == root_p or canary_path.is_relative_to(root_p)):
                     raise ValueError(f"Sandbox boundary violates canary disjointness: {canary} overlaps {root_p}")
         return self
+
+
+MUTATING_CAPABILITY_KEYWORDS: FrozenSet[str] = frozenset(
+    {
+        "write",
+        "delete",
+        "remove",
+        "unlink",
+        "chmod",
+        "chown",
+        "exec",
+        "execute",
+        "spawn",
+        "shell",
+        "patch",
+        "modify",
+        "create",
+        "mkdir",
+        "rmdir",
+        "rename",
+        "move",
+        "egress",
+        "post",
+        "put",
+        "upload",
+        "install",
+        "uninstall",
+        "commit",
+        "push",
+        "filesystem:write",
+        "filesystem:delete",
+        "process:spawn",
+        "shell:exec",
+        "network:egress",
+        "patch:apply",
+    }
+)
+
+
+class PairedContainmentVerdict(str, Enum):
+    """Dynamic PoC paired containment validation verdict (#04)."""
+
+    CONTAINED_PASS = "CONTAINED_PASS"
+    INERT_POC1 = "INERT_POC1"
+    DENIED_BENIGN_POC2 = "DENIED_BENIGN_POC2"
+    LAUNDERING_EXPOSED_POC3 = "LAUNDERING_EXPOSED_POC3"
+    CANARY_OVERLAP_REJECTED = "CANARY_OVERLAP_REJECTED"
+
+
+class PairedDynamicValidation(BaseModel):
+    """Fail-closed paired containment validation invariant record (#04)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    boundary_id: str = Field(min_length=6, max_length=64, pattern=r"^BND-[a-f0-9]{16}$")
+    server_id: str = Field(pattern=SERVER_ID_PATTERN)
+    tool_name: str = Field(pattern=TOOL_NAME_PATTERN)
+    poc1_disclosed: bool
+    poc2_benign_denied: bool
+    poc3_disclosed: bool
+    canary_overlap_count: int = Field(default=0, ge=0)
+    verdict: PairedContainmentVerdict
+    allowed: bool
+    reason: str = Field(min_length=1, max_length=512)
+    attestation_sha256: str = Field(pattern=PIN_SHA256_PATTERN)
+
+    @model_validator(mode="after")
+    def _enforce_containment_truth_table(self) -> "PairedDynamicValidation":
+        expected_pass = (
+            self.poc1_disclosed
+            and not self.poc2_benign_denied
+            and not self.poc3_disclosed
+            and self.canary_overlap_count == 0
+        )
+        if self.verdict == PairedContainmentVerdict.CONTAINED_PASS and (
+            not expected_pass or not self.allowed
+        ):
+            raise ValueError(
+                "CONTAINED_PASS shall never be emitted unless poc1_disclosed=True, "
+                "poc2_benign_denied=False, poc3_disclosed=False, canary_overlap_count=0, allowed=True"
+            )
+        if not expected_pass and self.allowed:
+            raise ValueError("allowed shall never be True when paired dynamic containment fails")
+        return self
+
+
+def evaluate_paired_containment(
+    *,
+    boundary_id: str,
+    server_id: str,
+    tool_name: str,
+    poc1_disclosed: bool,
+    poc2_benign_denied: bool,
+    poc3_disclosed: bool,
+    canary_overlap_count: int = 0,
+) -> PairedDynamicValidation:
+    """Evaluate paired dynamic containment proofs PoC-1/PoC-2/PoC-3 + canary disjointness (#04)."""
+    if canary_overlap_count < 0:
+        raise ValueError("canary_overlap_count must be non-negative")
+    if canary_overlap_count > 0:
+        verdict = PairedContainmentVerdict.CANARY_OVERLAP_REJECTED
+        allowed = False
+        reason = f"Canary overlap count {canary_overlap_count} > 0 violates disjointness"
+    elif not poc1_disclosed:
+        verdict = PairedContainmentVerdict.INERT_POC1
+        allowed = False
+        reason = "Inert unmitigated PoC-1 (poc1_disclosed=False) cannot pass validation"
+    elif poc2_benign_denied:
+        verdict = PairedContainmentVerdict.DENIED_BENIGN_POC2
+        allowed = False
+        reason = "Benign PoC-2 regression denied inside authorized boundary"
+    elif poc3_disclosed:
+        verdict = PairedContainmentVerdict.LAUNDERING_EXPOSED_POC3
+        allowed = False
+        reason = "Exploit PoC-3 still disclosed sensitive data under sandbox"
+    else:
+        verdict = PairedContainmentVerdict.CONTAINED_PASS
+        allowed = True
+        reason = "Paired containment verified: PoC-1 baseline active, PoC-2 benign allowed, PoC-3 contained"
+
+    attestation_payload = json.dumps(
+        {
+            "boundary_id": boundary_id,
+            "server_id": server_id,
+            "tool_name": tool_name,
+            "poc1_disclosed": poc1_disclosed,
+            "poc2_benign_denied": poc2_benign_denied,
+            "poc3_disclosed": poc3_disclosed,
+            "canary_overlap_count": canary_overlap_count,
+            "verdict": verdict.value,
+            "allowed": allowed,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    )
+    attestation = hashlib.sha256(attestation_payload.encode("utf-8")).hexdigest()
+    return PairedDynamicValidation(
+        boundary_id=boundary_id,
+        server_id=server_id,
+        tool_name=tool_name,
+        poc1_disclosed=poc1_disclosed,
+        poc2_benign_denied=poc2_benign_denied,
+        poc3_disclosed=poc3_disclosed,
+        canary_overlap_count=canary_overlap_count,
+        verdict=verdict,
+        allowed=allowed,
+        reason=reason,
+        attestation_sha256=attestation,
+    )
+
+
+def _is_mutating_capability_token(raw_token: str) -> bool:
+    normalized = raw_token.strip().lower()
+    if not normalized:
+        return False
+    if normalized in MUTATING_CAPABILITY_KEYWORDS:
+        return True
+    parts = [p for p in re.split(r"[:._/\-\s]+", normalized) if p]
+    return any(part in MUTATING_CAPABILITY_KEYWORDS for part in parts)
+
+
+class ToolCapabilityProfile(BaseModel):
+    """Declared vs. observed tool capabilities for capability laundering detection (#04)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    server_id: str = Field(pattern=SERVER_ID_PATTERN)
+    tool_name: str = Field(pattern=TOOL_NAME_PATTERN)
+    declared_readonly: bool = True
+    observed_operations: Tuple[str, ...] = Field(default=(), max_length=64)
+    delegated_capabilities: Tuple[str, ...] = Field(default=(), max_length=64)
+    bound_parameter_names: Tuple[str, ...] = Field(default=(), max_length=64)
+    unknown_parameter_names: Tuple[str, ...] = Field(default=(), max_length=64)
+
+
+class CapabilityLaunderingCheckResult(BaseModel):
+    """Deterministic verdict from capability laundering & parameter congruence inspection (#04)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    server_id: str = Field(pattern=SERVER_ID_PATTERN)
+    tool_name: str = Field(pattern=TOOL_NAME_PATTERN)
+    allowed: bool
+    laundering_detected: bool
+    terminal_state: FirewallState
+    error_class: Optional[ErrorClass] = None
+    violations: Tuple[str, ...] = ()
+    reason: str = Field(min_length=1, max_length=512)
+    attestation_sha256: str = Field(pattern=PIN_SHA256_PATTERN)
+
+
+def evaluate_capability_laundering(
+    profile: ToolCapabilityProfile,
+    *,
+    contract: Optional[McpToolContractSpec] = None,
+    parameter_guard: Optional["ParameterBindingGuard"] = None,
+    raw_arguments: Optional[Dict[str, Any]] = None,
+) -> CapabilityLaunderingCheckResult:
+    """Detect readonly capability mismatch, hidden delegations, or unbound parameter injection (#04)."""
+    violations: list[str] = []
+    effective_readonly = bool(profile.declared_readonly or (contract is not None and contract.declared_readonly))
+
+    if effective_readonly:
+        for op in (*profile.observed_operations, *profile.delegated_capabilities):
+            if _is_mutating_capability_token(op):
+                violations.append(f"READONLY_CAPABILITY_MISMATCH:{op.strip()[:64]}")
+
+    if profile.unknown_parameter_names:
+        for param in profile.unknown_parameter_names:
+            violations.append(f"UNBOUND_PARAMETER_LAUNDERING:{param.strip()[:64]}")
+
+    if parameter_guard is not None and raw_arguments is not None:
+        param_ok, missing_keys, unknown_keys = parameter_guard.validate_arguments(raw_arguments)
+        if not param_ok:
+            if missing_keys:
+                violations.append(
+                    f"PARAM_BINDING_MISSING:{','.join(missing_keys[:8])}"
+                )
+            if unknown_keys:
+                violations.append(
+                    f"PARAM_BINDING_UNKNOWN:{','.join(unknown_keys[:8])}"
+                )
+            if not missing_keys and not unknown_keys:
+                violations.append("PARAM_BINDING_REJECTED")
+
+    if contract is not None and contract.allow_unsandboxed_fallback:
+        violations.append("UNSANDBOXED_FALLBACK_FORBIDDEN")
+
+    allowed = len(violations) == 0
+    laundering_detected = not allowed
+    terminal_state = FirewallState.ALLOW if allowed else FirewallState.CONFINED_DENY
+    error_class = None if allowed else ErrorClass.SECURITY
+    reason = (
+        f"Capability profile verified for {profile.server_id}/{profile.tool_name}"
+        if allowed
+        else f"Capability laundering blocked: {', '.join(violations[:4])}"[:512]
+    )
+
+    attestation_payload = json.dumps(
+        {
+            "server_id": profile.server_id,
+            "tool_name": profile.tool_name,
+            "allowed": allowed,
+            "terminal_state": terminal_state.value,
+            "violations": violations,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    )
+    attestation = hashlib.sha256(attestation_payload.encode("utf-8")).hexdigest()
+    return CapabilityLaunderingCheckResult(
+        server_id=profile.server_id,
+        tool_name=profile.tool_name,
+        allowed=allowed,
+        laundering_detected=laundering_detected,
+        terminal_state=terminal_state,
+        error_class=error_class,
+        violations=tuple(violations),
+        reason=reason,
+        attestation_sha256=attestation,
+    )
 
 
 class SarifBypassFinding(BaseModel):
@@ -969,6 +1242,7 @@ def scan_mcp_config_perimeter(config_obj: Dict[str, Any]) -> Tuple[PoisonScanFin
 
 
 __all__ = [
+    "CapabilityLaunderingCheckResult",
     "ChannelSurface",
     "ConfinementCheckResult",
     "DEFAULT_MAX_DECODE_ROUNDS",
@@ -982,9 +1256,12 @@ __all__ = [
     "MAX_AUTHORIZED_ROOTS",
     "MAX_DECODE_ROUNDS",
     "MAX_DESCRIPTION_CHARS",
+    "MUTATING_CAPABILITY_KEYWORDS",
     "McpToolContractSpec",
     "OracleVerdict",
     "PIN_SHA256_PATTERN",
+    "PairedContainmentVerdict",
+    "PairedDynamicValidation",
     "ParameterBindingGuard",
     "PoisonScanFinding",
     "QUARANTINE_RISK_THRESHOLD",
@@ -993,11 +1270,14 @@ __all__ = [
     "SarifRuleId",
     "TERMINAL_FAILURE_STATES",
     "TOOL_NAME_PATTERN",
+    "ToolCapabilityProfile",
     "ToolRegistrationPin",
     "VECTOR_ID_PATTERN",
     "ValidationVerdict",
     "canonicalize_mcp_path",
     "compute_tool_pin_hash",
+    "evaluate_capability_laundering",
+    "evaluate_paired_containment",
     "has_invisible_or_bidi_unicode",
     "is_component_confined",
     "scan_description_risk",

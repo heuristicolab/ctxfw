@@ -1,5 +1,6 @@
 -- manifest_hash: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
--- ctxfw.mcp_guard :: SQLite WAL Schema (Wave 1 Block A)
+-- manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
+-- ctxfw.mcp_guard :: SQLite WAL Schema (Wave 1 Block A + Wave 2 Block E.1 #04)
 -- Absorbs #05 (MCP Tool Poisoning Firewall) + #03 (MCP Capability Laundering Guard)
 -- Excludes out-of-scope red-team HTTP telemetry tables.
 
@@ -182,4 +183,84 @@ CREATE TRIGGER IF NOT EXISTS trg_occ_immutable_delete
 BEFORE DELETE ON occ_version_ledger
 BEGIN
     SELECT RAISE(ABORT, 'MCG_INV_07: occ_version_ledger cannot be deleted');
+END;
+
+-- Wave 2 Block E.1 (#04): Dynamic Paired Containment & Capability Laundering Audits
+
+CREATE TABLE IF NOT EXISTS paired_containment_audits (
+    audit_id             TEXT PRIMARY KEY,
+    boundary_id          TEXT NOT NULL CHECK (boundary_id GLOB 'BND-*'),
+    server_id            TEXT NOT NULL CHECK (length(server_id) BETWEEN 1 AND 128),
+    tool_name            TEXT NOT NULL CHECK (length(tool_name) BETWEEN 1 AND 128),
+    poc1_disclosed       INTEGER NOT NULL CHECK (poc1_disclosed IN (0, 1)),
+    poc2_benign_denied   INTEGER NOT NULL CHECK (poc2_benign_denied IN (0, 1)),
+    poc3_disclosed       INTEGER NOT NULL CHECK (poc3_disclosed IN (0, 1)),
+    canary_overlap_count INTEGER NOT NULL CHECK (canary_overlap_count >= 0),
+    verdict              TEXT NOT NULL CHECK (verdict IN (
+        'CONTAINED_PASS',
+        'INERT_POC1',
+        'DENIED_BENIGN_POC2',
+        'LAUNDERING_EXPOSED_POC3',
+        'CANARY_OVERLAP_REJECTED'
+    )),
+    allowed              INTEGER NOT NULL CHECK (allowed IN (0, 1)),
+    reason               TEXT NOT NULL,
+    attestation_sha256   TEXT NOT NULL CHECK (length(attestation_sha256) = 64),
+    audited_at_utc       TEXT NOT NULL,
+    CHECK (
+        (
+            verdict = 'CONTAINED_PASS'
+            AND poc1_disclosed = 1
+            AND poc2_benign_denied = 0
+            AND poc3_disclosed = 0
+            AND canary_overlap_count = 0
+            AND allowed = 1
+        )
+        OR (
+            verdict <> 'CONTAINED_PASS'
+            AND allowed = 0
+        )
+    )
+);
+
+CREATE TABLE IF NOT EXISTS capability_laundering_audits (
+    audit_id            TEXT PRIMARY KEY,
+    server_id           TEXT NOT NULL CHECK (length(server_id) BETWEEN 1 AND 128),
+    tool_name           TEXT NOT NULL CHECK (length(tool_name) BETWEEN 1 AND 128),
+    declared_readonly   INTEGER NOT NULL CHECK (declared_readonly IN (0, 1)),
+    allowed             INTEGER NOT NULL CHECK (allowed IN (0, 1)),
+    laundering_detected INTEGER NOT NULL CHECK (laundering_detected IN (0, 1)),
+    terminal_state      TEXT NOT NULL CHECK (terminal_state IN ('ALLOW', 'CONFINED_DENY', 'QUARANTINED')),
+    violations_json     TEXT NOT NULL,
+    reason              TEXT NOT NULL,
+    attestation_sha256  TEXT NOT NULL CHECK (length(attestation_sha256) = 64),
+    audited_at_utc      TEXT NOT NULL,
+    CHECK (
+        (allowed = 1 AND laundering_detected = 0 AND terminal_state = 'ALLOW')
+        OR (allowed = 0 AND laundering_detected = 1 AND terminal_state <> 'ALLOW')
+    )
+);
+
+CREATE TRIGGER IF NOT EXISTS trg_paired_containment_immutable_update
+BEFORE UPDATE ON paired_containment_audits
+BEGIN
+    SELECT RAISE(ABORT, 'MCG_INV_08: paired_containment_audits is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_paired_containment_immutable_delete
+BEFORE DELETE ON paired_containment_audits
+BEGIN
+    SELECT RAISE(ABORT, 'MCG_INV_08: paired_containment_audits cannot be deleted');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_cap_laundering_immutable_update
+BEFORE UPDATE ON capability_laundering_audits
+BEGIN
+    SELECT RAISE(ABORT, 'MCG_INV_09: capability_laundering_audits is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_cap_laundering_immutable_delete
+BEFORE DELETE ON capability_laundering_audits
+BEGIN
+    SELECT RAISE(ABORT, 'MCG_INV_09: capability_laundering_audits cannot be deleted');
 END;

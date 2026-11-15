@@ -3,6 +3,7 @@ src/ctxfw/storage/snapshots.py — Bounded Go-Explore Sandbox Snapshot Rollback 
 manifest_hash: 00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762
 blueprint_manifest_hash: 7fb2c154c3f3e904d0e70445120a150a7d8d59cd7349cf13316421ffc816fc55
 manifest_hash_hardening_c1: aad104b6b66067be4bcce9ec6297c4de2822cf1d3c38a76e79e04cf147f62dd9
+manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
 """
 from __future__ import annotations
 
@@ -23,6 +24,7 @@ from ctxfw.storage.cache import resolve_project_identity
 SNAPSHOT_BLUEPRINT_MANIFEST_HASH = "7fb2c154c3f3e904d0e70445120a150a7d8d59cd7349cf13316421ffc816fc55"
 WAVE1C_MANIFEST_HASH = "00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762"
 HARDENING_C1_MANIFEST_HASH = "aad104b6b66067be4bcce9ec6297c4de2822cf1d3c38a76e79e04cf147f62dd9"
+WAVE2E1_MANIFEST_HASH = "b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a"
 
 DEFAULT_TOTAL_TOKEN_BUDGET = 1_000_000
 MAX_TOTAL_TOKEN_BUDGET = 1_000_000
@@ -1093,6 +1095,8 @@ class SandboxSnapshotStore:
         engine: Any = None,
         git_diff_available: bool = True,
         sandbox_snapshot_available: bool = True,
+        expected_epoch_k: Optional[int] = None,
+        epoch_scope_id: Optional[str] = None,
     ) -> RecoveryBranchDispatch:
         handoff_tokens = compute_handoff_overhead(handoff_summary_tokens, trace_tokens)
 
@@ -1120,6 +1124,60 @@ class SandboxSnapshotStore:
                 sandbox_snapshot_available=sandbox_snapshot_available,
                 source=source,
             )
+
+            epoch_scope_key: Optional[str] = None
+            epoch_attestation: Optional[str] = None
+            if expected_epoch_k is not None:
+                from ctxfw.sara.provenance import evaluate_monotonic_epoch
+
+                raw_scope = epoch_scope_id or run_id
+                epoch_scope_key = raw_scope if len(raw_scope) >= 4 else f"run:{raw_scope}"
+                ep_row = conn.execute(
+                    "SELECT last_consumed_k FROM snapshot_monotonic_epochs WHERE scope_id = ?",
+                    (epoch_scope_key,),
+                ).fetchone()
+                last_k = int(ep_row[0]) if ep_row is not None else -1
+                epoch_verdict = evaluate_monotonic_epoch(
+                    scope_id=epoch_scope_key,
+                    epoch_k=expected_epoch_k,
+                    last_consumed_k=last_k,
+                )
+                epoch_attestation = epoch_verdict.attestation_sha256
+                if not epoch_verdict.allowed:
+                    conn.execute(
+                        """
+                        INSERT INTO snapshot_epoch_quarantine (
+                            quarantine_id, scope_id, run_id, attempted_epoch_k,
+                            last_consumed_k, error_class, reason, attestation_sha256
+                        ) VALUES (?, ?, ?, ?, ?, 'SECURITY', ?, ?)
+                        """,
+                        (
+                            self._next_id("epq"),
+                            epoch_scope_key,
+                            run_id,
+                            int(expected_epoch_k),
+                            int(last_k),
+                            epoch_verdict.reason,
+                            epoch_verdict.attestation_sha256,
+                        ),
+                    )
+                    self._insert_quarantine(
+                        conn,
+                        run_id=run_id,
+                        snapshot_id=target_root_snapshot_id,
+                        error_class=FailureErrorClass.SECURITY,
+                        rule_code="STALE_EPOCH_REPLAY",
+                        detail=epoch_verdict.reason,
+                    )
+                    rejected = candidate.model_copy(
+                        update={
+                            "allowed": False,
+                            "restoration_mode": RestorationMode.QUARANTINED_NOOP,
+                            "block_reason": epoch_verdict.reason[:500],
+                        }
+                    )
+                    self._record_dispatch(conn, rejected)
+                    return rejected
 
             if not candidate.allowed:
                 self._insert_quarantine(
@@ -1207,6 +1265,25 @@ class SandboxSnapshotStore:
                 }
             )
             self._record_dispatch(conn, final_dispatch)
+            if expected_epoch_k is not None and epoch_scope_key is not None:
+                conn.execute(
+                    """
+                    INSERT INTO snapshot_monotonic_epochs (
+                        scope_id, run_id, last_consumed_k, attestation_sha256
+                    ) VALUES (?, ?, ?, ?)
+                    ON CONFLICT(scope_id) DO UPDATE SET
+                        run_id = excluded.run_id,
+                        last_consumed_k = excluded.last_consumed_k,
+                        attestation_sha256 = excluded.attestation_sha256,
+                        updated_at = CURRENT_TIMESTAMP
+                    """,
+                    (
+                        epoch_scope_key,
+                        run_id,
+                        int(expected_epoch_k),
+                        epoch_attestation or ("0" * 64),
+                    ),
+                )
 
             def _apply_rollback_ram() -> None:
                 self._run_epochs[run_id] = new_epoch
@@ -1383,6 +1460,108 @@ class SandboxSnapshotStore:
                 SELECT * FROM snapshot_quarantine_entries
                 WHERE run_id = ?
                 ORDER BY created_seq ASC
+                """,
+                (run_id,),
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def verify_epoch_freshness(
+        self,
+        run_id: str,
+        epoch_k: int,
+        *,
+        scope_id: Optional[str] = None,
+    ) -> Any:
+        """Verify and advance strict monotonic epoch k > last_consumed_k for sandbox rollbacks (#28)."""
+        from ctxfw.sara.provenance import evaluate_monotonic_epoch
+
+        raw_scope = scope_id or run_id
+        epoch_scope_key = raw_scope if len(raw_scope) >= 4 else f"run:{raw_scope}"
+
+        def _op(
+            conn: sqlite3.Connection,
+            commit_hooks: list[Callable[[], None]],
+        ) -> Any:
+            del commit_hooks
+            ep_row = conn.execute(
+                "SELECT last_consumed_k FROM snapshot_monotonic_epochs WHERE scope_id = ?",
+                (epoch_scope_key,),
+            ).fetchone()
+            last_k = int(ep_row[0]) if ep_row is not None else -1
+            verdict = evaluate_monotonic_epoch(
+                scope_id=epoch_scope_key,
+                epoch_k=epoch_k,
+                last_consumed_k=last_k,
+            )
+            if verdict.allowed:
+                conn.execute(
+                    """
+                    INSERT INTO snapshot_monotonic_epochs (
+                        scope_id, run_id, last_consumed_k, attestation_sha256
+                    ) VALUES (?, ?, ?, ?)
+                    ON CONFLICT(scope_id) DO UPDATE SET
+                        run_id = excluded.run_id,
+                        last_consumed_k = excluded.last_consumed_k,
+                        attestation_sha256 = excluded.attestation_sha256,
+                        updated_at = CURRENT_TIMESTAMP
+                    """,
+                    (epoch_scope_key, run_id, int(epoch_k), verdict.attestation_sha256),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO snapshot_epoch_quarantine (
+                        quarantine_id, scope_id, run_id, attempted_epoch_k,
+                        last_consumed_k, error_class, reason, attestation_sha256
+                    ) VALUES (?, ?, ?, ?, ?, 'SECURITY', ?, ?)
+                    """,
+                    (
+                        self._next_id("epq"),
+                        epoch_scope_key,
+                        run_id,
+                        int(epoch_k),
+                        int(last_k),
+                        verdict.reason,
+                        verdict.attestation_sha256,
+                    ),
+                )
+                if run_id in self._runs:
+                    self._insert_quarantine(
+                        conn,
+                        run_id=run_id,
+                        snapshot_id=None,
+                        error_class=FailureErrorClass.SECURITY,
+                        rule_code="STALE_EPOCH_REPLAY",
+                        detail=verdict.reason,
+                    )
+            return verdict
+
+        return self._run_with_retry(_op)
+
+    def get_monotonic_epoch(
+        self,
+        run_id: str,
+        *,
+        scope_id: Optional[str] = None,
+    ) -> int:
+        """Return latest consumed epoch for run_id/scope_id, or -1 if uninitialized (#28)."""
+        raw_scope = scope_id or run_id
+        epoch_scope_key = raw_scope if len(raw_scope) >= 4 else f"run:{raw_scope}"
+        with self._lock:
+            row = self._get_conn().execute(
+                "SELECT last_consumed_k FROM snapshot_monotonic_epochs WHERE scope_id = ?",
+                (epoch_scope_key,),
+            ).fetchone()
+            return int(row[0]) if row is not None else -1
+
+    def list_epoch_quarantines(self, run_id: str) -> list[dict]:
+        """List persisted monotonic epoch replay quarantine entries for run_id (#28)."""
+        with self._lock:
+            rows = self._get_conn().execute(
+                """
+                SELECT * FROM snapshot_epoch_quarantine
+                WHERE run_id = ?
+                ORDER BY quarantine_id ASC
                 """,
                 (run_id,),
             ).fetchall()
