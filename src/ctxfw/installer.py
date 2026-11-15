@@ -5,6 +5,7 @@ Axiom Manifest Hash: f1e4295bef2f28f87c0364875bba0ea956fa38bdb1bcf0fb0671f4b4242
 manifest_hash_v41_dante: 4a446cfc7aa488cc2b193750e694b95f5b66d694387ecd5b66d2090c0303f6be
 manifest_hash_wave1a: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 manifest_hash_wave1b: ebbcd0d607fa09a71dda690ea76104d762b3f279cde258f64917421d39a249f4
+manifest_hash_hardening_c1: aad104b6b66067be4bcce9ec6297c4de2822cf1d3c38a76e79e04cf147f62dd9
 
 Provides zero-touch onboarding, idempotent IDE configuration injection,
 multiplatform pre-commit hook deployment, and comprehensive self-diagnostics.
@@ -949,6 +950,7 @@ def run_doctor(project_root: Optional[Path] = None) -> DoctorReport:
         )
 
     # Check 2: Hot stdio isolation test (Doctor Sanitizer)
+    proc: Optional[subprocess.Popen[str]] = None
     try:
         proc = subprocess.Popen(
             [sys.executable, "-m", "ctxfw.mcp"],
@@ -964,7 +966,7 @@ def run_doctor(project_root: Optional[Path] = None) -> DoctorReport:
             "params": {"capabilities": {}},
         }) + "\n"
 
-        stdout_data, stderr_data = proc.communicate(input=init_req, timeout=5)
+        stdout_data, stderr_data = proc.communicate(input=init_req, timeout=15)
         proc.wait(timeout=2)
 
         # Assert stdout contains ONLY valid JSON and zero unescaped non-JSON text
@@ -1008,6 +1010,12 @@ def run_doctor(project_root: Optional[Path] = None) -> DoctorReport:
                     )
                 )
     except Exception as e:
+        if proc is not None and proc.poll() is None:
+            try:
+                proc.kill()
+                proc.communicate(timeout=2)
+            except Exception:
+                pass
         checks.append(
             DoctorCheckResult(
                 name="MCP stdio Stream Isolation",

@@ -1,6 +1,7 @@
 """
 tests/test_tracelite_reducer.py — TDD & Integration Suite for Wave 1 Block C #12 (TraceLite)
 manifest_hash: 00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762
+manifest_hash_hardening_c1: aad104b6b66067be4bcce9ec6297c4de2822cf1d3c38a76e79e04cf147f62dd9
 """
 from __future__ import annotations
 
@@ -27,6 +28,7 @@ from ctxfw.tracelite import (
     TraceReducerPolicy,
     transition_trace_state,
 )
+from ctxfw.tracelite.reducer import is_edit_action
 
 
 def _make_verbose_obs(tag: str, lines: int = 30) -> str:
@@ -383,5 +385,71 @@ def test_proxy_integration_openai_and_anthropic_multi_step_traces(tmp_path) -> N
         assert txt_saved > 0
         assert newest_obs in reduced_txt
         assert "Action: edit_file(path=one.py)" in reduced_txt
+    finally:
+        cache.close()
+
+
+def test_is_edit_action_ignores_argument_paths_and_duplicate_step_indices(tmp_path) -> None:
+    assert is_edit_action("read_file(path=src/apply_patch.py)") is False
+    assert is_edit_action("read_file path=src/edit_file.py") is False
+    assert is_edit_action("view_file_outline(target=src/apply_diff.py)") is False
+    assert is_edit_action("pytest tests/test_write_file.py") is False
+    assert is_edit_action("edit_file(path=src/app.py)") is True
+    assert is_edit_action("mcp.fs:apply_patch(diff='...')") is True
+
+    # Verify trace reading apply_patch.py with duplicate step_index=0 does NOT trigger edit cleanup
+    # and does not suffer step_index collisions across optical artifacts or recent steps.
+    steps = [
+        AgentObservationStep(
+            step_index=0,
+            action_invocation="read_file(path=src/apply_patch.py)",
+            observation_text=_make_verbose_obs("dup0", 35),
+        ),
+        AgentObservationStep(
+            step_index=0,
+            action_invocation="read_file(path=src/edit_file.py)",
+            observation_text=_make_verbose_obs("dup1", 35),
+        ),
+        AgentObservationStep(
+            step_index=1,
+            action_invocation="read_file(path=src/other.py)",
+            observation_text=_make_verbose_obs("other2", 35),
+        ),
+        AgentObservationStep(
+            step_index=2,
+            action_invocation="grep_search(pattern=apply_diff)",
+            observation_text="Recent observation 1 untouched",
+        ),
+        AgentObservationStep(
+            step_index=3,
+            action_invocation="list_dir(path=src)",
+            observation_text="Recent observation 2 untouched",
+        ),
+        AgentObservationStep(
+            step_index=0,
+            action_invocation="pytest()",
+            observation_text="Newest observation O_s must stay raw even with duplicate step_index=0",
+        ),
+    ]
+    cache = LocalSemanticCache(db_path=tmp_path / "tracelite_dup.db")
+    try:
+        reducer = TraceLiteReducer(cache=cache)
+        window, transitions, incidents = reducer.reduce("traj-dup-step", steps)
+        assert incidents == []
+        assert window.edit_cleaned_steps_count == 0
+        assert all("[TRACELITE_EDIT_CLEANUP:" not in s.observation_text for s in window.steps)
+        assert any(t.event == TraceLifecycleEvent.SKIP_EDIT_CLEANUP for t in transitions)
+        assert not any(t.event == TraceLifecycleEvent.APPLY_EDIT_CLEANUP for t in transitions)
+        assert len(window.optical_artifacts) == 3
+        assert len({a.artifact_id for a in window.optical_artifacts}) == 3
+        assert window.steps[-1].observation_text == steps[-1].observation_text
+
+        serialized = (
+            "[STEP 0] Action: read_file(path=src/apply_patch.py)\nObservation:\n" + _make_verbose_obs("s0", 25) + "\n"
+            "[STEP 1] Action: read_file(path=src/edit_file.py)\nObservation:\n" + _make_verbose_obs("s1", 25) + "\n"
+            "[STEP 2] Action: grep_search(pattern=write_file)\nObservation:\nnewest raw result"
+        )
+        reduced_txt, _ = compact_text_payload(serialized, cache=cache)
+        assert "[TRACELITE_EDIT_CLEANUP:" not in reduced_txt
     finally:
         cache.close()

@@ -1,6 +1,7 @@
 """
 tests/test_installer_and_doctor.py — Test Suite for Installer, Doctor, and Pre-Commit Gatekeeper
 Axiom Manifest Hash: 4a35e336c0621f5b76a6abb20d975bc896c15592b5da2098f2454adc6a4d66a6
+manifest_hash_hardening_c1: aad104b6b66067be4bcce9ec6297c4de2822cf1d3c38a76e79e04cf147f62dd9
 
 Validates idempotent IDE injection, multiplatform pre-commit hook deployment,
 stdio isolation verification, and comprehensive doctor diagnostics.
@@ -473,3 +474,18 @@ def test_cli_install_claude_flag_dispatch(tmp_path: Path, monkeypatch):
     args = parser.parse_args(["install", "--claude"])
     assert args.command == "install"
     assert args.claude is True
+
+
+def test_cli_doctor_propagates_quarantined_exit_code(tmp_path: Path, monkeypatch):
+    """Asserts that `ctxfw doctor <repo>` exits with code 1 when verdict is [QUARANTINED]."""
+    from ctxfw.cli.main import main as cli_main
+
+    bad_repo = tmp_path / "quarantined_repo"
+    bad_repo.mkdir(parents=True)
+    # Malformed .mcp.json guarantees Project MCP Perimeter FAIL -> [QUARANTINED] (exit code 1)
+    (bad_repo / ".mcp.json").write_text("{corrupted_json", encoding="utf-8")
+
+    monkeypatch.setattr("sys.argv", ["ctxfw", "doctor", str(bad_repo)])
+    with pytest.raises(SystemExit) as exc_info:
+        cli_main()
+    assert exc_info.value.code == 1

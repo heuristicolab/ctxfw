@@ -1,6 +1,7 @@
 # manifest_hash: 11b623b097312b17d33c0ba6b7984b5a1954a133506e93dd813af794b22c0f0f
 # manifest_hash_v41: c4a9e57cc11c29f1ab117e278bf71ddbcec97bf885c4973034a230b49821bc24
 # manifest_hash_wave1c: 00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762
+# manifest_hash_hardening_c1: aad104b6b66067be4bcce9ec6297c4de2822cf1d3c38a76e79e04cf147f62dd9
 """
 src/ctxfw/core/topological.py — Topological Dependency Graph & Context Firewall Engine (v4.1.0)
 manifest_hash: 11b623b097312b17d33c0ba6b7984b5a1954a133506e93dd813af794b22c0f0f
@@ -631,15 +632,24 @@ class ContextFirewallEngine:
 
             is_stale_fn = getattr(self.cache, "is_stale_read_blocked", None)
             stale_reads_blocked = bool(is_stale_fn(self.project_root)) if callable(is_stale_fn) else False
-            if stale_reads_blocked:
-                cached_d3 = {}
-            else:
-                try:
-                    cached_d3 = self.cache.get_d3_symbols_batch(
-                        valid_candidates, project_root=self.project_root
-                    )
-                except TypeError:
-                    cached_d3 = self.cache.get_d3_symbols_batch(valid_candidates)
+            get_epoch_fn = getattr(self.cache, "get_rollback_epoch", None)
+            current_epoch = int(get_epoch_fn(self.project_root)) if callable(get_epoch_fn) else 0
+            try:
+                cached_d3 = self.cache.get_d3_symbols_batch(
+                    valid_candidates,
+                    project_root=self.project_root,
+                    min_epoch=current_epoch,
+                )
+            except TypeError:
+                if stale_reads_blocked:
+                    cached_d3 = {}
+                else:
+                    try:
+                        cached_d3 = self.cache.get_d3_symbols_batch(
+                            valid_candidates, project_root=self.project_root
+                        )
+                    except TypeError:
+                        cached_d3 = self.cache.get_d3_symbols_batch(valid_candidates)
 
             d3_lines: List[str] = [
                 "### AMBIENT MANIFEST [D3] (Zero-Syntax Symbol Index)",
@@ -664,7 +674,7 @@ class ContextFirewallEngine:
 
                 hit = False
                 symbols: List[str] = []
-                if not stale_reads_blocked and rel_path in cached_d3:
+                if rel_path in cached_d3:
                     cached_mtime, cached_sha, cached_symbols = cached_d3[rel_path]
                     if abs(cached_mtime - current_mtime) < 1e-4:
                         symbols = cached_symbols
@@ -706,10 +716,17 @@ class ContextFirewallEngine:
             if records_to_cache:
                 try:
                     self.cache.set_d3_symbols_batch(
-                        records_to_cache, project_root=self.project_root
+                        records_to_cache,
+                        project_root=self.project_root,
+                        rollback_epoch=current_epoch,
                     )
                 except TypeError:
-                    self.cache.set_d3_symbols_batch(records_to_cache)
+                    try:
+                        self.cache.set_d3_symbols_batch(
+                            records_to_cache, project_root=self.project_root
+                        )
+                    except TypeError:
+                        self.cache.set_d3_symbols_batch(records_to_cache)
 
             if stale_reads_blocked and not throttled_break:
                 clear_stale_fn = getattr(self.cache, "clear_stale_read_block", None)

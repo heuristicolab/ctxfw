@@ -92,3 +92,8 @@ src/ctxfw/tracelite/store.py -text
 tests/test_tracelite_reducer.py -text
 tests/test_snapshot_rollback.py -text
 
+# Hardening C.1: CLI exit propagation & Doctor stdio probe
+src/ctxfw/cli/main.py -text
+src/ctxfw/installer.py -text
+tests/test_installer_and_doctor.py -text
+

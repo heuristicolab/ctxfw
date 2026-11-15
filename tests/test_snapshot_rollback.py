@@ -1,6 +1,7 @@
 """
 tests/test_snapshot_rollback.py — TDD & Integration Suite for Wave 1 Block C #17 (Sandbox Snapshot Rollback)
 manifest_hash: 00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762
+manifest_hash_hardening_c1: aad104b6b66067be4bcce9ec6297c4de2822cf1d3c38a76e79e04cf147f62dd9
 """
 from __future__ import annotations
 
@@ -271,8 +272,9 @@ def test_rollback_invalidates_all_caches_and_blocks_stale_reads_on_herd(tmp_path
             char_similarity=0.96,
             rendered_digest=_digest("grid"),
             compacted_payload="[TRACELITE_OPTICAL]",
+            project_root=repo,
         )
-        assert cache.get_optical_artifact(_digest("obs"), "b" * 32) is not None
+        assert cache.get_optical_artifact(_digest("obs"), "b" * 32, project_root=repo) is not None
 
         # Mutate codebase simulating bad branch then trigger SandboxSnapshotStore rollback
         with SandboxSnapshotStore(tmp_path / "rb_store.db") as rb_store:
@@ -332,7 +334,7 @@ def test_rollback_invalidates_all_caches_and_blocks_stale_reads_on_herd(tmp_path
         assert len(cache._l1_cache) == 0
         assert len(cache._d3_l1_cache) == 0
         assert cache.get("k_repo_main") is None
-        assert cache.get_optical_artifact(_digest("obs"), "b" * 32) is None
+        assert cache.get_optical_artifact(_digest("obs"), "b" * 32, project_root=repo) is None
         assert cache.get_d3_symbols_batch(["d3_0.py"], project_root=repo) == {}
 
         # Inject a fake pre-rollback D3 cache entry AFTER rollback and verify build_context
@@ -341,12 +343,18 @@ def test_rollback_invalidates_all_caches_and_blocks_stale_reads_on_herd(tmp_path
         bundle_post = engine.build_context("entry.py", depth_config=cfg)
         if bundle_post.ambient_manifest:
             assert "STALE_GHOST_SYM" not in bundle_post.ambient_manifest
-        # Because 25 D3 modules triggered throttled_break at 20, stale block stays armed
+        # Turn 1 parses 20 modules (epoch 1) and throttles on >20: stale block stays armed
         assert cache.is_stale_read_blocked(repo) is True
 
-        # After clean unblock / smaller clean pass, stale block clears
-        cache.clear_stale_read_block(repo)
+        # Turn 2 reuses the 20 epoch-1 modules and finishes the remaining 5 modules without deadlock!
+        bundle_post_2 = engine.build_context("entry.py", depth_config=cfg)
         assert cache.is_stale_read_blocked(repo) is False
+        assert bundle_post_2.ambient_manifest is not None
+        assert "STALE_GHOST_SYM" not in bundle_post_2.ambient_manifest
+        # Verify real symbol from d3_22.py replaced the stale ghost entry cleanly
+        d3_22_entry = cache.get_d3_symbols_batch(["d3_22.py"], project_root=repo)
+        assert "d3_22.py" in d3_22_entry
+        assert any(s.startswith("sym_pre_rollback_22") for s in d3_22_entry["d3_22.py"][2])
     finally:
         cache.close()
 
@@ -381,19 +389,231 @@ def test_multirepo_rollback_isolation(tmp_path) -> None:
         cache.set("key_b", dto_b, project_root=repo_b)
         cache.set_d3_symbols_batch([("mod.py", _digest("a"), 1.0, ["alpha"])], project_root=repo_a)
         cache.set_d3_symbols_batch([("mod.py", _digest("b"), 1.0, ["beta"])], project_root=repo_b)
+        cache.set_optical_artifact(
+            artifact_id="a" * 32,
+            source_sha256=_digest("shared_obs"),
+            policy_hash="p" * 32,
+            canvas_width_px=224,
+            canvas_height_px=224,
+            patch_size_px=14,
+            raw_text_tokens=100,
+            optical_patch_tokens=25,
+            effective_compression_k=4.0,
+            char_similarity=0.96,
+            rendered_digest=_digest("grid_a"),
+            compacted_payload="[TRACELITE_A]",
+            project_root=repo_a,
+        )
+        cache.set_optical_artifact(
+            artifact_id="b" * 32,
+            source_sha256=_digest("shared_obs"),
+            policy_hash="p" * 32,
+            canvas_width_px=224,
+            canvas_height_px=224,
+            patch_size_px=14,
+            raw_text_tokens=100,
+            optical_patch_tokens=25,
+            effective_compression_k=4.0,
+            char_similarity=0.96,
+            rendered_digest=_digest("grid_b"),
+            compacted_payload="[TRACELITE_B]",
+            project_root=repo_b,
+        )
+        cache.set_optical_artifact(
+            artifact_id="g" * 32,
+            source_sha256=_digest("shared_obs"),
+            policy_hash="p" * 32,
+            canvas_width_px=224,
+            canvas_height_px=224,
+            patch_size_px=14,
+            raw_text_tokens=100,
+            optical_patch_tokens=25,
+            effective_compression_k=4.0,
+            char_similarity=0.96,
+            rendered_digest=_digest("grid_g"),
+            compacted_payload="[TRACELITE_GLOBAL]",
+            project_root=None,
+        )
 
         removed = cache.invalidate_for_rollback(project_root=repo_a, snapshot_id="snap-a1")
-        assert removed >= 2
+        assert removed >= 3
 
-        # Repo A cleared & blocked; Repo B completely untouched
+        # Repo A cleared & blocked; Repo B and GLOBAL optical cache completely untouched
         assert cache.get("key_a") is None
         assert cache.get_d3_symbols_batch(["mod.py"], project_root=repo_a) == {}
+        assert cache.get_optical_artifact(_digest("shared_obs"), "p" * 32, project_root=repo_a) is None
         assert cache.is_stale_read_blocked(repo_a) is True
         assert cache.get_rollback_epoch(repo_a) == 1
 
         assert cache.get("key_b") is not None
         assert cache.get_d3_symbols_batch(["mod.py"], project_root=repo_b)["mod.py"][2] == ["beta"]
+        assert cache.get_optical_artifact(_digest("shared_obs"), "p" * 32, project_root=repo_b)["compacted_payload"] == "[TRACELITE_B]"
+        assert cache.get_optical_artifact(_digest("shared_obs"), "p" * 32, project_root=None)["compacted_payload"] == "[TRACELITE_GLOBAL]"
         assert cache.is_stale_read_blocked(repo_b) is False
         assert cache.get_rollback_epoch(repo_b) == 0
+
+        # Clearing repo_a's stale read block must NEVER clear GLOBAL's stale block
+        cache.invalidate_for_rollback(project_root=None, snapshot_id="snap-global")
+        assert cache.is_stale_read_blocked(None) is True
+        cache.clear_stale_read_block(repo_a)
+        assert cache.is_stale_read_blocked(None) is True
+        cache.clear_stale_read_block(None)
+        assert cache.is_stale_read_blocked(None) is False
     finally:
         cache.close()
+
+
+def test_snapshot_store_disk_rehydration_quarantines_and_separate_cache(tmp_path) -> None:
+    db_path = tmp_path / "snapshots_rehydrate.db"
+    repo_dir = tmp_path / "rehydrate_repo"
+    _init_git_repo(repo_dir, {"app.py": "def run(): return 42\n"})
+
+    artifact = NonGitRuntimeArtifact(
+        artifact_id="wal-art-1",
+        kind=NonGitArtifactKind.SQLITE_DB,
+        resource_path_or_pid="data/state.db",
+        pre_state_digest=_digest("wal-state"),
+        dirty_after_step=True,
+        reversible_via_snapshot=True,
+    )
+
+    with SandboxSnapshotStore(db_path) as store:
+        store.register_run("run-persist", repo_dir, total_token_budget=10_000, max_children_per_root=2)
+        root = SnapshotArchiveCell(
+            snapshot_id="root-0",
+            run_id="run-persist",
+            project_root=str(repo_dir),
+            step_index=0,
+            working_tree_digest=_digest("r0"),
+            pass_rate=0.9,
+            failing_tests=1,
+            max_children_per_root=2,
+        )
+        store.checkpoint_snapshot(root, tokens_delta=1000)
+        child1 = store.spawn_child_branch(
+            run_id="run-persist",
+            parent_snapshot_id="root-0",
+            child_snapshot_id="child-1",
+            working_tree_digest=_digest("c1"),
+            step_index=1,
+            tokens_delta=500,
+        )
+        assert child1.depth == 1
+        store.record_step_outcome(
+            run_id="run-persist",
+            snapshot_id="child-1",
+            error_signature="AssertionError",
+            pass_rate=0.25,
+            failing_tests=3,
+            tokens_delta=200,
+            non_git_artifacts=(artifact,),
+        )
+
+    # Reopen from disk in a brand-new SandboxSnapshotStore instance (simulates process restart)
+    external_cache = LocalSemanticCache(db_path=tmp_path / "external_cache.db")
+    try:
+        dto_ext = OptimizationResultDTO(
+            pruned_code="def run(): ...",
+            original_chars=40,
+            pruned_chars=14,
+            estimated_tokens_saved=6,
+            savings_percentage=65.0,
+            cache_hit=False,
+            execution_ms=1.0,
+        )
+        external_cache.set("ext_k", dto_ext, project_root=repo_dir)
+        engine = ContextFirewallEngine(project_root=repo_dir)
+
+        with SandboxSnapshotStore(db_path) as reopened:
+            ledger = reopened.get_ledger("run-persist")
+            assert ledger.tokens_spent == 1700
+            assert ledger.remaining_tokens == 8300
+
+            restored_root_mem = reopened.get_cell("run-persist", "root-0")
+            assert restored_root_mem.children_spawned == 1
+            assert restored_root_mem.lifecycle_state == SnapshotLifecycleState.BRANCH_EXPANDED
+
+            restored_child = reopened.get_cell("run-persist", "child-1")
+            assert len(restored_child.non_git_artifacts) == 1
+            assert restored_child.non_git_artifacts[0].artifact_id == "wal-art-1"
+
+            # Execute rollback with BOTH engine and a DIFFERENT external cache
+            dispatch = reopened.execute_rollback(
+                run_id="run-persist",
+                source_snapshot_id="child-1",
+                target_root_snapshot_id="root-0",
+                projected_branch_tokens=500,
+                handoff_summary_tokens=100,
+                cache=external_cache,
+                engine=engine,
+            )
+            assert dispatch.allowed is True
+            assert dispatch.rollback_epoch == 1
+            assert external_cache.get("ext_k") is None
+            assert external_cache.get_rollback_epoch(repo_dir) == 1
+
+            # Trigger durable quarantine on fanout overflow in spawn_child_branch (children_spawned is now 2 == max)
+            with pytest.raises(ValueError, match="max_children_per_root"):
+                reopened.spawn_child_branch(
+                    run_id="run-persist",
+                    parent_snapshot_id="root-0",
+                    child_snapshot_id="child-overflow",
+                    working_tree_digest=_digest("co"),
+                    step_index=2,
+                )
+
+            # Trigger durable quarantine on budget exhaustion in record_step_outcome
+            with pytest.raises(ValueError, match="budget exhausted"):
+                reopened.record_step_outcome(
+                    run_id="run-persist",
+                    snapshot_id="root-0",
+                    tokens_delta=50_000,
+                )
+
+            # Verify partial SQLite commit failure rolls back cleanly without corrupting RAM
+            orig_get_conn = reopened._get_conn
+            real_conn = orig_get_conn()
+
+            class _FailingCommitConn:
+                def __init__(self, inner: sqlite3.Connection) -> None:
+                    self._inner = inner
+
+                def commit(self) -> None:
+                    raise sqlite3.OperationalError("simulated disk I/O error")
+
+                def __getattr__(self, item: str):
+                    return getattr(self._inner, item)
+
+            reopened._get_conn = lambda: _FailingCommitConn(real_conn)  # scoped proxy
+            try:
+                with pytest.raises(sqlite3.OperationalError, match="simulated disk I/O error"):
+                    reopened.checkpoint_snapshot(
+                        SnapshotArchiveCell(
+                            snapshot_id="phantom-snap",
+                            run_id="run-persist",
+                            project_root=str(repo_dir),
+                            step_index=9,
+                            working_tree_digest=_digest("phantom"),
+                        ),
+                        tokens_delta=300,
+                    )
+            finally:
+                reopened._get_conn = orig_get_conn
+
+            with pytest.raises(KeyError):
+                reopened.get_cell("run-persist", "phantom-snap")
+            ledger_after_err = reopened.get_ledger("run-persist")
+            assert ledger_after_err.tokens_spent == 2200
+            assert ledger_after_err.handoff_tokens_spent == 100
+
+        # Open a third instance to verify quarantines persisted to SQLite despite ValueError
+        with SandboxSnapshotStore(db_path) as third:
+            quarantines = third.list_quarantines("run-persist")
+            rule_codes = [q["rule_code"] for q in quarantines]
+            assert "FANOUT_EXCEEDED" in rule_codes
+            assert "BUDGET_EXHAUSTED" in rule_codes
+            assert third.get_cell("run-persist", "root-0").visit_count == 2
+            with pytest.raises(KeyError):
+                third.get_cell("run-persist", "phantom-snap")
+    finally:
+        external_cache.close()

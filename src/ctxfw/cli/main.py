@@ -1,4 +1,5 @@
 # manifest_hash: a425559f56edf617a357d8abbfec0ecbb9591379a696ba28a1e9c9cf57fdfcbc
+# manifest_hash_hardening_c1: aad104b6b66067be4bcce9ec6297c4de2822cf1d3c38a76e79e04cf147f62dd9
 """
 src/ctxfw/cli/main.py — Unified Command Line Interface for Context Firewall (v4.1.0)
 Axiom Manifest Hash: a425559f56edf617a357d8abbfec0ecbb9591379a696ba28a1e9c9cf57fdfcbc
@@ -1831,8 +1832,7 @@ def main():
                 sys.exit(code)
             return
         elif subcmd == "doctor":
-            run_doctor_cli(sys.argv[1:])
-            return
+            sys.exit(run_doctor_cli(sys.argv[1:]))
         elif subcmd == "mcp":
             if len(sys.argv) > 1 and sys.argv[1] in {"-h", "--help"}:
                 print("usage: ctxfw mcp\n\nStart stdio Model Context Protocol (MCP) server.")

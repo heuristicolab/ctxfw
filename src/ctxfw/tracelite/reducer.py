@@ -2,6 +2,7 @@
 src/ctxfw/tracelite/reducer.py — Deterministic Zero-LLM TraceLite Optical Trace Reducer
 manifest_hash: 00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762
 blueprint_manifest_hash: 6a95bb7fd01158ac75d67055df0c328d56433a44625351610307d5ef6b68d0cf
+manifest_hash_hardening_c1: aad104b6b66067be4bcce9ec6297c4de2822cf1d3c38a76e79e04cf147f62dd9
 """
 from __future__ import annotations
 
@@ -9,6 +10,7 @@ import hashlib
 import itertools
 import json
 import math
+from pathlib import Path
 import re
 from typing import Any, Optional, Sequence
 
@@ -44,9 +46,9 @@ _EDIT_ACTION_NAMES = frozenset({
 })
 
 _EDIT_ACTION_RE = re.compile(
-    r"(?:^|[:.\s/_-])(edit_file|write_file|replace_file_content|"
+    r"(?:^|[:./\\-])(edit_file|write_file|replace_file_content|"
     r"multi_replace_file_content|apply_patch|apply_diff|str_replace_editor|"
-    r"create_file|delete_file|patch_file|modify_file)(?:$|[:.\s(/_-])",
+    r"create_file|delete_file|patch_file|modify_file)$",
     re.IGNORECASE,
 )
 
@@ -63,6 +65,15 @@ _IMPORTANT_LINE_RE = re.compile(
 )
 
 
+def _extract_action_name(action_text: str) -> str:
+    """Extract only the leading tool/invocation name, excluding argument paths/literals."""
+    stripped = action_text.strip()
+    if not stripped:
+        return ""
+    head = re.split(r"[\s(\[{=,;'\"]", stripped, maxsplit=1)[0]
+    return head.rstrip(":")
+
+
 def estimate_step_tokens(text: str) -> int:
     """Estimate token count deterministically without network or tokenizer dependencies."""
     if not text:
@@ -71,17 +82,19 @@ def estimate_step_tokens(text: str) -> int:
 
 
 def is_edit_action(step: AgentObservationStep | str) -> bool:
-    """Return True strictly for explicit or tool-matched mutating edit invocations."""
+    """Return True strictly for explicit or tool-head matched mutating edit invocations."""
     if isinstance(step, AgentObservationStep):
         if step.is_edit_action:
             return True
         action_text = step.action_invocation
     else:
         action_text = step
-    normalized = action_text.strip().lower()
-    if normalized in _EDIT_ACTION_NAMES:
+    head = _extract_action_name(action_text)
+    if not head:
+        return False
+    if head.lower() in _EDIT_ACTION_NAMES:
         return True
-    return bool(_EDIT_ACTION_RE.search(action_text))
+    return bool(_EDIT_ACTION_RE.search(head))
 
 
 def _infer_resource_key(step: AgentObservationStep) -> Optional[str]:
@@ -195,33 +208,64 @@ class OpticalObservationRenderer:
         step: AgentObservationStep,
         policy: TraceReducerPolicy,
         cache: Any = None,
+        project_root: Optional[str | Path] = None,
+        slot_pos: Optional[int] = None,
     ) -> OpticalRenderArtifact:
         """Render a historical observation deterministically without any auxiliary LLM calls."""
         text = step.observation_text
         raw_tokens = max(1, step.raw_tokens if step.raw_tokens is not None else estimate_step_tokens(text))
         source_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
         policy_hash = _hash_policy(policy)
-        artifact_key_material = f"{source_sha256}:{policy_hash}:{step.step_index}"
+        artifact_key_material = (
+            f"{source_sha256}:{policy_hash}:{step.step_index}"
+            if slot_pos is None
+            else f"{source_sha256}:{policy_hash}:{step.step_index}:{slot_pos}"
+        )
         artifact_id = hashlib.sha256(artifact_key_material.encode("utf-8")).hexdigest()[:32]
 
         if cache is not None and hasattr(cache, "get_optical_artifact"):
-            cached = cache.get_optical_artifact(source_sha256=source_sha256, policy_hash=policy_hash)
+            try:
+                cached = cache.get_optical_artifact(
+                    source_sha256=source_sha256,
+                    policy_hash=policy_hash,
+                    project_root=project_root,
+                )
+            except TypeError:
+                cached = cache.get_optical_artifact(source_sha256=source_sha256, policy_hash=policy_hash)
             if isinstance(cached, dict) and cached.get("rendered_digest"):
                 try:
+                    cached_artifact_id = (
+                        artifact_id if slot_pos is not None else cached["artifact_id"]
+                    )
+                    optical_tokens_c = int(cached["optical_patch_tokens"])
+                    eff_k_c = float(cached["effective_compression_k"])
+                    sim_c = float(cached["char_similarity"])
+                    raw_tokens_c = int(cached["raw_text_tokens"])
+                    if slot_pos is not None and cached["artifact_id"] != artifact_id:
+                        compacted_payload_c = self._build_compacted_observation(
+                            raw_text=text,
+                            artifact_id=cached_artifact_id,
+                            raw_tokens=raw_tokens_c,
+                            optical_tokens=optical_tokens_c,
+                            effective_k=eff_k_c,
+                            similarity=sim_c,
+                        )
+                    else:
+                        compacted_payload_c = str(cached["compacted_payload"])
                     cached_artifact = OpticalRenderArtifact(
-                        artifact_id=cached["artifact_id"],
+                        artifact_id=cached_artifact_id,
                         step_index=step.step_index,
                         source_sha256=source_sha256,
                         policy_hash=policy_hash,
                         canvas_width_px=int(cached["canvas_width_px"]),
                         canvas_height_px=int(cached["canvas_height_px"]),
                         patch_size_px=int(cached["patch_size_px"]),
-                        raw_text_tokens=int(cached["raw_text_tokens"]),
-                        optical_patch_tokens=int(cached["optical_patch_tokens"]),
-                        effective_compression_k=float(cached["effective_compression_k"]),
-                        char_similarity=float(cached["char_similarity"]),
+                        raw_text_tokens=raw_tokens_c,
+                        optical_patch_tokens=optical_tokens_c,
+                        effective_compression_k=eff_k_c,
+                        char_similarity=sim_c,
                         rendered_digest=str(cached["rendered_digest"]),
-                        compacted_payload=str(cached["compacted_payload"]),
+                        compacted_payload=compacted_payload_c,
                     )
                     if cached_artifact.char_similarity >= policy.min_char_similarity:
                         return cached_artifact
@@ -279,20 +323,37 @@ class OpticalObservationRenderer:
         )
 
         if cache is not None and hasattr(cache, "set_optical_artifact"):
-            cache.set_optical_artifact(
-                artifact_id=artifact.artifact_id,
-                source_sha256=artifact.source_sha256,
-                policy_hash=artifact.policy_hash,
-                canvas_width_px=artifact.canvas_width_px,
-                canvas_height_px=artifact.canvas_height_px,
-                patch_size_px=artifact.patch_size_px,
-                raw_text_tokens=artifact.raw_text_tokens,
-                optical_patch_tokens=artifact.optical_patch_tokens,
-                effective_compression_k=artifact.effective_compression_k,
-                char_similarity=artifact.char_similarity,
-                rendered_digest=artifact.rendered_digest,
-                compacted_payload=artifact.compacted_payload,
-            )
+            try:
+                cache.set_optical_artifact(
+                    artifact_id=artifact.artifact_id,
+                    source_sha256=artifact.source_sha256,
+                    policy_hash=artifact.policy_hash,
+                    canvas_width_px=artifact.canvas_width_px,
+                    canvas_height_px=artifact.canvas_height_px,
+                    patch_size_px=artifact.patch_size_px,
+                    raw_text_tokens=artifact.raw_text_tokens,
+                    optical_patch_tokens=artifact.optical_patch_tokens,
+                    effective_compression_k=artifact.effective_compression_k,
+                    char_similarity=artifact.char_similarity,
+                    rendered_digest=artifact.rendered_digest,
+                    compacted_payload=artifact.compacted_payload,
+                    project_root=project_root,
+                )
+            except TypeError:
+                cache.set_optical_artifact(
+                    artifact_id=artifact.artifact_id,
+                    source_sha256=artifact.source_sha256,
+                    policy_hash=artifact.policy_hash,
+                    canvas_width_px=artifact.canvas_width_px,
+                    canvas_height_px=artifact.canvas_height_px,
+                    patch_size_px=artifact.patch_size_px,
+                    raw_text_tokens=artifact.raw_text_tokens,
+                    optical_patch_tokens=artifact.optical_patch_tokens,
+                    effective_compression_k=artifact.effective_compression_k,
+                    char_similarity=artifact.char_similarity,
+                    rendered_digest=artifact.rendered_digest,
+                    compacted_payload=artifact.compacted_payload,
+                )
 
         return artifact
 
@@ -455,9 +516,11 @@ class TraceLiteReducer:
         self,
         policy: Optional[TraceReducerPolicy] = None,
         cache: Any = None,
+        project_root: Optional[str | Path] = None,
     ):
         self.policy = policy or TraceReducerPolicy()
         self.cache = cache
+        self.project_root = project_root
         self.deduplicator = CrossStepOverlapDeduplicator()
         self.edit_cleanup = EditPhaseCleanupEngine()
         self.renderer = OpticalObservationRenderer()
@@ -520,6 +583,7 @@ class TraceLiteReducer:
         w = self.policy.recent_window_w
         historical_cutoff = max(0, len(cleaned_steps) - w)
         optical_artifacts: list[OpticalRenderArtifact] = []
+        artifact_by_pos: dict[int, OpticalRenderArtifact] = {}
         final_steps: list[AgentObservationStep] = []
 
         try:
@@ -531,8 +595,15 @@ class TraceLiteReducer:
                         and not obs.startswith("[TRACELITE_EDIT_CLEANUP:")
                         and estimate_step_tokens(obs) >= 40
                     ):
-                        artifact = self.renderer.render(step, self.policy, cache=self.cache)
+                        artifact = self.renderer.render(
+                            step,
+                            self.policy,
+                            cache=self.cache,
+                            project_root=self.project_root,
+                            slot_pos=idx,
+                        )
                         optical_artifacts.append(artifact)
+                        artifact_by_pos[idx] = artifact
                         final_steps.append(
                             step.model_copy(update={"observation_text": artifact.compacted_payload})
                         )
@@ -615,14 +686,13 @@ class TraceLiteReducer:
             )
             return window, transitions, incidents
 
-        artifact_by_step = {a.step_index: a for a in optical_artifacts}
         reduced_tokens_total = 0
-        for step in final_steps:
+        for pos, step in enumerate(final_steps):
             action_toks = estimate_step_tokens(step.action_invocation)
-            if step.step_index in artifact_by_step:
+            if pos in artifact_by_pos:
                 # Account optical patch budget bounded by actual compacted payload text as well.
                 obs_toks = min(
-                    artifact_by_step[step.step_index].optical_patch_tokens,
+                    artifact_by_pos[pos].optical_patch_tokens,
                     estimate_step_tokens(step.observation_text),
                 )
             else:

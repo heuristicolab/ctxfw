@@ -2,6 +2,7 @@
 src/ctxfw/storage/snapshots.py — Bounded Go-Explore Sandbox Snapshot Rollback & Cache Invalidation
 manifest_hash: 00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762
 blueprint_manifest_hash: 7fb2c154c3f3e904d0e70445120a150a7d8d59cd7349cf13316421ffc816fc55
+manifest_hash_hardening_c1: aad104b6b66067be4bcce9ec6297c4de2822cf1d3c38a76e79e04cf147f62dd9
 """
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ from ctxfw.storage.cache import resolve_project_identity
 
 SNAPSHOT_BLUEPRINT_MANIFEST_HASH = "7fb2c154c3f3e904d0e70445120a150a7d8d59cd7349cf13316421ffc816fc55"
 WAVE1C_MANIFEST_HASH = "00743e30ed7cee52140a1538a8622aeccb12a6c524adc80d875ab067bd39f762"
+HARDENING_C1_MANIFEST_HASH = "aad104b6b66067be4bcce9ec6297c4de2822cf1d3c38a76e79e04cf147f62dd9"
 
 DEFAULT_TOTAL_TOKEN_BUDGET = 1_000_000
 MAX_TOTAL_TOKEN_BUDGET = 1_000_000
@@ -488,6 +490,191 @@ class SandboxSnapshotStore:
             conn = self._get_conn()
             conn.executescript(ddl)
             conn.commit()
+            self._hydrate_from_db(conn)
+
+    def _hydrate_from_db(self, conn: sqlite3.Connection) -> None:
+        """Reconstruct deterministic in-memory store state from existing SQLite WAL ledger tables."""
+        self._runs.clear()
+        self._ledgers.clear()
+        self._cells.clear()
+        self._error_history.clear()
+        self._stagnation_steps.clear()
+        self._last_pass_rate.clear()
+        self._run_epochs.clear()
+
+        max_seq = 0
+        run_defs: dict[str, tuple[int, int]] = {}
+        for row in conn.execute(
+            """
+            SELECT run_id, project_root, total_token_budget, max_children_per_root, created_seq
+            FROM snapshot_runs
+            ORDER BY created_seq ASC
+            """
+        ).fetchall():
+            run_id = str(row["run_id"])
+            self._runs[run_id] = str(row["project_root"])
+            self._run_epochs[run_id] = 0
+            run_defs[run_id] = (int(row["total_token_budget"]), int(row["max_children_per_root"]))
+            max_seq = max(max_seq, int(row["created_seq"]))
+
+        if not run_defs:
+            return
+
+        latest_budget: dict[str, tuple[int, int]] = {}
+        for row in conn.execute(
+            """
+            SELECT run_id, cumulative_tokens_spent, cumulative_handoff_spent, created_seq
+            FROM snapshot_budget_ledger_events
+            ORDER BY created_seq ASC
+            """
+        ).fetchall():
+            latest_budget[str(row["run_id"])] = (
+                int(row["cumulative_tokens_spent"]),
+                int(row["cumulative_handoff_spent"]),
+            )
+            max_seq = max(max_seq, int(row["created_seq"]))
+
+        allowed_dispatch_count: dict[str, int] = {}
+        allowed_target_count: dict[tuple[str, str], int] = {}
+        for row in conn.execute(
+            """
+            SELECT run_id, target_root_snapshot_id, rollback_epoch, allowed, created_seq
+            FROM snapshot_rollback_dispatches
+            ORDER BY created_seq ASC
+            """
+        ).fetchall():
+            run_id = str(row["run_id"])
+            max_seq = max(max_seq, int(row["created_seq"]))
+            if int(row["allowed"]) == 1:
+                allowed_dispatch_count[run_id] = allowed_dispatch_count.get(run_id, 0) + 1
+                t_key = (run_id, str(row["target_root_snapshot_id"]))
+                allowed_target_count[t_key] = allowed_target_count.get(t_key, 0) + 1
+                self._run_epochs[run_id] = max(
+                    self._run_epochs.get(run_id, 0), int(row["rollback_epoch"])
+                )
+
+        for run_id, (total_budget, max_children) in run_defs.items():
+            tokens_spent, handoff_spent = latest_budget.get(run_id, (0, 0))
+            active_branches = min(256, 1 + allowed_dispatch_count.get(run_id, 0))
+            self._ledgers[run_id] = BranchBudgetLedger(
+                run_id=run_id,
+                total_token_budget=total_budget,
+                tokens_spent=tokens_spent,
+                handoff_tokens_spent=handoff_spent,
+                active_branches=active_branches,
+                max_children_per_root=max_children,
+            )
+
+        children_spawned_counts: dict[tuple[str, str], int] = {}
+        visit_counts: dict[tuple[str, str], int] = {}
+        for row in conn.execute(
+            """
+            SELECT run_id, snapshot_id, event, rollback_epoch, seq_no
+            FROM snapshot_fsm_transitions
+            ORDER BY seq_no ASC
+            """
+        ).fetchall():
+            run_id = str(row["run_id"])
+            key = (run_id, str(row["snapshot_id"]))
+            ev = str(row["event"])
+            max_seq = max(max_seq, int(row["seq_no"]))
+            self._run_epochs[run_id] = max(
+                self._run_epochs.get(run_id, 0), int(row["rollback_epoch"])
+            )
+            if ev in ("SPAWN_CHILD_BRANCH", "EXECUTE_ROLLBACK_AND_INVALIDATE"):
+                children_spawned_counts[key] = children_spawned_counts.get(key, 0) + 1
+            if ev == "EXECUTE_ROLLBACK_AND_INVALIDATE":
+                visit_counts[key] = visit_counts.get(key, 0) + 1
+
+        latest_cell_rows: dict[tuple[str, str], sqlite3.Row] = {}
+        for row in conn.execute(
+            """
+            SELECT snapshot_id, run_id, project_root, parent_snapshot_id,
+                   step_index, depth, git_commit_sha, working_tree_digest,
+                   pass_rate, failing_tests, tokens_used_to_reach, handoff_tokens,
+                   max_children_per_root, lifecycle_state, rollback_epoch, created_seq
+            FROM snapshot_archive_cells
+            ORDER BY created_seq ASC
+            """
+        ).fetchall():
+            run_id = str(row["run_id"])
+            key = (run_id, str(row["snapshot_id"]))
+            latest_cell_rows[key] = row
+            max_seq = max(max_seq, int(row["created_seq"]))
+            self._run_epochs[run_id] = max(
+                self._run_epochs.get(run_id, 0), int(row["rollback_epoch"])
+            )
+
+        artifacts_by_key: dict[tuple[str, str], list[tuple[int, NonGitRuntimeArtifact]]] = {}
+        for row in conn.execute(
+            """
+            SELECT snapshot_id, run_id, artifact_id, kind, resource_path_or_pid,
+                   pre_state_digest, dirty_after_step, reversible_via_snapshot, created_seq
+            FROM snapshot_non_git_artifacts
+            ORDER BY created_seq ASC
+            """
+        ).fetchall():
+            art_seq = int(row["created_seq"])
+            max_seq = max(max_seq, art_seq)
+            key = (str(row["run_id"]), str(row["snapshot_id"]))
+            art = NonGitRuntimeArtifact(
+                artifact_id=str(row["artifact_id"]),
+                kind=NonGitArtifactKind(str(row["kind"])),
+                resource_path_or_pid=str(row["resource_path_or_pid"]),
+                pre_state_digest=str(row["pre_state_digest"]),
+                dirty_after_step=bool(int(row["dirty_after_step"])),
+                reversible_via_snapshot=bool(int(row["reversible_via_snapshot"])),
+            )
+            artifacts_by_key.setdefault(key, []).append((art_seq, art))
+
+        q_max = conn.execute(
+            "SELECT COALESCE(MAX(created_seq), 0) FROM snapshot_quarantine_entries"
+        ).fetchone()
+        if q_max is not None:
+            max_seq = max(max_seq, int(q_max[0]))
+
+        for key, row in latest_cell_rows.items():
+            cell_seq = int(row["created_seq"])
+            cell_arts = tuple(
+                art
+                for art_seq, art in artifacts_by_key.get(key, ())
+                if art_seq > cell_seq
+            )
+            max_children = int(row["max_children_per_root"])
+            visits = max(1, 1 + visit_counts.get(key, allowed_target_count.get(key, 0)))
+            children_spawned = min(max_children, children_spawned_counts.get(key, 0))
+            cell = SnapshotArchiveCell(
+                snapshot_id=str(row["snapshot_id"]),
+                run_id=str(row["run_id"]),
+                project_root=str(row["project_root"]),
+                parent_snapshot_id=(
+                    str(row["parent_snapshot_id"])
+                    if row["parent_snapshot_id"] is not None
+                    else None
+                ),
+                step_index=int(row["step_index"]),
+                depth=int(row["depth"]),
+                git_commit_sha=(
+                    str(row["git_commit_sha"])
+                    if row["git_commit_sha"] is not None
+                    else None
+                ),
+                working_tree_digest=str(row["working_tree_digest"]),
+                pass_rate=float(row["pass_rate"]),
+                failing_tests=int(row["failing_tests"]),
+                visit_count=visits,
+                children_spawned=children_spawned,
+                max_children_per_root=max_children,
+                tokens_used_to_reach=int(row["tokens_used_to_reach"]),
+                handoff_tokens=int(row["handoff_tokens"]),
+                non_git_artifacts=cell_arts,
+                lifecycle_state=SnapshotLifecycleState(str(row["lifecycle_state"])),
+                rollback_epoch=int(row["rollback_epoch"]),
+            )
+            self._cells[key] = cell
+            self._last_pass_rate[key] = cell.pass_rate
+
+        self._seq_counter = itertools.count(max_seq + 1)
 
     def _next_seq(self) -> int:
         return next(self._seq_counter)
@@ -495,13 +682,33 @@ class SandboxSnapshotStore:
     def _next_id(self, prefix: str) -> str:
         return f"{prefix}_{time.monotonic_ns()}_{self._next_seq()}"
 
-    def _run_with_retry(self, fn: Callable[[sqlite3.Connection], _T], max_attempts: int = 5) -> _T:
+    def _run_with_retry(
+        self,
+        fn: Callable[[sqlite3.Connection, list[Callable[[], None]]], _T],
+        max_attempts: int = 5,
+    ) -> _T:
         for attempt in range(max_attempts):
             try:
                 with self._lock:
                     conn = self._get_conn()
-                    out = fn(conn)
-                    conn.commit()
+                    commit_hooks: list[Callable[[], None]] = []
+                    try:
+                        out = fn(conn, commit_hooks)
+                        conn.commit()
+                    except sqlite3.OperationalError:
+                        try:
+                            conn.rollback()
+                        except sqlite3.Error:
+                            pass
+                        raise
+                    except Exception:
+                        try:
+                            conn.rollback()
+                        except sqlite3.Error:
+                            pass
+                        raise
+                    for hook in commit_hooks:
+                        hook()
                     return out
             except sqlite3.OperationalError as exc:
                 msg = str(exc).lower()
@@ -529,7 +736,10 @@ class SandboxSnapshotStore:
             max_children_per_root=max_children_per_root,
         )
 
-        def _op(conn: sqlite3.Connection) -> BranchBudgetLedger:
+        def _op(
+            conn: sqlite3.Connection,
+            commit_hooks: list[Callable[[], None]],
+        ) -> BranchBudgetLedger:
             seq = self._next_seq()
             conn.execute(
                 """
@@ -548,9 +758,13 @@ class SandboxSnapshotStore:
                     seq,
                 ),
             )
-            self._runs[run_id] = resolved_root
-            self._ledgers[run_id] = ledger
-            self._run_epochs.setdefault(run_id, 0)
+
+            def _apply_ram() -> None:
+                self._runs[run_id] = resolved_root
+                self._ledgers[run_id] = ledger
+                self._run_epochs.setdefault(run_id, 0)
+
+            commit_hooks.append(_apply_ram)
             return ledger
 
         return self._run_with_retry(_op)
@@ -560,6 +774,7 @@ class SandboxSnapshotStore:
         conn: sqlite3.Connection,
         cell: SnapshotArchiveCell,
         transitions_to_append: Sequence[tuple[SnapshotLifecycleState, SnapshotLifecycleEvent, SnapshotLifecycleState]] = (),
+        commit_hooks: Optional[list[Callable[[], None]]] = None,
     ) -> None:
         conn.execute(
             """
@@ -633,7 +848,10 @@ class SandboxSnapshotStore:
                     self._next_seq(),
                 ),
             )
-        self._cells[(cell.run_id, cell.snapshot_id)] = cell
+        if commit_hooks is not None:
+            commit_hooks.append(lambda c=cell: self._cells.__setitem__((c.run_id, c.snapshot_id), c))
+        else:
+            self._cells[(cell.run_id, cell.snapshot_id)] = cell
 
     def _record_budget_delta(
         self,
@@ -642,6 +860,7 @@ class SandboxSnapshotStore:
         tokens_delta: int,
         handoff_delta: int,
         active_branches_delta: int = 0,
+        commit_hooks: Optional[list[Callable[[], None]]] = None,
     ) -> BranchBudgetLedger:
         ledger = self._ledgers[run_id]
         updated = ledger.model_copy(
@@ -672,15 +891,27 @@ class SandboxSnapshotStore:
                 self._next_seq(),
             ),
         )
-        self._ledgers[run_id] = updated
+        if commit_hooks is not None:
+            commit_hooks.append(lambda r=run_id, u=updated: self._ledgers.__setitem__(r, u))
+        else:
+            self._ledgers[run_id] = updated
         return updated
 
     def checkpoint_snapshot(self, cell: SnapshotArchiveCell, tokens_delta: int = 0) -> SnapshotArchiveCell:
-        def _op(conn: sqlite3.Connection) -> SnapshotArchiveCell:
+        def _op(
+            conn: sqlite3.Connection,
+            commit_hooks: list[Callable[[], None]],
+        ) -> SnapshotArchiveCell:
             if cell.run_id not in self._ledgers:
                 raise KeyError(f"Unknown snapshot run_id={cell.run_id}")
             if tokens_delta > 0:
-                self._record_budget_delta(conn, cell.run_id, tokens_delta=tokens_delta, handoff_delta=0)
+                self._record_budget_delta(
+                    conn,
+                    cell.run_id,
+                    tokens_delta=tokens_delta,
+                    handoff_delta=0,
+                    commit_hooks=commit_hooks,
+                )
             target_cell = cell
             if target_cell.lifecycle_state == SnapshotLifecycleState.CREATED:
                 next_state = transition(
@@ -695,8 +926,15 @@ class SandboxSnapshotStore:
                 )]
             else:
                 tr_list = []
-            self._insert_cell_record(conn, target_cell, transitions_to_append=tr_list)
-            self._last_pass_rate[(cell.run_id, cell.snapshot_id)] = target_cell.pass_rate
+            self._insert_cell_record(
+                conn,
+                target_cell,
+                transitions_to_append=tr_list,
+                commit_hooks=commit_hooks,
+            )
+            commit_hooks.append(
+                lambda k=(cell.run_id, cell.snapshot_id), pr=target_cell.pass_rate: self._last_pass_rate.__setitem__(k, pr)
+            )
             return target_cell
 
         return self._run_with_retry(_op)
@@ -714,11 +952,15 @@ class SandboxSnapshotStore:
         git_diff_available: bool = True,
         sandbox_snapshot_available: bool = True,
     ) -> AttractorAssessment:
-        def _op(conn: sqlite3.Connection) -> AttractorAssessment:
+        def _op(
+            conn: sqlite3.Connection,
+            commit_hooks: list[Callable[[], None]],
+        ) -> AttractorAssessment:
             key = (run_id, snapshot_id)
             cell = self._cells[key]
             ledger = self._ledgers[run_id]
             if tokens_delta > ledger.remaining_tokens:
+                conn.rollback()
                 self._insert_quarantine(
                     conn,
                     run_id=run_id,
@@ -727,9 +969,16 @@ class SandboxSnapshotStore:
                     rule_code="BUDGET_EXHAUSTED",
                     detail=f"tokens_delta={tokens_delta} exceeds remaining_tokens={ledger.remaining_tokens}",
                 )
+                conn.commit()
                 raise ValueError("BUSINESS invariant violation: token budget exhausted.")
             if tokens_delta > 0:
-                self._record_budget_delta(conn, run_id, tokens_delta=tokens_delta, handoff_delta=0)
+                self._record_budget_delta(
+                    conn,
+                    run_id,
+                    tokens_delta=tokens_delta,
+                    handoff_delta=0,
+                    commit_hooks=commit_hooks,
+                )
 
             new_rate = cell.pass_rate if pass_rate is None else pass_rate
             new_fail = cell.failing_tests if failing_tests is None else failing_tests
@@ -738,10 +987,8 @@ class SandboxSnapshotStore:
                 stagnation = self._stagnation_steps.get(key, 0) + 1
             else:
                 stagnation = 0
-            self._stagnation_steps[key] = stagnation
-            self._last_pass_rate[key] = new_rate
 
-            sigs = self._error_history.setdefault(key, [])
+            sigs = list(self._error_history.get(key, ()))
             if error_signature:
                 sigs.append(error_signature)
 
@@ -780,7 +1027,19 @@ class SandboxSnapshotStore:
                     next_state,
                 ))
                 updated_cell = updated_cell.model_copy(update={"lifecycle_state": next_state})
-            self._insert_cell_record(conn, updated_cell, transitions_to_append=transitions)
+            self._insert_cell_record(
+                conn,
+                updated_cell,
+                transitions_to_append=transitions,
+                commit_hooks=commit_hooks,
+            )
+
+            def _apply_step_ram() -> None:
+                self._stagnation_steps[key] = stagnation
+                self._last_pass_rate[key] = new_rate
+                self._error_history[key] = sigs
+
+            commit_hooks.append(_apply_step_ram)
             return assessment
 
         return self._run_with_retry(_op)
@@ -837,7 +1096,10 @@ class SandboxSnapshotStore:
     ) -> RecoveryBranchDispatch:
         handoff_tokens = compute_handoff_overhead(handoff_summary_tokens, trace_tokens)
 
-        def _op(conn: sqlite3.Connection) -> RecoveryBranchDispatch:
+        def _op(
+            conn: sqlite3.Connection,
+            commit_hooks: list[Callable[[], None]],
+        ) -> RecoveryBranchDispatch:
             root = self._cells[(run_id, target_root_snapshot_id)]
             source = self._cells[(run_id, source_snapshot_id)]
             ledger = self._ledgers[run_id]
@@ -874,9 +1136,15 @@ class SandboxSnapshotStore:
             # Mandatory deterministic cache/graph/pruner invalidation on restore.
             invalidated_count = 0
             project_root = self._runs[run_id]
+            engine_invalidated = False
             if engine is not None and hasattr(engine, "invalidate_after_rollback"):
                 invalidated_count += int(engine.invalidate_after_rollback(snapshot_id=target_root_snapshot_id))
-            elif cache is not None and hasattr(cache, "invalidate_for_rollback"):
+                engine_invalidated = True
+            if (
+                cache is not None
+                and hasattr(cache, "invalidate_for_rollback")
+                and not (engine_invalidated and cache is getattr(engine, "cache", None))
+            ):
                 invalidated_count += int(
                     cache.invalidate_for_rollback(
                         project_root=project_root,
@@ -886,13 +1154,13 @@ class SandboxSnapshotStore:
             _invalidate_loaded_pruners(reason=f"rollback:{target_root_snapshot_id}:epoch:{new_epoch}")
 
             # Record FSM transitions on root & update epoch/visit count immutably via new archive records.
-            self._run_epochs[run_id] = new_epoch
             self._record_budget_delta(
                 conn,
                 run_id,
                 tokens_delta=projected_branch_tokens,
                 handoff_delta=handoff_tokens,
                 active_branches_delta=1,
+                commit_hooks=commit_hooks,
             )
 
             s0 = root.lifecycle_state
@@ -914,10 +1182,8 @@ class SandboxSnapshotStore:
                     (s0, SnapshotLifecycleEvent.REQUEST_ROLLBACK, s1),
                     (s1, SnapshotLifecycleEvent.EXECUTE_ROLLBACK_AND_INVALIDATE, s2),
                 ],
+                commit_hooks=commit_hooks,
             )
-            # Clear error streak on restored branch root cleanly.
-            self._error_history[(run_id, target_root_snapshot_id)] = []
-            self._stagnation_steps[(run_id, target_root_snapshot_id)] = 0
 
             # Quarantine stalled source branch if still non-terminal so old path isn't silently reused.
             if source_snapshot_id != target_root_snapshot_id and source.lifecycle_state not in TERMINAL_STATES:
@@ -931,6 +1197,7 @@ class SandboxSnapshotStore:
                     transitions_to_append=[
                         (source.lifecycle_state, SnapshotLifecycleEvent.ABORT_QUARANTINE, q_state)
                     ],
+                    commit_hooks=commit_hooks,
                 )
 
             final_dispatch = candidate.model_copy(
@@ -940,6 +1207,14 @@ class SandboxSnapshotStore:
                 }
             )
             self._record_dispatch(conn, final_dispatch)
+
+            def _apply_rollback_ram() -> None:
+                self._run_epochs[run_id] = new_epoch
+                self._error_history[(run_id, target_root_snapshot_id)] = []
+                self._stagnation_steps[(run_id, target_root_snapshot_id)] = 0
+                self._last_pass_rate[(run_id, target_root_snapshot_id)] = restored_root.pass_rate
+
+            commit_hooks.append(_apply_rollback_ram)
             return final_dispatch
 
         return self._run_with_retry(_op)
@@ -954,13 +1229,17 @@ class SandboxSnapshotStore:
         tokens_delta: int = 0,
         git_commit_sha: Optional[str] = None,
     ) -> SnapshotArchiveCell:
-        def _op(conn: sqlite3.Connection) -> SnapshotArchiveCell:
+        def _op(
+            conn: sqlite3.Connection,
+            commit_hooks: list[Callable[[], None]],
+        ) -> SnapshotArchiveCell:
             parent = self._cells[(run_id, parent_snapshot_id)]
             ledger = self._ledgers[run_id]
             if (
                 parent.children_spawned >= parent.max_children_per_root
                 or parent.children_spawned >= ledger.max_children_per_root
             ):
+                conn.rollback()
                 self._insert_quarantine(
                     conn,
                     run_id=run_id,
@@ -969,8 +1248,10 @@ class SandboxSnapshotStore:
                     rule_code="FANOUT_EXCEEDED",
                     detail="Maximum Go-Explore children per root exceeded.",
                 )
+                conn.commit()
                 raise ValueError("BUSINESS invariant violation: max_children_per_root exceeded.")
             if tokens_delta > ledger.remaining_tokens:
+                conn.rollback()
                 self._insert_quarantine(
                     conn,
                     run_id=run_id,
@@ -979,10 +1260,17 @@ class SandboxSnapshotStore:
                     rule_code="BUDGET_EXHAUSTED",
                     detail="Branch token budget exhausted.",
                 )
+                conn.commit()
                 raise ValueError("BUSINESS invariant violation: token budget exhausted.")
 
             if tokens_delta > 0:
-                self._record_budget_delta(conn, run_id, tokens_delta=tokens_delta, handoff_delta=0)
+                self._record_budget_delta(
+                    conn,
+                    run_id,
+                    tokens_delta=tokens_delta,
+                    handoff_delta=0,
+                    commit_hooks=commit_hooks,
+                )
 
             p_state = transition(parent.lifecycle_state, SnapshotLifecycleEvent.SPAWN_CHILD_BRANCH)
             updated_parent = parent.model_copy(
@@ -997,6 +1285,7 @@ class SandboxSnapshotStore:
                 transitions_to_append=[
                     (parent.lifecycle_state, SnapshotLifecycleEvent.SPAWN_CHILD_BRANCH, p_state)
                 ],
+                commit_hooks=commit_hooks,
             )
             child = SnapshotArchiveCell(
                 snapshot_id=child_snapshot_id,
@@ -1018,8 +1307,10 @@ class SandboxSnapshotStore:
                 lifecycle_state=SnapshotLifecycleState.CHECKPOINTED,
                 rollback_epoch=self._run_epochs.get(run_id, 0),
             )
-            self._insert_cell_record(conn, child)
-            self._last_pass_rate[(run_id, child_snapshot_id)] = child.pass_rate
+            self._insert_cell_record(conn, child, commit_hooks=commit_hooks)
+            commit_hooks.append(
+                lambda k=(run_id, child_snapshot_id), pr=child.pass_rate: self._last_pass_rate.__setitem__(k, pr)
+            )
             return child
 
         return self._run_with_retry(_op)
