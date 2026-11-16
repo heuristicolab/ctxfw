@@ -6,6 +6,7 @@ manifest_hash_v41_dante: 4a446cfc7aa488cc2b193750e694b95f5b66d694387ecd5b66d2090
 manifest_hash_wave1a: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 manifest_hash_wave1b: ebbcd0d607fa09a71dda690ea76104d762b3f279cde258f64917421d39a249f4
 manifest_hash_hardening_c1: aad104b6b66067be4bcce9ec6297c4de2822cf1d3c38a76e79e04cf147f62dd9
+manifest_hash_v42_r2: cf0e30f7ed19bc43c700dc8f7d845c5f23011472fcd46d614602865b6be043d1
 
 Provides zero-touch onboarding, idempotent IDE configuration injection,
 multiplatform pre-commit hook deployment, and comprehensive self-diagnostics.
@@ -354,9 +355,11 @@ def resolve_mcp_command() -> Dict[str, Any]:
       to ensure zero dependency on external PATH resolution across virtualenvs.
     """
     if getattr(sys, "frozen", False):
-        bin_path = str(Path(sys.argv[0]).resolve() if sys.argv and sys.argv[0] else Path(sys.executable).resolve())
+        exe_path = Path(sys.executable)
+        if not exe_path.is_file() and sys.argv and sys.argv[0]:
+            exe_path = Path(sys.argv[0])
         return {
-            "command": bin_path,
+            "command": str(exe_path.resolve()),
             "args": ["mcp"],
         }
     py_executable = str(Path(sys.executable).resolve())
@@ -952,8 +955,11 @@ def run_doctor(project_root: Optional[Path] = None) -> DoctorReport:
     # Check 2: Hot stdio isolation test (Doctor Sanitizer)
     proc: Optional[subprocess.Popen[str]] = None
     try:
+        mcp_cmd_spec = resolve_mcp_command()
+        probe_cmd = [mcp_cmd_spec["command"], *mcp_cmd_spec.get("args", [])]
+        probe_timeout = 20 if getattr(sys, "frozen", False) else 15
         proc = subprocess.Popen(
-            [sys.executable, "-m", "ctxfw.mcp"],
+            probe_cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -966,7 +972,7 @@ def run_doctor(project_root: Optional[Path] = None) -> DoctorReport:
             "params": {"capabilities": {}},
         }) + "\n"
 
-        stdout_data, stderr_data = proc.communicate(input=init_req, timeout=15)
+        stdout_data, stderr_data = proc.communicate(input=init_req, timeout=probe_timeout)
         proc.wait(timeout=2)
 
         # Assert stdout contains ONLY valid JSON and zero unescaped non-JSON text

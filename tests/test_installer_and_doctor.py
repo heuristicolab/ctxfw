@@ -489,3 +489,41 @@ def test_cli_doctor_propagates_quarantined_exit_code(tmp_path: Path, monkeypatch
     with pytest.raises(SystemExit) as exc_info:
         cli_main()
     assert exc_info.value.code == 1
+
+
+def test_frozen_resolve_mcp_command_and_doctor_probe(tmp_path: Path, monkeypatch):
+    """Asserts that frozen standalone binaries resolve `[exe, 'mcp']` and run_doctor uses it."""
+    fake_exe = tmp_path / "ctxfw.exe"
+    fake_exe.write_bytes(b"")
+
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(fake_exe))
+    monkeypatch.setattr(sys, "argv", ["ctxfw", "doctor"])
+
+    cmd_spec = resolve_mcp_command()
+    assert Path(cmd_spec["command"]).resolve() == fake_exe.resolve()
+    assert cmd_spec["args"] == ["mcp"]
+
+    seen_cmds = []
+
+    class _FakeProc:
+        returncode = 0
+
+        def communicate(self, input=None, timeout=None):
+            return (json.dumps({"jsonrpc": "2.0", "id": 999, "result": {"serverInfo": {"version": "4.2.0"}}}) + "\n", "")
+
+        def wait(self, timeout=None):
+            return 0
+
+        def poll(self):
+            return 0
+
+    def _fake_popen(cmd, **kwargs):
+        seen_cmds.append(list(cmd))
+        return _FakeProc()
+
+    monkeypatch.setattr(subprocess, "Popen", _fake_popen)
+    report = run_doctor()
+    check_map = {c.name: c for c in report.checks}
+    assert check_map["MCP stdio Stream Isolation"].status == "OK"
+    assert seen_cmds == [[str(fake_exe.resolve()), "mcp"]]

@@ -97,3 +97,21 @@ def test_benchmark_target_not_found(sample_project: Path, monkeypatch):
 
     assert ret == 1
     assert "Target path does not exist" in mock_stderr.getvalue()
+
+
+def test_benchmark_run_absolute_target_without_root(sample_project: Path, monkeypatch, tmp_path: Path):
+    elsewhere = tmp_path / "unrelated_cwd"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    mock_stdout = io.StringIO()
+    monkeypatch.setattr("sys.stdout", mock_stdout)
+
+    parser = build_parser()
+    args = parser.parse_args(["benchmark", str(sample_project), "--format", "json"])
+    ret = run_benchmark(args)
+
+    assert ret == 0
+    payload = json.loads(mock_stdout.getvalue())
+    assert payload["metrics"]["total_raw"] > 0
+    assert Path(payload["metadata"]["project_root"]).resolve() == sample_project.resolve()

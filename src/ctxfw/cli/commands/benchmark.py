@@ -27,8 +27,8 @@ def register_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("path", help="Target root file or directory to benchmark")
     parser.add_argument(
         "--root",
-        default=".",
-        help="Project root directory for import resolution (default: .)"
+        default=None,
+        help="Project root directory for import resolution (default: auto-detect from target path or cwd)"
     )
     parser.add_argument(
         "--model",
@@ -51,8 +51,18 @@ def register_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.set_defaults(func=run_benchmark)
 
 def run_benchmark(args: argparse.Namespace) -> int:
-    project_root = Path(args.root).resolve()
-    target_path = (project_root / args.path).resolve()
+    if getattr(args, "root", None):
+        project_root = Path(args.root).resolve()
+        target_path = (project_root / args.path).resolve()
+    else:
+        raw_target = Path(args.path)
+        target_path = raw_target.resolve() if raw_target.is_absolute() else (Path.cwd() / raw_target).resolve()
+        cwd = Path.cwd().resolve()
+        try:
+            target_path.relative_to(cwd)
+            project_root = cwd
+        except ValueError:
+            project_root = target_path if target_path.is_dir() else target_path.parent
 
     if not target_path.exists():
         print(f"[ERROR] Target path does not exist: {target_path}", file=sys.stderr)
@@ -96,7 +106,10 @@ def run_benchmark(args: argparse.Namespace) -> int:
         total_raw += raw_tokens
         total_pruned += pruned_tokens
 
-        rel_display = str(file_path.relative_to(project_root)).replace("\\", "/")
+        try:
+            rel_display = str(file_path.relative_to(project_root)).replace("\\", "/")
+        except ValueError:
+            rel_display = str(file_path).replace("\\", "/")
         results.append({
             "module": rel_display,
             "depth": "D0" if file_path == target_path else "D1",

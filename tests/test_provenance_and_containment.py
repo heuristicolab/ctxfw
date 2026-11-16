@@ -395,6 +395,22 @@ def test_mcp_guard_capability_laundering_and_paired_containment(tmp_path: Path) 
             allowed_keys=("path",),
             required_keys=("path",),
         )
+        prof_clean = ToolCapabilityProfile(
+            server_id="srv-local",
+            tool_name="inspect_status",
+            declared_readonly=True,
+            observed_operations=("ast:parse",),
+        )
+        res_ok = store.evaluate_and_record_capability_laundering(
+            prof_clean,
+            contract=contract,
+            parameter_guard=param_guard,
+            raw_arguments={"path": str(root_dir)},
+        )
+        assert res_ok.allowed is True
+        assert res_ok.laundering_detected is False
+        assert res_ok.terminal_state is FirewallState.ALLOW
+
         prof_bad = ToolCapabilityProfile(
             server_id="srv-local",
             tool_name="inspect_status",
@@ -412,7 +428,7 @@ def test_mcp_guard_capability_laundering_and_paired_containment(tmp_path: Path) 
         assert res_bad.laundering_detected is True
         assert res_bad.terminal_state is FirewallState.CONFINED_DENY
         assert store.is_tool_quarantined("srv-local", "inspect_status") is True
-        assert len(store.list_capability_laundering_audits()) == 1
+        assert len(store.list_capability_laundering_audits()) == 2
     finally:
         store.close()
 
@@ -604,3 +620,76 @@ def test_mcp_server_end_to_end_provenance_and_capability_block(
 
     assert server._provenance_store is not None
     assert server._provenance_store._conn is None
+
+
+def test_env_capability_profiles_gate0d_and_fail_closed_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ws = tmp_path / "repo_env"
+    ws.mkdir(parents=True, exist_ok=True)
+    clean_file = ws / "clean.py"
+    clean_file.write_text("def ok() -> int:\n    return 1\n", encoding="utf-8", newline="\n")
+
+    monkeypatch.setenv("CTXFW_MCP_GUARD_DB", str(tmp_path / "guard_env.db"))
+    monkeypatch.setenv("CTXFW_PROVENANCE_DB", str(tmp_path / "prov_env.db"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))
+
+    monkeypatch.setenv("CTXFW_CAPABILITY_PROFILES", "{invalid-json")
+    with pytest.raises(ValueError, match="Invalid CTXFW_CAPABILITY_PROFILES"):
+        MCPServer(authorized_roots=[ws])
+
+    monkeypatch.setenv(
+        "CTXFW_CAPABILITY_PROFILES",
+        json.dumps({"prune_file": {"tool_name": "other_tool", "declared_readonly": True}}),
+    )
+    with pytest.raises(ValueError, match="mismatch"):
+        MCPServer(authorized_roots=[ws])
+
+    monkeypatch.setenv(
+        "CTXFW_CAPABILITY_PROFILES",
+        json.dumps(
+            {
+                "prune_file": {
+                    "declared_readonly": True,
+                    "observed_operations": ["shell:exec"],
+                }
+            }
+        ),
+    )
+    srv = MCPServer(authorized_roots=[ws], enforce_provenance=True)
+    try:
+        resp = srv.handle_tools_call(
+            {"name": "prune_file", "arguments": {"path": str(clean_file)}},
+            1,
+        )
+        assert resp["isError"] is True
+        assert resp.get("capabilityLaundering") is True
+        assert resp.get("terminalState") == "CONFINED_DENY"
+        assert "CAPABILITY_LAUNDERING_BLOCKED" in resp["content"][0]["text"]
+    finally:
+        srv.close()
+
+    monkeypatch.setenv(
+        "CTXFW_CAPABILITY_PROFILES",
+        json.dumps(
+            {
+                "query_audit_ledger": {
+                    "declared_readonly": True,
+                    "delegated_capabilities": ["filesystem:write"],
+                }
+            }
+        ),
+    )
+    srv_q = MCPServer(authorized_roots=[ws], enforce_provenance=True)
+    try:
+        resp_q = srv_q.handle_tools_call(
+            {"name": "query_audit_ledger", "arguments": {"session_id": "SES-test-audit"}},
+            2,
+        )
+        assert resp_q["isError"] is True
+        assert resp_q.get("capabilityLaundering") is True
+        assert resp_q.get("terminalState") == "CONFINED_DENY"
+        assert "CAPABILITY_LAUNDERING_BLOCKED" in resp_q["content"][0]["text"]
+    finally:
+        srv_q.close()

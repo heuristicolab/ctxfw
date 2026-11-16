@@ -31,7 +31,7 @@ jobs:
       - name: Compile AST & Validate SQL
         run: |
           python3 -m compileall src/ tests/
-          python3 -c "import sqlite3; con = sqlite3.connect(':memory:'); con.executescript(open('src/ctxfw/storage/schema.sql').read()); print('SQL DDL Verified.')"
+          python3 -c "import pathlib, sqlite3; sqls = sorted(pathlib.Path('src/ctxfw').rglob('*.sql')); assert sqls, 'No SQL schemas found'; [sqlite3.connect(':memory:').executescript(p.read_text(encoding='utf-8')) for p in sqls]; print(f'SQL DDL Verified ({len(sqls)} schemas).')"
 
       - name: Execute Pytest TDD Matrix (Python ${{ matrix.python-version }} Environment)
         run: |

@@ -2,7 +2,7 @@
 ### Target System: `ord-2026-4f003b` | Heuristico LAB Sovereign Core
 
 [![Security Review](https://img.shields.io/badge/Security-Air--Gapped%20Certified-00ff66?style=flat-square)]()
-[![Spec Version](https://img.shields.io/badge/Version-4.1.1-blue?style=flat-square)]()
+[![Spec Version](https://img.shields.io/badge/Version-4.2.0-blue?style=flat-square)]()
 [![Compliance](https://img.shields.io/badge/Compliance-NDA%20%26%20IP%20Shield-purple?style=flat-square)]()
 
 ---
@@ -40,7 +40,7 @@ The Context Firewall architecture establishes strict sovereign isolation between
 
 ---
 
-## 2. Multi-Surface MCP & Zero-MCP Proxy Setup (HU-09 // v4.1.1 Industrial Architecture)
+## 2. Multi-Surface MCP & Zero-MCP Proxy Setup (HU-09 // v4.2.0 Industrial Architecture)
 
 The Context Firewall exposes deterministic context compaction capabilities to autonomous coding agents across standard I/O (`sys.stdin` / `sys.stdout`) using JSON-RPC 2.0 (MCP Protocol Version `2024-11-05`), as well as transparent HTTP reverse proxy routing.
 
@@ -85,7 +85,7 @@ ctxfw doctor
 ```
 
 The 7 automated health checks comprise:
-1. **Python Package & sys.path**: Validates `ctxfw` package integrity, version attestation (`v4.1.1`), and clean module importability.
+1. **Python Package & sys.path**: Validates `ctxfw` package integrity, version attestation (`v4.2.0`), and clean module importability.
 2. **MCP stdio Stream Isolation**: Asserts 100% pure JSON-RPC on stdout and verifies diagnostic logs are strictly isolated to stderr to prevent agent JSON-RPC parsing failures.
 3. **Global CLI Executable (PATH)**: Verifies that the `ctxfw` binary is registered and resolvable in the system PATH.
 4. **Axiomatic Sieve Engine**: Executes formal verification of specifications against negative invariants ($N \ge 5$) and domain bounds, confirming ACI $\ge$ 0.9000.
@@ -254,7 +254,7 @@ ctxfw init ./my-project
 ### Terminal Telemetry Output
 ```text
 ========================================================================
-  CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v4.1.1)
+  CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v4.2.0)
 ========================================================================
 Target Module:  contracts.py
 Project Root:   /workspace/service-core

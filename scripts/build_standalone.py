@@ -10,6 +10,7 @@ from pathlib import Path
 import platform
 import subprocess
 import sys
+import tempfile
 import time
 
 
@@ -69,6 +70,7 @@ def main() -> int:
     # Verification of subcommands
     print("\n[*] Validating Autonomous Subcommands Execution (Zero-Python Toolchain):")
     subcommands = [
+        ["--version"],
         ["--help"],
         ["proxy", "--help"],
         ["mcp", "--help"],
@@ -79,7 +81,7 @@ def main() -> int:
     for sub in subcommands:
         cmd = [str(dist_binary)] + sub
         try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=5.0)
+            proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20.0)
             status = "PASSED" if proc.returncode == 0 else f"FAILED (code {proc.returncode})"
             print(f"    - ctxfw {' '.join(sub):<18} => {status}")
             if proc.returncode != 0:
@@ -87,6 +89,37 @@ def main() -> int:
                 return 1
         except subprocess.TimeoutExpired:
             print(f"    - ctxfw {' '.join(sub):<18} => FAILED (Timeout)")
+            return 1
+
+    with tempfile.TemporaryDirectory(prefix="ctxfw_standalone_doctor_") as td:
+        td_path = Path(td)
+        iso_env = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in ("PYTHONHOME", "PYTHONPATH")
+        }
+        iso_env["LOCALAPPDATA"] = str(td_path / "localappdata")
+        iso_env["HOME"] = str(td_path / "home")
+        iso_env["USERPROFILE"] = str(td_path / "home")
+        iso_env["XDG_CACHE_HOME"] = str(td_path / "cache")
+        try:
+            doc_proc = subprocess.run(
+                [str(dist_binary), "doctor"],
+                env=iso_env,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=30.0,
+            )
+            doc_status = "PASSED" if doc_proc.returncode == 0 else f"FAILED (code {doc_proc.returncode})"
+            print(f"    - ctxfw {'doctor':<18} => {doc_status}")
+            if doc_proc.returncode != 0:
+                sys.stderr.write(doc_proc.stdout)
+                sys.stderr.write(doc_proc.stderr)
+                return 1
+        except subprocess.TimeoutExpired:
+            print(f"    - ctxfw {'doctor':<18} => FAILED (Timeout)")
             return 1
 
     print("\n[+] All subcommands verified. Zero-Python standalone package ready for fleet deployment!")

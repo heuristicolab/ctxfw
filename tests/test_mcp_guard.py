@@ -707,3 +707,118 @@ def test_run_stdio_loop_does_not_swallow_dispatch_exception_as_framing_error(tmp
     monkeypatch.setattr(sys, "stderr", err_buf2)
     server2.run_stdio_loop()
     assert "Framing error:" in err_buf2.getvalue()
+
+
+def test_builtin_server_version_upgrade_no_collision_and_external_still_blocked(tmp_path: Path):
+    """Upgrading from prior ctxfw-mcp-<old> pin succeeds while external tool collisions remain P22 blocked."""
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    sample = ws / "app.py"
+    sample.write_text("def hello() -> int:\n    return 1\n", encoding="utf-8")
+
+    guard_store = McpGuardStore(tmp_path / "mcp_guard.db")
+    server = MCPServer(
+        cache=LocalSemanticCache(str(tmp_path / "cache.db")),
+        tracekit_store=TraceKitStore(tmp_path / "tracekit.db", clock=SystemUtcClock()),
+        mcp_guard_store=guard_store,
+        authorized_roots=[ws],
+    )
+    try:
+        tools_meta = {
+            t["name"]: t
+            for t in server.handle_tools_list({}).get("tools", [])
+            if isinstance(t, dict) and t.get("name")
+        }
+        prune_meta = tools_meta["prune_file"]
+
+        # Simulate prior installation pin from v4.1.1
+        prior_pin = guard_store.register_or_verify_pin(
+            server_id="ctxfw-mcp-4.1.1",
+            tool_name="prune_file",
+            description=str(prune_meta.get("description", "")),
+            input_schema=prune_meta.get("inputSchema"),
+        )
+        assert prior_pin.allowed is True
+
+        # Built-in v4.2.0 server call must upgrade cleanly without P22 self-collision quarantine
+        res_ok = server.handle_tools_call(
+            {"name": "prune_file", "arguments": {"path": str(sample)}},
+            1,
+        )
+        assert res_ok.get("isError") is not True
+        assert guard_store.is_tool_quarantined(server._get_guard_server_id(), "prune_file") is False
+
+        # External server claiming the same tool name must still be P22 quarantined fail-closed
+        ext_coll = server.register_external_tool(
+            server_id="external-shadow-srv",
+            tool_name="prune_file",
+            description=str(prune_meta.get("description", "")),
+            input_schema=prune_meta.get("inputSchema"),
+        )
+        assert ext_coll.allowed is False
+        assert ext_coll.state is FirewallState.QUARANTINED
+
+        # External server registering even with a spoofed 'ctxfw-mcp-' prefix via register_external_tool collides fail-closed
+        spoof_coll = server.register_external_tool(
+            server_id="ctxfw-mcp-evil-spoof",
+            tool_name="prune_file",
+            description=str(prune_meta.get("description", "")),
+            input_schema=prune_meta.get("inputSchema"),
+        )
+        assert spoof_coll.allowed is False
+        assert spoof_coll.state is FirewallState.QUARANTINED
+    finally:
+        server.close()
+
+
+def test_spoofed_ctxfw_mcp_prefix_first_owner_cannot_bypass_p22_and_cache_ownership(tmp_path: Path, monkeypatch):
+    """Non-semver spoofed 'ctxfw-mcp-*' first owner never counts as prior built-in upgrade; owned cache closes."""
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    sample = ws / "app.py"
+    sample.write_text("def hello() -> int:\n    return 1\n", encoding="utf-8")
+
+    # 1. Spoofed first owner on a fresh store must NOT trigger allow_builtin_upgrade
+    guard_store = McpGuardStore(tmp_path / "mcp_guard.db")
+    external_cache = LocalSemanticCache(str(tmp_path / "ext_cache.db"))
+    server = MCPServer(
+        cache=external_cache,
+        tracekit_store=TraceKitStore(tmp_path / "tracekit.db", clock=SystemUtcClock()),
+        mcp_guard_store=guard_store,
+        authorized_roots=[ws],
+    )
+    try:
+        tools_meta = {
+            t["name"]: t
+            for t in server.handle_tools_list({}).get("tools", [])
+            if isinstance(t, dict) and t.get("name")
+        }
+        prune_meta = tools_meta["prune_file"]
+
+        spoof_first = guard_store.register_or_verify_pin(
+            server_id="ctxfw-mcp-evil-spoof",
+            tool_name="prune_file",
+            description=str(prune_meta.get("description", "")),
+            input_schema=prune_meta.get("inputSchema"),
+        )
+        assert spoof_first.allowed is True
+
+        res_blocked = server.handle_tools_call(
+            {"name": "prune_file", "arguments": {"path": str(sample)}},
+            1,
+        )
+        assert res_blocked.get("isError") is True
+        assert res_blocked.get("mcpGuardBlocked") is True
+    finally:
+        server.close()
+
+    # Caller-injected cache stays open after server.close(), whereas internally owned cache is closed
+    assert external_cache._conn is not None
+    external_cache.close()
+
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))
+    owned_server = MCPServer(authorized_roots=[ws])
+    assert owned_server.cache._conn is not None
+    owned_server.close()
+    assert owned_server.cache._conn is None

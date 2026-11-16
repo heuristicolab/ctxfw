@@ -1,6 +1,6 @@
 # manifest_hash: 0823534213f7266f79184a2f24e71680fd24cb9c5971f58eab7c2dd124023a7c
 """
-src/ctxfw/mcp.py — Model Context Protocol (MCP) Server over stdio (v4.1.1)
+src/ctxfw/mcp.py — Model Context Protocol (MCP) Server over stdio (v4.2.0)
 manifest_hash: 3e9a8cd3a47394da346736e20fe94bbab981f8df76aa35881452f8f064555cf1
 manifest_hash: 0823534213f7266f79184a2f24e71680fd24cb9c5971f58eab7c2dd124023a7c
 manifest_hash: e58711f27fcc24b86d00be174bced029f3ec73aab400897d6a7aa434782f335c
@@ -10,6 +10,8 @@ manifest_hash_wave1b: ebbcd0d607fa09a71dda690ea76104d762b3f279cde258f64917421d39
 manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
 manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
 manifest_hash_wave2e2: bc6e604a3faf8a75b3d6402b523047e481f35c0d62afca3056114337021196e0
+manifest_hash_v42: 57eb4cce57a5e01d7fcb3a8b23360658fea49d6025e0b22e9f9196731c1f7c84
+manifest_hash_v42_r2: cf0e30f7ed19bc43c700dc8f7d845c5f23011472fcd46d614602865b6be043d1
 Exposes deterministic context pruning, topological bundle resolution,
 axiomatic spec evaluation, SWE-Gate patch verification, and audit ledger querying
 to AI agents (Cursor, Claude Code, Windsurf) using JSON-RPC 2.0.
@@ -46,6 +48,9 @@ _SWEGATE_TOOLS = frozenset(
         "propose_patch",
         "refactor_patch",
     }
+)
+_BUILTIN_GUARD_SERVER_RE = re.compile(
+    r"^ctxfw-mcp-\d+\.\d+\.\d+(?:[._-]?(?:a|b|rc|post|dev)\d*)?$"
 )
 
 
@@ -126,6 +131,7 @@ class MCPServer:
                     resolved_auth_roots = tuple(canonicalize_mcp_path(p) for p in parts)
 
         self.running = True
+        self._owns_cache = cache is None
         self.cache = cache or LocalSemanticCache()
         self._tracekit_store = tracekit_store
         self._rules_store = rules_store
@@ -157,8 +163,8 @@ class MCPServer:
             in ("1", "true", "yes")
         )
         self._provenance_max_depth = max(1, min(64, int(provenance_max_depth)))
-        self._capability_profiles: Dict[str, Any] = (
-            dict(capability_profiles) if capability_profiles is not None else {}
+        self._capability_profiles: Dict[str, Any] = self._resolve_capability_profiles(
+            capability_profiles
         )
         self._sensitive_sink_tools: frozenset[str] = frozenset(
             sensitive_sink_tools
@@ -178,6 +184,52 @@ class MCPServer:
         """Return bounded deterministic server_id for MCP Guard pin ledger."""
         clean_ver = re.sub(r"[^a-zA-Z0-9_.-]", "_", str(__version__))
         return f"ctxfw-mcp-{clean_ver}"[:128]
+
+    def _resolve_capability_profiles(
+        self, capability_profiles: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Resolve explicit or env-configured ToolCapabilityProfile map fail-closed."""
+        if capability_profiles is not None:
+            return dict(capability_profiles)
+        raw_env = os.environ.get("CTXFW_CAPABILITY_PROFILES", "").strip()
+        if not raw_env:
+            return {}
+        if len(raw_env.encode("utf-8")) > 65536:
+            raise ValueError("CTXFW_CAPABILITY_PROFILES exceeds 65536-byte limit")
+        try:
+            parsed = json.loads(raw_env)
+        except Exception as exc:
+            raise ValueError(f"Invalid CTXFW_CAPABILITY_PROFILES JSON: {exc}") from exc
+        if not isinstance(parsed, dict) or len(parsed) > 128:
+            raise ValueError(
+                "CTXFW_CAPABILITY_PROFILES must be a JSON object with at most 128 tool entries"
+            )
+        from ctxfw.mcp_guard.contracts import ToolCapabilityProfile
+
+        default_server_id = self._get_guard_server_id()
+        resolved: Dict[str, Any] = {}
+        for tool_key, raw_profile in parsed.items():
+            if not isinstance(tool_key, str) or not tool_key:
+                raise ValueError(
+                    "CTXFW_CAPABILITY_PROFILES keys must be non-empty tool names"
+                )
+            if isinstance(raw_profile, ToolCapabilityProfile):
+                prof = raw_profile
+            elif isinstance(raw_profile, dict):
+                profile_data = dict(raw_profile)
+                profile_data.setdefault("server_id", default_server_id)
+                profile_data.setdefault("tool_name", tool_key)
+                prof = ToolCapabilityProfile.model_validate(profile_data)
+            else:
+                raise ValueError(
+                    f"CTXFW_CAPABILITY_PROFILES['{tool_key}'] must be an object"
+                )
+            if prof.tool_name != tool_key:
+                raise ValueError(
+                    f"CTXFW_CAPABILITY_PROFILES tool_name mismatch: key={tool_key!r} != {prof.tool_name!r}"
+                )
+            resolved[tool_key] = prof
+        return resolved
 
     def _get_mcp_guard_store(self):
         """Lazily initialize McpGuardStore on canonical or overridden mcp_guard.db path."""
@@ -822,6 +874,49 @@ class MCPServer:
         if self._enforce_provenance or self._provenance_store is not None:
             self._get_provenance_store().record_edge(session_id=session_id, edge=edge)
 
+    def _evaluate_capability_laundering_pre_execution(
+        self,
+        *,
+        tool_name: str,
+        arguments: Dict[str, Any],
+        guard_store: Any,
+        guard_server_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Gate 0d (#04): enforce declared vs. observed ToolCapabilityProfile for all tools."""
+        if tool_name not in self._capability_profiles:
+            return None
+        from ctxfw.mcp_guard.contracts import evaluate_capability_laundering
+
+        profile = self._capability_profiles[tool_name]
+        param_guard = self._param_binding_guards.get(tool_name)
+        if guard_store is not None:
+            cap_res = guard_store.evaluate_and_record_capability_laundering(
+                profile,
+                parameter_guard=param_guard,
+                raw_arguments=arguments,
+            )
+        else:
+            cap_res = evaluate_capability_laundering(
+                profile,
+                parameter_guard=param_guard,
+                raw_arguments=arguments,
+            )
+        if cap_res.laundering_detected or not cap_res.allowed:
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"CAPABILITY_LAUNDERING_BLOCKED: {cap_res.reason}",
+                    }
+                ],
+                "isError": True,
+                "policyViolation": True,
+                "capabilityLaundering": True,
+                "terminalState": cap_res.terminal_state.value,
+                "serverId": guard_server_id,
+            }
+        return None
+
     def _evaluate_provenance_and_capability_pre_execution(
         self,
         *,
@@ -830,39 +925,18 @@ class MCPServer:
         arguments: Dict[str, Any],
         guard_store: Any,
         guard_server_id: str,
+        check_capability: bool = True,
     ) -> Optional[Dict[str, Any]]:
         """Gate 0d: #04 capability laundering check and #31 causal provenance sink verification."""
-        if tool_name in self._capability_profiles:
-            from ctxfw.mcp_guard.contracts import evaluate_capability_laundering
-
-            profile = self._capability_profiles[tool_name]
-            param_guard = self._param_binding_guards.get(tool_name)
-            if guard_store is not None:
-                cap_res = guard_store.evaluate_and_record_capability_laundering(
-                    profile,
-                    parameter_guard=param_guard,
-                    raw_arguments=arguments,
-                )
-            else:
-                cap_res = evaluate_capability_laundering(
-                    profile,
-                    parameter_guard=param_guard,
-                    raw_arguments=arguments,
-                )
-            if cap_res.laundering_detected or not cap_res.allowed:
-                return {
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": f"CAPABILITY_LAUNDERING_BLOCKED: {cap_res.reason}",
-                        }
-                    ],
-                    "isError": True,
-                    "policyViolation": True,
-                    "capabilityLaundering": True,
-                    "terminalState": cap_res.terminal_state.value,
-                    "serverId": guard_server_id,
-                }
+        if check_capability:
+            cap_block = self._evaluate_capability_laundering_pre_execution(
+                tool_name=tool_name,
+                arguments=arguments,
+                guard_store=guard_store,
+                guard_server_id=guard_server_id,
+            )
+            if cap_block is not None:
+                return cap_block
 
         if not self._enforce_provenance:
             return None
@@ -943,15 +1017,36 @@ class MCPServer:
         ]
         combined_text = "\n".join(text_parts)
         san = LexicalSanitizer().sanitize(combined_text)
+        sara_verdict = str(result.get("saraVerdict") or "").upper()
         misaligned = bool(
             result.get("saraQuarantined")
+            or result.get("saraStripped")
+            or sara_verdict in ("STRIP_COMMANDS", "QUARANTINE_TOOL", "QUARANTINE")
             or san.escape_detected
             or len(san.role_override_markers) > 0
         )
         edges = self._session_provenance_edges.setdefault(session_id, [])
         step_idx = len(edges) + 1
+        prev_node = self._session_last_prov_node.get(session_id)
         ext_node = f"EXT_{tool_name}_{step_idx}"
         obs_node = f"OBS_{tool_name}_{step_idx}"
+        if (
+            isinstance(prev_node, str)
+            and prev_node
+            and prev_node != obs_node
+            and not prev_node.startswith("EXT_")
+            and not bool(result.get("isError"))
+        ):
+            ctx_edge = IntentExecGraphEdge(
+                edge_id=f"EDG-CTX-{step_idx:04d}",
+                src_node=prev_node,
+                dst_node=obs_node,
+                tool_name=tool_name,
+                alignment_status=AlignmentStatus.ALIGNED,
+                tool_succeeded=True,
+                payload_sha256=digest_payload_sha256(f"{prev_node}->{obs_node}"),
+            )
+            self.record_provenance_edge(session_id, ctx_edge)
         edge = IntentExecGraphEdge(
             edge_id=f"EDG-OBS-{step_idx:04d}",
             src_node=ext_node,
@@ -2532,11 +2627,23 @@ class MCPServer:
             }
             if guard_store is not None and tool_name in tools_meta_map:
                 t_meta = tools_meta_map[tool_name]
+                existing_owners = [
+                    str(pin_row.get("server_id", ""))
+                    for pin_row in guard_store.list_pins()
+                    if pin_row.get("tool_name") == tool_name
+                    and pin_row.get("server_id") != guard_server_id
+                ]
+                allow_builtin_upgrade = bool(
+                    existing_owners
+                    and _BUILTIN_GUARD_SERVER_RE.fullmatch(guard_server_id)
+                    and all(_BUILTIN_GUARD_SERVER_RE.fullmatch(owner) for owner in existing_owners)
+                )
                 pin_decision = guard_store.register_or_verify_pin(
                     server_id=guard_server_id,
                     tool_name=tool_name,
                     description=str(t_meta.get("description", "")),
                     input_schema=t_meta.get("inputSchema"),
+                    allow_cross_server_collision=allow_builtin_upgrade,
                 )
                 if not pin_decision.allowed:
                     self._record_security_trace(
@@ -2587,6 +2694,15 @@ class MCPServer:
                         "mcpGuardBlocked": True,
                     })
 
+        cap_block = self._evaluate_capability_laundering_pre_execution(
+            tool_name=str(tool_name),
+            arguments=arguments,
+            guard_store=guard_store,
+            guard_server_id=guard_server_id,
+        )
+        if cap_block is not None:
+            return ToolResult(cap_block)
+
         if tool_name == "query_audit_ledger":
             return ToolResult(self._handle_query_audit_ledger(arguments))
 
@@ -2617,6 +2733,7 @@ class MCPServer:
             arguments=arguments,
             guard_store=guard_store,
             guard_server_id=guard_server_id,
+            check_capability=False,
         )
         if provenance_block is not None:
             return ToolResult(provenance_block)
@@ -3189,8 +3306,26 @@ class MCPServer:
             return json.dumps(resp)
         return None
 
+    @staticmethod
+    def _ensure_utf8_stdio_stream(stream: Any) -> None:
+        """Reconfigure TextIOWrapper stdio streams to UTF-8 (safe no-op for StringIO mocks)."""
+        if stream is None:
+            return
+        enc = getattr(stream, "encoding", None)
+        if isinstance(enc, str) and enc.lower().replace("_", "-") in ("utf-8", "utf8"):
+            return
+        reconf = getattr(stream, "reconfigure", None)
+        if callable(reconf):
+            try:
+                reconf(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
     def run_stdio_loop(self):
         """Runs continuous JSON-RPC loop over sys.stdin and sys.stdout."""
+        self._ensure_utf8_stdio_stream(sys.stdin)
+        self._ensure_utf8_stdio_stream(sys.stdout)
+        self._ensure_utf8_stdio_stream(sys.stderr)
         print(f"[{self.SERVER_NAME}] Server listening on stdio (MCP v{self.PROTOCOL_VERSION})", file=sys.stderr, flush=True)
 
         try:
@@ -3247,6 +3382,11 @@ class MCPServer:
                     store.close()
                 except Exception:
                     pass
+        if getattr(self, "_owns_cache", False) and getattr(self, "cache", None) is not None:
+            try:
+                self.cache.close()
+            except Exception:
+                pass
 
 
 def main():

@@ -4,10 +4,10 @@
 # CTXFW // CONTEXT FIREWALL
 ### AI Agent Governance, Prompt Injection Firewall (`SARA`) & In-Memory AST Context Compactor for MCP Coding Agents
 
-[![PyPI - Version](https://img.shields.io/badge/PyPI-v4.1.1-blue?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/ctxfw/)
+[![PyPI - Version](https://img.shields.io/badge/PyPI-v4.2.0-blue?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/ctxfw/)
 [![PyPI - Downloads](https://img.shields.io/pepy/dt/ctxfw?style=for-the-badge&logo=pypi&logoColor=white&color=007ec6)](https://pepy.tech/project/ctxfw)
 [![Axiomatic Completeness Index](https://img.shields.io/badge/ACI-1.0000_VERIFIED-000000?style=for-the-badge&logo=shield)](https://ctxfw.heuristicolab.com)
-[![Tests](https://img.shields.io/badge/TESTS-529%2F529_PASSING-00C853?style=for-the-badge&logo=pytest)](https://pypi.org/project/ctxfw/)
+[![Tests](https://img.shields.io/badge/TESTS-565%2F565_PASSING-00C853?style=for-the-badge&logo=pytest)](https://pypi.org/project/ctxfw/)
 [![License](https://img.shields.io/badge/LICENSE-APACHE_2.0-black?style=for-the-badge)](LICENSE)
 [![Glama](https://glama.ai/mcp/servers/heuristicolab/ctxfw/badge)](https://glama.ai/mcp/servers/heuristicolab/ctxfw)
 [![Official MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.heuristicolab%2Fctxfw-00C853?style=for-the-badge&logo=anthropic&logoColor=white)](https://registry.modelcontextprotocol.io/v0/servers?search=ctxfw)
@@ -21,7 +21,7 @@
 [Installation](#installation--multi-surface-setup) • [Benchmarks](#ast-pruning-benchmarks) • [CTXFW vs. Cloud WAFs](#ai-agent-governance--prompt-injection-defense-ctxfw-vs-cloud-runtime-wafs) • [Diagnostic](#system-diagnostics) • [Architecture](#architecture) • [Enterprise Governance](#enterprise-governance)
 
 <p align="center">
-  <img src="logos/ctxfw_v411_live_demo.svg" alt="CTXFW v4.1.1 Live Terminal Demo — SARA Prompt Injection Gate (0.38ms), AST Context Pruner (-66.1%) & M2M Sovereign Vault" width="100%">
+  <img src="logos/ctxfw_v411_live_demo.svg" alt="CTXFW v4.2.0 Live Terminal Demo — SARA Prompt Injection Gate, Wave 2 Provenance & AST Context Pruner" width="100%">
 
 **⚡ 10K PyPI Milestone Launch:** Unlock standalone zero-dependency Layer-0 source capsules ([**`MCP-08` ($99)**](https://heuristicolab.com/api/v1/vault/checkout/mcp-schema-contract-gate?tier=single_99&lang=en) · [**`SARA-01` ($99)**](https://heuristicolab.com/api/v1/vault/checkout/sara-action-induction-runtime-auth?tier=single_99&lang=en) · [**`SWE-03` ($99)**](https://heuristicolab.com/api/v1/vault/checkout/swe-gate-ci-verifier?tier=single_99&lang=en) · *reg. $290*) or the [**🏆 10K Sovereign Bundle ($490 USD — 3 Capsules + 1m Squad)**](https://heuristicolab.com/api/v1/vault/checkout/bundle-10k?tier=bundle_490&lang=en) · [Live Vault Simulator ↗](https://heuristicolab.com/vault?utm_source=github_readme)
 </p>
@@ -95,7 +95,7 @@ Audited on remote Linux environments (`root@isolated-runner`, Ubuntu 24.04 LTS, 
 
 While cloud runtime firewalls (**Lakera Guard**, **Palo Alto Networks Prisma AIRS**, **Protect AI Guardian**, **Cloudflare Firewall for AI**) inspect HTTP traffic at the cloud API edge, **CTXFW** secures the **Pre-Ingestion Code, AST & MCP Tool Boundary locally (`Zero-Egress`)** before context ever leaves the developer machine or CI runner. Full comparative dossier: [`docs/benchmarks/SECURITY_VS_CLOUD_WAFS.md`](docs/benchmarks/SECURITY_VS_CLOUD_WAFS.md).
 
-| Capability / Security Dimension | **CTXFW (`Context Firewall v4.1.0`)** | **Lakera Guard** (`Check Point`) | **Palo Alto Prisma AIRS** | **Protect AI / Cloudflare AI WAF** |
+| Capability / Security Dimension | **CTXFW (`Context Firewall v4.2.0`)** | **Lakera Guard** (`Check Point`) | **Palo Alto Prisma AIRS** | **Protect AI / Cloudflare AI WAF** |
 | :--- | :--- | :--- | :--- | :--- |
 | **Enforcement Boundary** | **Pre-Ingestion Local AST & MCP Tool `stdio` / Proxy** | Cloud HTTP Prompt API | Cloud Network & Runtime API | Cloud Edge / ML Inference Proxy |
 | **Code & Data Sovereignty** | **100% Zero-Egress (Air-Gapped Local RAM & SQLite WAL)** | Requires Cloud API Egress | Cloud / Appliance Inspection | Cloud Proxy Egress |
@@ -108,10 +108,27 @@ While cloud runtime firewalls (**Lakera Guard**, **Palo Alto Networks Prisma AIR
 
 > **Entity Disambiguation & Independent Benchmark Verification Note:** **CTXFW (`Context Firewall` by Heurístico Lab — `pip install ctxfw` · [`github.com/heuristicolab/ctxfw`](https://github.com/heuristicolab/ctxfw) · [`heuristicolab.com`](https://heuristicolab.com))** is an open-core Python/Tree-Sitter AST & MCP governance engine. It is **not affiliated with** `ContextWall` (`contextwall.io`). Every CTXFW token-reduction (`-59.5%` on `ctxfw/cli.py`, `-66.90%` $D_1$ on `apache/airflow`, `-72.4%` interface stub compaction) and security recall (`100.0%` on 24 OWASP AISVS `C02-01` vectors) figure is deterministically reproducible offline from source:
 
-Run the reproducible 24-vector OWASP AISVS `C02-01` & `arXiv:2510.05244v2` Indirect Prompt Injection & Trojan-Source benchmark locally with zero network egress:
+Run the reproducible 24-vector OWASP AISVS `C02-01` & `arXiv:2510.05244v2` Indirect Prompt Injection benchmark and the **Wave 2 (`v4.2.0` Blocks A–E)** offline empirical suite locally with zero network egress:
 ```bash
-python benchmarks/run_sara_security_benchmark.py
+python benchmarks/run_sara_security_benchmark.py --json
+python benchmarks/run_wave2_v42_benchmark.py --json
 ```
+
+### Wave 2 Empirical Benchmark & Distribution Attestation (`v4.2.0`)
+
+Measured directly from clean non-editable `.whl` installation (`dist/ctxfw-4.2.0-py3-none-any.whl`) and standalone binary (`dist/ctxfw.exe`, `19` SQL/JSON assets embedded) in isolated SQLite WAL storage (`network_egress_calls = 0`). Full dossier: [`docs/benchmarks/WAVE2_V42_SECURITY_LATENCY_BENCHMARK.md`](docs/benchmarks/WAVE2_V42_SECURITY_LATENCY_BENCHMARK.md).
+
+| Verification Suite / Target | Measured Scope & Invariants | Recall / Savings | FPR | P50 / P95 Latency |
+| :--- | :--- | :---: | :---: | :---: |
+| **`run_sara_security_benchmark.py`** | 24 vectors (`16` adversarial + `8` benign) | **`100.0%` Recall** | **`0.0%`** | `0.57 ms` / `1.5696 ms` |
+| **`run_wave2_v42_benchmark.py` (Block A)** | `mcp_guard` rug-pull (`5/5`), poison (`30`), confinement + `junction` (`30`) | **`1.0` (`100%`)** | **`0.0%`** | `0.042 ms` / `1.087 ms` |
+| **`run_wave2_v42_benchmark.py` (Blocks B+D)** | `PASAC`, `TaskAuth` DPoP anti-replay + epoch `#28`, `Cadence AIMD` `[2,4,6,8,8,2]` | **`5/5`** each | `0.0%` | `P95: 18.333 / 3.682 / 2.847 ms` |
+| **`run_wave2_v42_benchmark.py` (Block C)** | `TraceLite` (`2,237 -> 393` tok, `5.692x`) & `Snapshots` rollback invalidation | **`82.43%` trace cut** | — | `P95: 8.65 / 15.422 ms` |
+| **`run_wave2_v42_benchmark.py` (Block E)** | `#31 Provenance`, `#04 Containment`, `#13` 8-category multilingual (`45` adv / `35` polyglot) | **`1.0` (`100%`)** | **`0.0%`** | `P95: 1.637 / 0.901 / 1.276 ms` |
+| **`ctxfw benchmark C:\ctxfw\src`** | 80 Python modules (`6,914,785 -> 2,044,783` tokens across 500 cycles) | **`-70.4%`** (`4.87M tok/cyc`) | — | `19,748.63 ms` total |
+| **`ctxfw benchmark chronos-engine`** | 90 Spanish UTF-8 modules (`856,475 -> 385,363` tokens across 500 cycles) | **`-55.0%`** (`471k tok/cyc`) | — | `2,605.14 ms` total |
+
+> **Live E2E Stdio Parity (`.whl` `ctxfw mcp` & `dist\ctxfw.exe mcp`, `CTXFW_ENFORCE_PROVENANCE=1`, `PYTHONUTF8` unset):** Identical pass (`exit 0`) on `initialize` (`4.2.0`), UTF-8 Spanish `prune_file`, Gate `0d` `query_audit_ledger` block (`CAPABILITY_LAUNDERING_BLOCKED`), and fail-closed multi-hop `apply_patch` block (`PROVENANCE_IPI_BLOCKED: IPI_CONFIRMED`).
 
 ---
 
@@ -124,7 +141,7 @@ pip install --upgrade ctxfw
 pipx install ctxfw
 ```
 
-### 2. Multi-Surface MCP Auto-Configuration (v4.1.0)
+### 2. Multi-Surface MCP Auto-Configuration (v4.2.0)
 Run `ctxfw init` or dedicated installation command `ctxfw install --claude` for automated zero-touch discovery and idempotent injection across your installed coding surfaces:
 ```bash
 # Targeted Claude Code CLI & Claude Desktop auto-installation:
@@ -201,7 +218,7 @@ ctxfw doctor
 ========================================================================
   CTXFW DOCTOR // HIGH-ASSURANCE HEALTH & ISOLATION DIAGNOSTIC
 ========================================================================
-[PASS]   Python Package & sys.path        ctxfw v4.1.0 loaded cleanly.
+[PASS]   Python Package & sys.path        ctxfw v4.2.0 loaded cleanly.
 [PASS]   MCP stdio Stream Isolation       100% pure JSON-RPC on stdout. Diagnostic logs isolated to stderr.
 [PASS]   Global CLI Executable (PATH)     Binary 'ctxfw' found in PATH.
 [PASS]   Axiomatic Sieve Engine           Evaluation verified (ACI: 1.0000, Invariants: 5).
@@ -257,19 +274,23 @@ PROBABILISTIC DOMAIN                      DETERMINISTIC PERIMETER
                                            [ & Git Permitted ]   [ Pre-Commit Abort]
 ```
 
-### Key Subsystems (v4.1.0 Sovereign Pentad):
+### Key Subsystems (v4.2.0 Sovereign Pentad + Wave 2 Defense Blocks A–E):
 1. **Polyglot Tree-Sitter Pruner & $D_3$ Ambient Cartography**:
    - Compiles topological dependency trees ($D_0$ full, $D_1$ interface, $D_2$ nominal, $D_3$ flat symbol catalog $\le 1,000$ tokens) across **Python**, **TypeScript/JavaScript**, **Go**, and **Java**.
 2. **TraceKit Cryptographic Ledger (`ctxfw.audit`)**:
    - Append-only 283-byte canonical SHA-256 hash-chained audit ledger (`tracekit.db`) with tamper latch verification via `ctxfw trace verify`.
-3. **TokenCast Integer Forecaster & Circuit Breaker (`ctxfw.budget`)**:
-   - Zero-float integer trajectory predictor and reactive circuit breaker (`CLOSED` $\to$ `TRIPPED` / `FORCE_D3_PRUNING` $\to$ `HALTED` / `EMERGENCY_HALT`).
-4. **Normative Rules Compiler & Enforcer (`ctxfw.rules`)**:
-   - Compiles `.cursorrules` and `CLAUDE.md` negative directives into deterministic AST/path/command/import guards with 3-round iterative path-traversal normalization.
-5. **SARA Agent Induction Firewall (`ctxfw.sara`)**:
-   - Inspects untrusted tool observations for indirect prompt injection, role overrides (`<system>`, `[INST]`), and Trojan-Source bidi escapes (`ALLOW`, `STRIP_COMMANDS`, `QUARANTINE_TOOL`).
+3. **TokenCast Integer Forecaster, Circuit Breaker & Cadence AIMD (`ctxfw.budget`)**:
+   - Zero-float integer trajectory predictor, circuit breaker (`CLOSED` $\to$ `TRIPPED` / `FORCE_D3_PRUNING` $\to$ `HALTED`), and deterministic AIMD cadence scheduler (`cadence.py`).
+4. **Normative Rules Compiler & MCP Guard (`ctxfw.rules`, `ctxfw.mcp_guard`)**:
+   - Compiles `.cursorrules` and `CLAUDE.md` negative directives into deterministic AST/path/command/import guards, paired with SHA-256 rug-pull pinning, OS symlink/junction confinement, `PoC-1/2/3` paired dynamic containment, and Gate `0d` `ToolCapabilityProfile` anti-laundering enforcement (`CTXFW_CAPABILITY_PROFILES`).
+5. **SARA Induction Firewall, Causal Provenance & Multilingual Hygiene (`ctxfw.sara`)**:
+   - Inspects untrusted tool observations across 7 languages (`es`, `fr`, `de`, `pt`, `zh`, `ja`, `ko`) and intra-token Cyrillic/Greek confusables with `0.0%` polyglot UTF-8 FPR, enforces `DPoP` anti-replay & monotonic epoch freshness (`#28`), and executes backward-BFS multi-hop causal provenance (`provenance.py`) blocking delayed IPI payloads even across `STRIP_COMMANDS` chains.
 6. **SWE-Gate CI Verifier (`ctxfw.swegate`) & Audit Ledger Retrieval (`query_audit_ledger`)**:
-   - Deterministic unified-diff and architectural regression verifier enforcing cyclomatic complexity delta bounds, disallowed module imports, and `# type: ignore` bans via `evaluate_patch`, paired with read-only forensic inspection of `SweGateStore` (`EVL-...`) and `TraceKitStore` (`SES-...`) via `query_audit_ledger`.
+   - Deterministic unified-diff and architectural regression verifier enforcing cyclomatic complexity delta bounds, disallowed module imports, and `# type: ignore` bans via `evaluate_patch`, paired with Gate `0d`-guarded inspection via `query_audit_ledger`.
+7. **TraceLite & Rollback Snapshots (`ctxfw.tracelite`, `ctxfw.storage.snapshots`)**:
+   - Compacts verbose multi-step observation trajectories (`82.43%` token cut) and invalidates stale SQLite semantic cache epochs automatically on snapshot rollback.
+
+Release notes: [`docs/RELEASE_NOTES_v4.2.0.md`](docs/RELEASE_NOTES_v4.2.0.md).
 
 ---
 
@@ -291,7 +312,7 @@ Deploys `.git/hooks/pre-commit` to prevent uncertified code commits lacking an a
 
 ---
 
-## Enterprise Governance, Sovereign Capsules & CI/CD Gate (`v4.1.1`)
+## Enterprise Governance, Sovereign Capsules & CI/CD Gate (`v4.2.0`)
 
 ### ⚡ 10K PyPI Milestone Offer: Production Sovereign Capsules (`$99 USD` Single / `$490 USD` Bundle)
 Need standalone, zero-dependency Python/FastAPI/SQLite-WAL enforcement modules (12 SHA-256 sealed artifacts + 100% passing Pytest suite) ready to drop into your repository?

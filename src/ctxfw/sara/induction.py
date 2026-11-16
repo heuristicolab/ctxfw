@@ -7,6 +7,7 @@ manifest_hash (M3-P3): 8d94151e921e2f8eaacb440cb3c1b0d4e0ff6ac80fa217e5830de1c1e
 manifest_hash_wave1a: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
 manifest_hash_wave2e2: bc6e604a3faf8a75b3d6402b523047e481f35c0d62afca3056114337021196e0
+manifest_hash_v42_r2: cf0e30f7ed19bc43c700dc8f7d845c5f23011472fcd46d614602865b6be043d1
 Scans untrusted tool observations for imperative shell commands, file path access,
 role-override injections, and hidden escape sequences. Computes a deterministic
 risk_score in [0.0, 1.0] (strictly rejecting NaN/Inf) under default-deny policy rules.
@@ -84,7 +85,7 @@ _ROLE_IGNORE_RE = re.compile(
     r"|\b(?:ignore|ignorar|esque\u00e7a|esqueca|desconsidere)\s+(?:todas\s+)?(?:as\s+)?instru(?:\u00e7\u00f5es|coes)\s+(?:anteriores|pr\u00e9vias|previas)\b"
     r"|(?:忽略|无视|無視)(?:所有)?(?:之前|先前|以前|前面)的?(?:指令|指示|提示)"
     r"|(?:以前|これまで|先ほど|すべて)の指示を(?:無視|忘れ)(?:して|せよ|しろ)?"
-    r"|(?:이전|기존)\s*지시(?:사항)?을?\s*무시(?:하세요|해라|해)?)",
+    r"|(?:이전|기존)\s*지시(?:사항)?[을를]?\s*무시(?:하세요|해라|하고|해)?)",
     re.IGNORECASE,
 )
 

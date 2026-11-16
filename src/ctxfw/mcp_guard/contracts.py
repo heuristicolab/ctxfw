@@ -1,6 +1,7 @@
 # manifest_hash: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 # manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
 # manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
+# manifest_hash_v42: 57eb4cce57a5e01d7fcb3a8b23360658fea49d6025e0b22e9f9196731c1f7c84
 """
 ctxfw.mcp_guard.contracts — Axiomatic Contracts, FSM & Deterministic Security Engines
 =======================================================================================
@@ -122,6 +123,7 @@ class OracleVerdict(str, Enum):
 class FirewallState(str, Enum):
     """Deterministic finite-state machine states for ctxfw.mcp_guard."""
 
+    ALLOW = "ALLOW"
     UNVERIFIED = "UNVERIFIED"
     PINNED = "PINNED"
     INSPECTION_PASSED = "INSPECTION_PASSED"

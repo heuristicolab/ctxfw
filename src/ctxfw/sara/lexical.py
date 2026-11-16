@@ -6,6 +6,7 @@ manifest_hash (M3-P2): 8f925c1e7c680c7af68e6f3daa48a5ac734923438762ed8836878a975
 manifest_hash (M3-P3): 8d94151e921e2f8eaacb440cb3c1b0d4e0ff6ac80fa217e5830de1c1edec1b13
 manifest_hash (W2-D1): ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
 manifest_hash (W2-E2): bc6e604a3faf8a75b3d6402b523047e481f35c0d62afca3056114337021196e0
+manifest_hash_v42_r2: cf0e30f7ed19bc43c700dc8f7d845c5f23011472fcd46d614602865b6be043d1
 Normalizes untrusted tool observations via Unicode NFKC, strips zero-width,
 invisible, and bidirectional override characters, removes ANSI CSI escape
 sequences, enforces the 64 KB ceiling and NUL-byte prohibition, detects
@@ -282,7 +283,7 @@ ROLE_OVERRIDE_RE = re.compile(
     r"|\b(?:ignore|ignorar|esque\u00e7a|esqueca|desconsidere)\s+(?:todas\s+)?(?:as\s+)?instru(?:\u00e7\u00f5es|coes)\s+(?:anteriores|pr\u00e9vias|previas)\b"
     r"|(?:忽略|无视|無視)(?:所有)?(?:之前|先前|以前|前面)的?(?:指令|指示|提示)"
     r"|(?:以前|これまで|先ほど|すべて)の指示を(?:無視|忘れ)(?:して|せよ|しろ)?"
-    r"|(?:이전|기존)\s*지시(?:사항)?을?\s*무시(?:하세요|해라|해)?)",
+    r"|(?:이전|기존)\s*지시(?:사항)?[을를]?\s*무시(?:하세요|해라|하고|해)?)",
     re.IGNORECASE,
 )
 

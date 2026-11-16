@@ -330,3 +330,43 @@ Lifecycle states and transition map $\delta(S, E)$ governing deterministic AIMD 
 6. Language selector validation (`validate_language_tag`) shall never accept unbounded, newline-injected, or path/script-containing strings outside `LANGUAGE_TAG_RE` (`[2..35]` chars).
 7. `sara/__init__.py` shall never load `provenance` or `provenance_store` eagerly at import time so cold-import RSS stays under `< 45 MB`.
 8. Block E.2 changes shall never introduce `# type: ignore`, CRLF bytes, mandatory runtime dependencies, or mutations to Gate G9 sealed vendored files.
+
+## Appendix J — Release Packaging, Standalone Hardening & Wave 2 Empirical Benchmark (v4.2.0)
+- **Status**: `VERIFIED` | **ACI**: `1.0000`
+- **manifest_hash**: `5797b5fd9df0b81be0cd88fc2c995331951fe8829dc7965d7e55a1da8ed43a22`
+- **attested_release_hashes**: `57eb4cce57a5e01d7fcb3a8b23360658fea49d6025e0b22e9f9196731c1f7c84`, `cf0e30f7ed19bc43c700dc8f7d845c5f23011472fcd46d614602865b6be043d1`, `c9f28afc9543f48b94ca316d0a6cbedbf1f4baaa979ae9b033f2c36902e8c9ae`
+
+### J.1 Domain Bounds
+- `bundled_sql_and_json_assets`: integer bounded in `[19..64]` SQL schema (`13`) and JSON blueprint/matrix (`6`) assets embedded identically in wheel and PyInstaller TOC.
+- `capability_profiles_env_bytes`: integer bounded in `[0..65536]` UTF-8 bytes for `CTXFW_CAPABILITY_PROFILES` (`<= 128` tool entries).
+- `standalone_probe_timeout_sec`: integer bounded in `[5..60]` seconds for frozen `ctxfw doctor` stdio handshake and CLI subcommand verification.
+- `benchmark_iterations`: integer bounded in `[1..1000]` offline WAL measurement iterations with `network_egress_calls == 0`.
+
+### J.2 Finite-State Machine
+- States: `SOURCE_VERIFIED` -> `ASSETS_BUNDLED` -> `STDIO_UTF8_BOUND` -> `GATE0D_AND_PROVENANCE_ENFORCED` -> terminal (`RELEASE_READY`, `PACKAGING_DRIFT_REJECTED`, `ENV_PROFILE_REJECTED`, `PROVENANCE_IPI_BLOCKED`, `CAPABILITY_LAUNDERING_BLOCKED`).
+- Transitions `delta(S, E)`:
+  - `delta(SOURCE_VERIFIED, COLLECT_ASSETS_PASS) = ASSETS_BUNDLED`
+  - `delta(ASSETS_BUNDLED, RECONFIGURE_UTF8_STDIO) = STDIO_UTF8_BOUND`
+  - `delta(STDIO_UTF8_BOUND, ENV_PROFILE_MALFORMED) = ENV_PROFILE_REJECTED`
+  - `delta(STDIO_UTF8_BOUND, GATE0D_PREEXEC_CHECK) = GATE0D_AND_PROVENANCE_ENFORCED`
+  - `delta(GATE0D_AND_PROVENANCE_ENFORCED, LAUNDERING_HIT) = CAPABILITY_LAUNDERING_BLOCKED`
+  - `delta(GATE0D_AND_PROVENANCE_ENFORCED, IPI_CONFIRMED) = PROVENANCE_IPI_BLOCKED`
+  - `delta(GATE0D_AND_PROVENANCE_ENFORCED, BENCHMARK_AND_E2E_PASS) = RELEASE_READY`
+
+### J.3 Error Taxonomy
+- Class 1 (Transient Fault): Frozen binary startup extraction delay -> Bounded probe timeout (`<= 30s`) failing closed to non-zero exit if stdio handshake fails.
+- Class 2 (Deterministic Input Fault): Invalid `CTXFW_CAPABILITY_PROFILES` JSON, payload `> 65536` bytes, key mismatch, or missing target path -> Synchronous `ValueError` / fail-closed rejection.
+- Class 3 (Business & Packaging Violation): Missing SQL schema or blueprint manifest in wheel/EXE TOC, SQLite DDL failure across `src/ctxfw/**/*.sql`, or doc/test count parity drift -> Release gate failure (`exit != 0`).
+- Class 4 (Security & Isolation Violation): Multi-hop `saraStripped` / `STRIP_COMMANDS` ancestry reaching sink tool, non-semver spoofed `ctxfw-mcp-*` pin collision, or Gate 0d capability laundering on `query_audit_ledger` -> Terminal block prior to execution.
+
+### J.4 Negative Invariants (Floor of 6 Verified)
+1. Frozen PyInstaller execution (`ctxfw.exe doctor`) shall never invoke `[sys.executable, "-m", "ctxfw.mcp"]`; it shall resolve `[sys.executable, "mcp"]` and pack all `19` SQL and blueprint JSON assets.
+2. `MCPServer.run_stdio_loop()` shall never leave piped `sys.stdin`, `sys.stdout`, or `sys.stderr` on `cp1252` when processing UTF-8 JSON-RPC frames.
+3. `_resolve_capability_profiles` and `_evaluate_capability_laundering_pre_execution` shall never execute `query_audit_ledger` before Gate 0d checks or accept malformed/oversized `CTXFW_CAPABILITY_PROFILES` payloads.
+4. `_record_post_tool_provenance` shall never sever causal session edges across `saraStripped` / `STRIP_COMMANDS` observations or omit `prev_node -> obs_node` links on subsequent clean reads before sink verification.
+5. Built-in server pin upgrades shall never relax P22 cross-server collision checks for server IDs outside strict semver `^ctxfw-mcp-\d+\.\d+\.\d+(?:[._-]?(?:a|b|rc|post|dev)\d*)?$`.
+6. `benchmarks/run_wave2_v42_benchmark.py` shall never initiate network calls or emit non-deterministic attestation SHA-256 digests across identical runs.
+
+### J.5 Formal Proof & Cryptographic Attestation
+- Inductive invariance proof over the finite-state machine guarantees no incomplete distribution bundle, malformed `CTXFW_CAPABILITY_PROFILES` payload, or broken multi-hop provenance trace can reach `RELEASE_READY`.
+- Deterministic SHA-256 seals bind wheel/EXE TOC parity (`19` SQL/JSON assets) and offline benchmark ledgers.

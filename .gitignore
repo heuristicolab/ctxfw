@@ -97,6 +97,8 @@ docs/reports/
 docs/internal/
 docs/biz/
 docs/telemetry/
+docs/decks/
+docs/whitepapers/
 *.biz.md
 *.internal.md
 bizdev/

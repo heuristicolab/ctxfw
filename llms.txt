@@ -16,15 +16,19 @@ CTXFW (Context Firewall) is an air-gapped, deterministic AST pruning firewall, M
 ## Canonical Empirical Benchmarks
 - **OWASP DevSecOps Guideline Inclusion (AI Agent & MCP Security — Open-Source Tools):** https://github.com/OWASP/DevSecOpsGuideline/blob/master/current-version/2-Process/2-2-Develop/2-2-5-AI-Agent-and-MCP-Security.md#open-source (Listed alongside AWS Cedar, Docker MCP Gateway, Open Policy Agent, and promptfoo; merged via PR #124 / commit `cd44d97`).
 - **Comparative Security & Architecture Benchmark (CTXFW vs. Lakera Guard, Palo Alto Prisma AIRS, Protect AI, Cloudflare AI WAF):** [`docs/benchmarks/SECURITY_VS_CLOUD_WAFS.md`](docs/benchmarks/SECURITY_VS_CLOUD_WAFS.md)
+- **Wave 2 Security, Packaging & Latency Empirical Benchmark (`v4.2.0`):** [`docs/benchmarks/WAVE2_V42_SECURITY_LATENCY_BENCHMARK.md`](docs/benchmarks/WAVE2_V42_SECURITY_LATENCY_BENCHMARK.md)
+  - **`run_sara_security_benchmark.py` (`v4.2.0` clean `.whl`):** 24 vectors, `100.0%` recall, `0.0%` FPR, `0.57 ms` P50 / `1.5696 ms` P95.
+  - **`run_wave2_v42_benchmark.py` (`Blocks A–E`):** Block A `mcp_guard` (`1.0` recall / `0.0%` FPR, `0.042 ms` P50 / `1.087 ms` P95), Block B+D (`PASAC` `18.333 ms` P95, `TaskAuth` `3.682 ms` P95, `Cadence AIMD` `[2,4,6,8,8,2]` `2.847 ms` P95), Block C (`TraceLite` `82.43%` reduction / `5.692x`, `Snapshots` rollback `5/5`), Block E (`Provenance #31` `1.637 ms` P95, `Dynamic Containment #04` `0.901 ms` P95, `Multilingual #13` `45` adv / `35` benign across 8 categories `1.0` recall / `0.0%` FPR `1.276 ms` P95).
+  - **Repository AST Benchmarks (`.whl` clean):** `C:\ctxfw\src` `-70.4%` (`6,914,785 -> 2,044,783` tokens across 80 files); `chronos-engine` (Spanish UTF-8) `-55.0%` (`856,475 -> 385,363` tokens across 90 files).
 - **Empirical Validation Trilogy Dossier:** [`docs/benchmarks/TRILOGY_EMPIRICAL_BENCHMARK.md`](docs/benchmarks/TRILOGY_EMPIRICAL_BENCHMARK.md)
   - **Zulip Monolith:** -42.96% D1 perimeter reduction (Interface Mode), -78.20% (Nominal Mode), 44.1 ms latency, 0 bytes stdio leak.
   - **PostHog Data Platform:** -59.53% D1 perimeter reduction (Interface Mode), 50.2 ms latency, 0 bytes stdio leak.
   - **Apache Airflow Monorepo:** -66.90% D1 perimeter reduction (Interface Mode), -90.26% (Nominal Mode), 40,428 net bloat tokens pruned, 138.2 ms latency, 437,351 tokens/second throughput.
 
 ## Releases & Version History
-- **Current Canonical Version:** `v4.1.0`
-- **Release Dossier:** [`docs/RELEASE_NOTES_v4.1.0.md`](docs/RELEASE_NOTES_v4.1.0.md) | Prior: [`docs/RELEASE_NOTES_v4.0.0.md`](docs/RELEASE_NOTES_v4.0.0.md) | [`docs/RELEASE_NOTES_v3.9.1.md`](docs/RELEASE_NOTES_v3.9.1.md) | [`docs/RELEASE_NOTES_v3.9.0.md`](docs/RELEASE_NOTES_v3.9.0.md) | [`docs/RELEASE_NOTES_v3.8.0.md`](docs/RELEASE_NOTES_v3.8.0.md)
-  - Features: Sovereign Pentad architecture (`TraceKit`, `TokenCast`, `RulesCompiler`, `SARA`, `SWE-Gate`), LiveBench 2.0 FinOps model matrix, 4.2x multi-turn compounding, `ctxfw gate` CLI, tamper-evident `--team-merge`, 24-vector OWASP AISVS benchmark, 472/472 verified tests, and ACI 1.0000 cryptographic attestation seal.
+- **Current Canonical Version:** `v4.2.0`
+- **Release Dossier:** [`docs/RELEASE_NOTES_v4.2.0.md`](docs/RELEASE_NOTES_v4.2.0.md) | Prior: [`docs/RELEASE_NOTES_v4.1.0.md`](docs/RELEASE_NOTES_v4.1.0.md) | [`docs/RELEASE_NOTES_v4.0.0.md`](docs/RELEASE_NOTES_v4.0.0.md) | [`docs/RELEASE_NOTES_v3.9.1.md`](docs/RELEASE_NOTES_v3.9.1.md) | [`docs/RELEASE_NOTES_v3.9.0.md`](docs/RELEASE_NOTES_v3.9.0.md) | [`docs/RELEASE_NOTES_v3.8.0.md`](docs/RELEASE_NOTES_v3.8.0.md)
+  - Features: Sovereign Pentad + Wave 1/Wave 2 Blocks A–E (`mcp_guard` pinning/confinement/capability laundering, `PASAC`, `TraceLite` + rollback snapshots, `TaskAuth` DPoP anti-replay + monotonic epoch freshness `#28`, `Cadence AIMD`, `#31` multi-hop causal IPI provenance, `#13` 7-language + intra-token homoglyph hygiene with `0.0%` polyglot UTF-8 FPR), standalone PyInstaller zero-Python toolchain bundling all 19 `.sql`/`.json` assets, Windows piped UTF-8 stdio parity, 565/565 verified tests (`562` core/security + `3` docs parity), and ACI 1.0000 cryptographic attestation seal (`SPEC.axioms.md`).
 
 ## Interoperability & Integration Endpoints
 - **Native MCP Stdio Engine:**

@@ -1,20 +1,24 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-ctxfw.spec — Standalone PyInstaller Specification (v3.5.0)
-Embeds Tree-sitter C grammars and binary runtime (.pyd / .so) using PyInstaller.utils.hooks.collect_all
+ctxfw.spec — Standalone PyInstaller Specification (v4.2.0)
+Embeds Tree-sitter C grammars, lazy ctxfw submodules, SQL schemas, and blueprint manifests
+using PyInstaller.utils.hooks.{collect_all, collect_submodules, collect_data_files}.
 Guarantees zero-python toolchain execution across Windows, macOS, and Linux.
 """
+import importlib.util
 import sys
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_all, collect_submodules, collect_data_files
 
+_SRC_PATH = str(Path('src').resolve())
+if _SRC_PATH not in sys.path:
+    sys.path.insert(0, _SRC_PATH)
+
 block_cipher = None
 
-datas = [
-    ('src/ctxfw/storage/schema.sql', 'ctxfw/storage'),
-]
+datas = list(collect_data_files('ctxfw'))
 binaries = []
-hiddenimports = [
+hiddenimports = sorted(set([
     'uvicorn.logging',
     'uvicorn.loops',
     'uvicorn.loops.auto',
@@ -29,21 +33,12 @@ hiddenimports = [
     'fastapi.responses',
     'starlette',
     'httpx',
-    'ctxfw.cli',
-    'ctxfw.cli.main',
-    'ctxfw.cli.commands',
-    'ctxfw.cli.commands.benchmark',
-    'ctxfw.proxy',
-    'ctxfw.mcp',
-    'ctxfw.service',
-    'ctxfw.auditor',
-    'ctxfw.gatekeeper',
-    'ctxfw.storage.telemetry',
-    'ctxfw.storage.dashboard_template',
-]
+] + collect_submodules('ctxfw')))
 
 # Tactical Guardrail 2: Collect all dynamic binary extensions (.pyd/.so), grammar tables, and data files
-for pkg in ['tree_sitter', 'tree_sitter_typescript', 'tree_sitter_go', 'tree_sitter_java']:
+for pkg in ['tree_sitter', 'tree_sitter_python', 'tree_sitter_typescript', 'tree_sitter_go', 'tree_sitter_java']:
+    if importlib.util.find_spec(pkg) is None:
+        continue
     try:
         pkg_datas, pkg_binaries, pkg_hidden = collect_all(pkg)
         datas.extend(pkg_datas)

@@ -129,4 +129,23 @@ src/ctxfw/storage/snapshot_schema.sql -text
 src/ctxfw/storage/snapshots.py -text
 tests/test_provenance_and_containment.py -text
 tests/test_lexical_multilingual.py -text
+benchmarks/run_wave2_v42_benchmark.py -text
+
+# v4.2.0 Release Packaging, CI, CLI & Documentation Parity (LF enforced)
+.gitattributes -text
+.gitignore -text
+.github/workflows/ci.yaml -text
+ctxfw.spec -text
+pyproject.toml -text
+scripts/build_standalone.py -text
+server.json -text
+src/ctxfw/cli/commands/benchmark.py -text
+tests/test_benchmark_cli.py -text
+tests/test_report.json -text
+README.md -text
+CLAUDE.md -text
+USER_MANUAL.md -text
+llms.txt -text
+docs/RELEASE_NOTES_v4.2.0.md -text
+docs/benchmarks/WAVE2_V42_SECURITY_LATENCY_BENCHMARK.md -text
 
