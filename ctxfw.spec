@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-ctxfw.spec — Standalone PyInstaller Specification (v4.2.0)
+ctxfw.spec — Standalone PyInstaller Specification (v4.2.1)
 Embeds Tree-sitter C grammars, lazy ctxfw submodules, SQL schemas, and blueprint manifests
 using PyInstaller.utils.hooks.{collect_all, collect_submodules, collect_data_files}.
 Guarantees zero-python toolchain execution across Windows, macOS, and Linux.

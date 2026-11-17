@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ctxfw"
-version = "4.2.0"
+version = "4.2.1"
 description = "AI Agent Governance, Prompt Injection Firewall (SARA) & Deterministic AST Context Compactor for MCP Coding Agents"
 readme = "README.md"
 requires-python = ">=3.10"

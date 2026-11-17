@@ -8,6 +8,9 @@ manifest_hash_wave1a: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d3
 manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
 manifest_hash_wave2e2: bc6e604a3faf8a75b3d6402b523047e481f35c0d62afca3056114337021196e0
 manifest_hash_v42_r2: cf0e30f7ed19bc43c700dc8f7d845c5f23011472fcd46d614602865b6be043d1
+manifest_hash_v421: f4a77d5537c6c3c60f982ed30b8dd7d6892b3c55a33c338ffb8f2f818de93700
+manifest_hash_v421_r2: 0d461122028fae32834105661bd6ef929a773e98766e8ebac9a97bc674c786fa
+manifest_hash_v421_r3: 52cb3286fbc6f596c84e0d3c83790db7cb64decc34d1f50fe8c9cbf234363f28
 Scans untrusted tool observations for imperative shell commands, file path access,
 role-override injections, and hidden escape sequences. Computes a deterministic
 risk_score in [0.0, 1.0] (strictly rejecting NaN/Inf) under default-deny policy rules.
@@ -32,8 +35,13 @@ from ctxfw.sara.contracts import (
     RawToolObservationDTO,
 )
 from ctxfw.sara.lexical import (
+    _ROLE_IGNORE_PATTERN,
+    LOCALIZED_ROLE_DIRECTIVE_LOOKAHEAD,
     ROLE_OVERRIDE_RE,
     LexicalSanitizer,
+    detect_intra_token_confusables,
+    fold_confusables,
+    is_declarative_legal_repeal,
 )
 
 # Architectural aliases
@@ -77,25 +85,17 @@ _ROLE_CLOSING_RE = re.compile(
     re.IGNORECASE,
 )
 
-_ROLE_IGNORE_RE = re.compile(
-    r"(?:\b(?:ignore|disregard|forget|override)\s+(?:all\s+)?(?:previous|prior)\s+instructions\b"
-    r"|\b(?:ignora|ignorar|olvida|olvidar|omite|omitir|anula|anular)\s+(?:todas\s+)?(?:las\s+)?instrucciones\s+(?:anteriores|previas)\b"
-    r"|\b(?:ignore[zr]?|oublie[zr]?)\s+(?:toutes\s+)?(?:les\s+)?instructions\s+(?:pr\u00e9c\u00e9dentes|precedentes|ant\u00e9rieures|anterieures)\b"
-    r"|\b(?:ignoriere|ignorieren\s+Sie|vergiss|vergesse[n]?)\s+(?:alle\s+)?(?:vorherigen|bisherigen|fr\u00fcheren|fruheren)\s+Anweisungen\b"
-    r"|\b(?:ignore|ignorar|esque\u00e7a|esqueca|desconsidere)\s+(?:todas\s+)?(?:as\s+)?instru(?:\u00e7\u00f5es|coes)\s+(?:anteriores|pr\u00e9vias|previas)\b"
-    r"|(?:忽略|无视|無視)(?:所有)?(?:之前|先前|以前|前面)的?(?:指令|指示|提示)"
-    r"|(?:以前|これまで|先ほど|すべて)の指示を(?:無視|忘れ)(?:して|せよ|しろ)?"
-    r"|(?:이전|기존)\s*지시(?:사항)?[을를]?\s*무시(?:하세요|해라|하고|해)?)",
-    re.IGNORECASE,
-)
+_ROLE_IGNORE_RE = re.compile(_ROLE_IGNORE_PATTERN, re.IGNORECASE)
 
 _ROLE_OPENING_RE = re.compile(
     r"(?:<system>|<\|im_start\|>|<\|system\|>|\[INST\]|<tool_call>"
     r"|<\s*(?:INST|DATA)\s+(?:BEGIN|END)\s*>"
     r"|\b(?:System|Assistant|Developer):"
-    r"|(?:^|\n)\s*(?:Sistema|Asistente|Desarrollador"
+    r"|(?:^|\n)[ \t]*(?:Sistema|Asistente|Desarrollador"
     r"|Syst\u00e8me|Systeme|D\u00e9veloppeur|Developpeur"
-    r"|Assistent|Entwickler|Assistente|Desenvolvedor):)",
+    r"|Assistent|Entwickler|Assistente|Desenvolvedor):"
+    + LOCALIZED_ROLE_DIRECTIVE_LOOKAHEAD
+    + r")",
     re.IGNORECASE,
 )
 
@@ -123,20 +123,59 @@ _IMPERATIVE_RE = re.compile(
     r"|\b(?:please\s+)?(?:run|execute|invoke|exec)\s*:\s*(?!(?:bool|int|float|str|bytes|list|dict|set|tuple|object|type|none|any|optional|union|sequence|mapping|callable|iterable|iterator|final|literal|classvar|path)\b)(?![a-z_][a-z0-9_]*\s*(?:[=,)\[]|->))([a-z/][a-z0-9_./-]*(?:\s+[^\n;`]*)?)"
     r"|(?<!\bimport\s)(?<!\bfrom\s)(?<!\bdef\s)(?<!\bclass\s)\b((?:ls|grep|git|chmod|chown|kubectl|docker|wget|curl|pip|npm|whoami|uname|netstat|printenv|ssh|scp|nc|ncat|socat|rm)\s+(?![=:(\[,]|(?:import|in|is|and|or|not|as)\b)[^\n;`|&]+)"
     r"|\b((?:cat|find|echo|head|tail|kill|cp|mv|rm|bash|sh|python3?)\s+(?:-[a-zA-Z0-9-]+|/[a-zA-Z0-9_./-]+|\.\.?/[a-zA-Z0-9_./-]+|\.[a-zA-Z0-9_.-]+|['\"][^\n'\"]+['\"])[^\n;`|&]*)"
-    r"|(?:^|[;|]|&&|\|\|)\s*((?:ls|pwd|whoami|id|uname|env|printenv|bash|sh)\b(?:\s+(?![=:(.,\[])[^\n;`|&]*)?(?=\s*(?:$|[;|`&]))))",
+    r"|(?:^|[;|]|&&|\|\|)\s*((?:ls|pwd|whoami|uname|env|printenv|bash|sh)\b(?:\s+(?![=:(.,\[])[^\n;`|&]*)?(?=\s*(?:$|[;|`&])))"
+    r"|^\s*((?-i:id)(?:\s+-(?:[ugGnrZ]+|-(?:user|group|groups|name|real|zero|context|help|version))\b(?:\s+[a-z_][a-z0-9_.-]{0,31})?)?(?=\s*(?:$|[;|`&])))"
+    r"|(?:[;|]|&&|\|\|)\s*((?-i:id)\b(?:\s+(?:-[a-zA-Z-]+|[a-z_][a-z0-9_.-]{0,31}))*(?=\s*(?:$|[;|`&]))))",
     re.IGNORECASE | re.MULTILINE,
 )
 
-# 5. File path access & path traversal patterns (excluding URLs and XML/role closing tags)
+# 5. File path access & path traversal patterns (excluding URLs, XML closing tags & numeric folios)
 _PATH_RE = re.compile(
     r"(?:(?<![a-zA-Z0-9_./-])(?:\.\./)+[a-zA-Z0-9_./-]*"
     r"|(?<![<\[a-zA-Z0-9_:/.-])(?:/[a-zA-Z0-9_.-]+)+(?:/\.\.)+(?:/[a-zA-Z0-9_./-]*)?"
     r"|(?<![<\[a-zA-Z0-9_:/.-])/(?:etc|var|tmp|usr|bin|sbin|opt|root|home|proc|sys|dev|srv|mnt|media|run|boot|lib|app|workspace|data|private)(?:/[a-zA-Z0-9_.-]+)+"
     r"|(?<![<\[a-zA-Z0-9_:/.-])/(?:etc|var|tmp|usr|bin|sbin|opt|root|home|proc|sys|dev)\b"
-    r"|(?<![<\[a-zA-Z0-9_:/.-])/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_./-]+"
-    r"|(?<![a-zA-Z0-9_./-])(?:\.env(?:\.[a-zA-Z0-9_-]+)?|\.ssh/[a-zA-Z0-9_.-]+|\.aws/[a-zA-Z0-9_.-]+))",
+    r"|(?<![<\[a-zA-Z0-9_:/.-])(?=/[a-zA-Z0-9_./-]*[a-zA-Z])/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_./-]+"
+    r"|(?<![a-zA-Z0-9_.-])(?:/?\.env(?:\.[a-zA-Z0-9_-]+)?|/?\.ssh/[a-zA-Z0-9_.-]+|/?\.aws/[a-zA-Z0-9_.-]+))",
     re.IGNORECASE,
 )
+
+_ENCODED_PATH_HINT_RE = re.compile(r"%[0-9a-fA-F]{2}")
+_ENCODED_TOKEN_RE = re.compile(
+    r"[^\s'\"`<>()\[\]{},;=:]*%[0-9a-fA-F]{2}[^\s'\"`<>()\[\]{},;=:]*"
+)
+
+
+def _unquote_bounded(raw_text: str, max_rounds: int = 4) -> str:
+    cur = raw_text
+    for _ in range(max_rounds):
+        nxt = urllib.parse.unquote(cur)
+        if nxt == cur:
+            break
+        cur = nxt
+    return cur.replace("\\", "/")
+
+
+def _iter_path_candidates(clean_text: str) -> list[tuple[str, int, int]]:
+    encoded_spans: list[tuple[int, int]] = []
+    encoded_candidates: list[tuple[str, int, int]] = []
+    seen_texts: set[str] = set()
+    if _ENCODED_PATH_HINT_RE.search(clean_text):
+        for tok in _ENCODED_TOKEN_RE.finditer(clean_text):
+            decoded = _unquote_bounded(tok.group(0), max_rounds=4)
+            for m in _PATH_RE.finditer(decoded):
+                val = m.group(0).strip()[:MAX_DIRECTIVE_TEXT_CHARS]
+                if val not in seen_texts:
+                    encoded_candidates.append((val, tok.start(), tok.end()))
+                    seen_texts.add(val)
+                    encoded_spans.append(tok.span())
+    candidates: list[tuple[str, int, int]] = [
+        (m.group(0).strip()[:MAX_DIRECTIVE_TEXT_CHARS], m.start(), m.end())
+        for m in _PATH_RE.finditer(clean_text)
+        if not _overlaps(m.start(), m.end(), encoded_spans)
+    ]
+    candidates.extend(encoded_candidates)
+    return candidates
 
 _CHAINING_OPERATORS = (";", "|", "&&", "||", "$(", "`", ">", "<")
 _LINE_CONTINUATION_RE = re.compile(r"\\\r?\n")
@@ -430,6 +469,8 @@ class InductionParser:
         for m in _ROLE_RE.finditer(clean_text):
             if len(tier_critical) >= MAX_DIRECTIVES_PER_OBS:
                 break
+            if is_declarative_legal_repeal(clean_text, m.start(), m.end()):
+                continue
             text_val = m.group(0).strip()[:MAX_DIRECTIVE_TEXT_CHARS]
             if not text_val:
                 continue
@@ -463,78 +504,81 @@ class InductionParser:
                 )
             )
 
-        # 3. Scan cmd_scan_text for destructive SHELL_COMMAND
-        destructive_spans: list[tuple[int, int]] = []
-        for m in _DESTRUCTIVE_RE.finditer(cmd_scan_text):
-            if len(tier_critical) >= MAX_DIRECTIVES_PER_OBS:
-                break
-            text_val = m.group(0).strip()[:MAX_DIRECTIVE_TEXT_CHARS]
-            if not text_val:
-                continue
-            destructive_spans.append((m.start(), m.end()))
-            start_off, end_off = _clamp_span(m.start(), m.end())
-            tier_critical.append(
-                InductionDirectiveDTO(
+        # 3. Scan cmd_scan_text (and confusable-folded text if intra-token homoglyphs present) for SHELL_COMMAND
+        confusable_cmd_texts = (
+            tuple(dict.fromkeys((cmd_scan_text, fold_confusables(cmd_scan_text))))
+            if detect_intra_token_confusables(clean_text)
+            else (cmd_scan_text,)
+        )
+
+        seen_cmd_spans: list[tuple[int, int]] = []
+        for scan_cmd_text in confusable_cmd_texts:
+            for m in _DESTRUCTIVE_RE.finditer(scan_cmd_text):
+                if _overlaps(m.start(), m.end(), seen_cmd_spans):
+                    continue
+                text_val = m.group(0).strip()[:MAX_DIRECTIVE_TEXT_CHARS]
+                if len(tier_critical) < MAX_DIRECTIVES_PER_OBS:
+                    seen_cmd_spans.append(m.span())
+                    start_off, end_off = _clamp_span(m.start(), m.end())
+                    tier_critical.append(
+                        InductionDirectiveDTO(
+                            directive_kind=DirectiveKind.SHELL_COMMAND,
+                            directive_text=text_val,
+                            start_offset=start_off,
+                            end_offset=end_off,
+                            confidence=0.95,
+                            within_allowlist=False,
+                        )
+                    )
+
+        # 4. Scan cmd_scan_text (and folded text if homoglyphs present) for imperative SHELL_COMMAND
+        for scan_cmd_text in confusable_cmd_texts:
+            for m in _IMPERATIVE_RE.finditer(scan_cmd_text):
+                if _overlaps(m.start(), m.end(), seen_cmd_spans):
+                    continue
+                raw_cmd = next((g for g in m.groups() if g is not None), m.group(0))
+                text_val = raw_cmd.strip()[:MAX_DIRECTIVE_TEXT_CHARS]
+                if not text_val:
+                    continue
+                seen_cmd_spans.append(m.span())
+                is_destructive = bool(_DESTRUCTIVE_RE.search(text_val))
+                is_subshell = m.group(2) is not None
+                is_chained = bool(
+                    is_subshell
+                    or _TRAILING_CHAIN_RE.match(scan_cmd_text[m.end() :])
+                    or _LEADING_CHAIN_RE.search(scan_cmd_text[: m.start()])
+                )
+                in_allow = (
+                    False
+                    if (is_destructive or is_chained)
+                    else _is_command_allowlisted(text_val, allowed_cmds, allowed_paths)
+                )
+                start_off, end_off = _clamp_span(m.start(), m.end())
+                directive = InductionDirectiveDTO(
                     directive_kind=DirectiveKind.SHELL_COMMAND,
                     directive_text=text_val,
                     start_offset=start_off,
                     end_offset=end_off,
-                    confidence=0.95,
-                    within_allowlist=False,
+                    confidence=0.95 if is_destructive else 0.85,
+                    within_allowlist=in_allow,
                 )
-            )
+                target_tier = (
+                    tier_critical
+                    if is_destructive
+                    else (tier_allowlisted_cmd if in_allow else tier_unallowlisted)
+                )
+                if len(target_tier) < MAX_DIRECTIVES_PER_OBS:
+                    target_tier.append(directive)
 
-        # 4. Scan cmd_scan_text for imperative / general SHELL_COMMAND
-        for m in _IMPERATIVE_RE.finditer(cmd_scan_text):
-            if _overlaps(m.start(), m.end(), destructive_spans):
-                continue
-            raw_cmd = next((g for g in m.groups() if g is not None), m.group(0))
-            text_val = raw_cmd.strip()[:MAX_DIRECTIVE_TEXT_CHARS]
-            if not text_val:
-                continue
-            is_destructive = bool(_DESTRUCTIVE_RE.search(text_val))
-            is_subshell = m.group(2) is not None
-            is_chained = bool(
-                is_subshell
-                or _TRAILING_CHAIN_RE.match(cmd_scan_text[m.end() :])
-                or _LEADING_CHAIN_RE.search(cmd_scan_text[: m.start()])
-            )
-            in_allow = (
-                False
-                if (is_destructive or is_chained)
-                else _is_command_allowlisted(text_val, allowed_cmds, allowed_paths)
-            )
-            start_off, end_off = _clamp_span(m.start(), m.end())
-            directive = InductionDirectiveDTO(
-                directive_kind=DirectiveKind.SHELL_COMMAND,
-                directive_text=text_val,
-                start_offset=start_off,
-                end_offset=end_off,
-                confidence=0.95 if is_destructive else 0.85,
-                within_allowlist=in_allow,
-            )
-            if is_destructive:
-                if len(tier_critical) < MAX_DIRECTIVES_PER_OBS:
-                    tier_critical.append(directive)
-            elif not in_allow:
-                if len(tier_unallowlisted) < MAX_DIRECTIVES_PER_OBS:
-                    tier_unallowlisted.append(directive)
-            else:
-                if len(tier_allowlisted_cmd) < MAX_DIRECTIVES_PER_OBS:
-                    tier_allowlisted_cmd.append(directive)
-
-        # 5. Scan clean_text for FILE_PATH_ACCESS
-        for m in _PATH_RE.finditer(clean_text):
+        # 5. Scan clean_text (plus bounded 4-pass URL-unquoted %XX tokens) for FILE_PATH_ACCESS
+        for text_val, raw_start, raw_end in _iter_path_candidates(clean_text):
             if (
                 len(tier_unallowlisted) >= MAX_DIRECTIVES_PER_OBS
                 and len(tier_allowlisted_path) >= MAX_DIRECTIVES_PER_OBS
             ):
                 break
-            text_val = m.group(0).strip()[:MAX_DIRECTIVE_TEXT_CHARS]
-            if not text_val:
-                continue
             in_allow = _is_path_allowlisted(text_val, allowed_paths)
-            start_off, end_off = _clamp_span(m.start(), m.end())
+            start_off, end_off = _clamp_span(raw_start, raw_end)
             directive = InductionDirectiveDTO(
                 directive_kind=DirectiveKind.FILE_PATH_ACCESS,
                 directive_text=text_val,

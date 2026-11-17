@@ -149,3 +149,13 @@ llms.txt -text
 docs/RELEASE_NOTES_v4.2.0.md -text
 docs/benchmarks/WAVE2_V42_SECURITY_LATENCY_BENCHMARK.md -text
 
+# v4.2.1 Regulatory/OCR Hardening & Release Parity (LF enforced)
+SPEC.axioms.md -text
+benchmarks/run_regulatory_ocr_benchmark.py -text
+docs/benchmarks/REGULATORY_LEGAL_OCR_BENCHMARK.md -text
+docs/RELEASE_NOTES_v4.2.1.md -text
+tests/test_sara_v421_regdoc_hardening.py -text
+tests/conftest.py -text
+tests/test_docs_parity.py -text
+tests/test_ci_gatekeeper.py -text
+

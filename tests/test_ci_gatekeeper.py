@@ -126,9 +126,11 @@ def test_cli_execution_with_output_file_zero_leak_bytes(repo_fixture: Path, tmp_
         "--generate-pre-commit", str(pre_commit_file),
     ]
 
+    repo_root = Path(__file__).resolve().parent.parent
+
     res = subprocess.run(
         cmd,
-        cwd=str(Path.cwd()),
+        cwd=str(repo_root),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -150,6 +152,7 @@ def test_cli_execution_with_output_file_zero_leak_bytes(repo_fixture: Path, tmp_
 
     ci_out = tmp_path / "ci_gatekeeper_summary.md"
     mock_out = io.StringIO()
+    monkeypatch.chdir(repo_fixture)
     monkeypatch.setattr("sys.stdout", mock_out)
     exit_code = handle_report_command(["--ci-markdown", "--output", str(ci_out)])
     assert exit_code == 0

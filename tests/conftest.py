@@ -34,5 +34,6 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
     report_path = Path(config.rootdir) / "tests" / "test_report.json"
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(report_path, "w", encoding="utf-8") as f:
+    with open(report_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(report_data, f, indent=2)
+        f.write("\n")
