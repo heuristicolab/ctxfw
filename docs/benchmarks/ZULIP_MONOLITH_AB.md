@@ -10,29 +10,29 @@
 ---
 
 ## 1. Executive Summary
-To audit the resilience and deterministic behavior of the semantic context firewall across densely coupled monolithic architectures, a multi-depth destructive A/B evaluation was conducted on Zulip's core user model (`zerver/models/users.py`, focal target $D_0$) and its transitive dependency graph across 4 depth levels ($D_0, D_1, D_2, D_3$).
+To audit the resilience and deterministic behavior of the semantic context firewall across densely coupled monolithic architectures, a multi-depth destructive A/B evaluation was conducted on Zulip's core user model (`zerver/models/users.py`, focal target D0) and its transitive dependency graph across 4 depth levels (D0, D1, D2, D3).
 
 The empirical evaluation verified:
-1. **Inviolable Preservation of $D_0$ (AXIOM-3):** Active focal target remains 100% byte-for-byte identical (0.00% elision, P95 latency: 4.666 ms).
+1. **Inviolable Preservation of D0 (AXIOM-3):** Active focal target remains 100% byte-for-byte identical (0.00% elision, P95 latency: 4.666 ms).
 2. **Deterministic Perimeter Pruning:** Token reduction scales predictably:
-   - **$D_1$ (Direct Interface):** 45,279 tokens (55.86% reduction vs. raw).
-   - **$D_2$ (Transitive Nominal):** 287,845 tokens (76.64% reduction vs. raw).
-   - **$D_3$ (Ambient Cartography):** 83,913 net tokens delivered (Symbol index: 774 tokens, 87 symbols injected).
-3. **Sub-25ms SLA Latency (CA-01):** Full $D_3$ ambient resolution with SQLite WAL and L1 cache completes in **11.61 ms** (P50: **9.855 ms**).
+   - **D1 (Direct Interface):** 45,279 tokens (55.86% reduction vs. raw).
+   - **D2 (Transitive Nominal):** 287,845 tokens (76.64% reduction vs. raw).
+   - **D3 (Ambient Cartography):** 83,913 net tokens delivered (Symbol index: 774 tokens, 87 symbols injected).
+3. **Sub-25ms SLA Latency (CA-01):** Full D3 ambient resolution with SQLite WAL and L1 cache completes in **11.61 ms** (P50: **9.855 ms**).
 4. **Absolute Syntactic Integrity:** 100% of pruned modules pass `ast.parse() == True` with zero syntax errors or import breaks.
 
 ---
 
-## 2. Comparative Token Telemetry ($D_0 \longrightarrow D_3$)
+## 2. Comparative Token Telemetry (D0 -> D3)
 
 | Depth Layer | Processed Modules | Raw Tokens | Injected Tokens | Savings vs Raw | P50 Latency | P95 Latency | Syntactic Format |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| **$D_0$ (Active Focal)** | 1 | 12,909 | **12,909** | **0.0%** | 4.171 ms | 4.666 ms | 100% intact Python source |
-| **$D_1$ (Direct Interface)** | 10 | 102,583 | **45,279** | **55.86%** | 5.312 ms | 5.694 ms | Method bodies elided to `...` |
-| **$D_2$ (Transitive Nominal)** | 339 | 1,232,364 | **287,845** | **76.64%** | 30.744 ms | 34.916 ms | Nominal class declarations |
-| **$D_3$ (Ambient Cartography)**| 61 | 328,539 | **83,913** | **74.46%** | 9.855 ms | **11.61 ms** | Zero-syntax symbol index |
+| **D0 (Active Focal)** | 1 | 12,909 | **12,909** | **0.0%** | 4.171 ms | 4.666 ms | 100% intact Python source |
+| **D1 (Direct Interface)** | 10 | 102,583 | **45,279** | **55.86%** | 5.312 ms | 5.694 ms | Method bodies elided to `...` |
+| **D2 (Transitive Nominal)** | 339 | 1,232,364 | **287,845** | **76.64%** | 30.744 ms | 34.916 ms | Nominal class declarations |
+| **D3 (Ambient Cartography)**| 61 | 328,539 | **83,913** | **74.46%** | 9.855 ms | **11.61 ms** | Zero-syntax symbol index |
 
-### Sample Ambient Manifest ($D_3$):
+### Sample Ambient Manifest (D3):
 ```python
 ### AMBIENT MANIFEST [D3] (Zero-Syntax Symbol Index)
 # Compact symbol index for 3-hop transitive dependencies. Bodies and signatures omitted.
@@ -46,11 +46,11 @@ corporate.lib.registration: [check_spare_license_available_for_changing_guest_us
 
 | Criterion | Required Specification | Measured Telemetry | Verdict |
 | :--- | :--- | :---: | :---: |
-| **CA-01** | $D_3$ resolution P95 latency $\le 25.0\text{ ms}$ | **11.61 ms** | **`[PASS]`** |
-| **CA-02** | Zero focal degradation in $D_0$ | **100% byte-for-byte identical** | **`[PASS]`** |
+| **CA-01** | D3 resolution P95 latency <= 25 ms | **11.61 ms** | **`[PASS]`** |
+| **CA-02** | Zero focal degradation in D0 | **100% byte-for-byte identical** | **`[PASS]`** |
 | **CA-03** | MCP stdio stream purity (0 bytes to `stdout`) | **0 bytes** (100% pure JSON-RPC) | **`[PASS]`** |
 | **CA-04** | Syntactic integrity (`ast.parse`) | **100% PASS** across all layers | **`[PASS]`** |
-| **AXIOM-19** | $D_3$ ambient manifest token ceiling $\le 1,000$ tok | **774 tokens** (87 symbols) | **`[PASS]`** |
+| **AXIOM-19** | D3 ambient manifest token ceiling <= 1,000 tok | **774 tokens** (87 symbols) | **`[PASS]`** |
 
 ---
 *Report emitted under Heurístico LAB Sovereign Governance Protocol.*  

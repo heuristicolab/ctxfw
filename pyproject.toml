@@ -51,17 +51,38 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://ctxfw.heuristicolab.com"
-Documentation = "https://github.com/heuristicolab/ctxfw#readme"
+Documentation = "https://github.com/heuristicolab/ctxfw/blob/main/docs/README.md"
 Repository = "https://github.com/heuristicolab/ctxfw"
 Issues = "https://github.com/heuristicolab/ctxfw/issues"
-Changelog = "https://github.com/heuristicolab/ctxfw/releases"
+Changelog = "https://github.com/heuristicolab/ctxfw/blob/main/CHANGELOG.md"
+Security = "https://github.com/heuristicolab/ctxfw/blob/main/SECURITY.md"
 
 [project.optional-dependencies]
+polyglot = [
+    "tree-sitter-typescript>=0.21.0",
+    "tree-sitter-go>=0.21.0",
+    "tree-sitter-java>=0.21.0",
+]
+proxy = [
+    "fastapi>=0.100.0",
+    "httpx>=0.24.0",
+    "uvicorn>=0.20.0",
+]
+all = [
+    "tree-sitter-typescript>=0.21.0",
+    "tree-sitter-go>=0.21.0",
+    "tree-sitter-java>=0.21.0",
+    "fastapi>=0.100.0",
+    "httpx>=0.24.0",
+    "uvicorn>=0.20.0",
+]
 test = [
     "pytest>=8.0.0",
 ]
 dev = [
     "pytest>=8.0.0",
+    "twine>=5.0.0",
+    "readme_renderer[md]>=44.0",
 ]
 
 [project.scripts]
@@ -74,9 +95,12 @@ packages = ["src/ctxfw"]
 include = [
     "/src/ctxfw",
     "/README.md",
+    "/CHANGELOG.md",
+    "/SECURITY.md",
+    "/CONTRIBUTING.md",
+    "/USER_MANUAL.md",
     "/LICENSE",
     "/pyproject.toml",
-    "/.gitattributes",
     "/glama.json",
     "/server.json",
     "/SPEC.axioms.md"

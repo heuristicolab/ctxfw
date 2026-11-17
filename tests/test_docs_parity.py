@@ -32,7 +32,7 @@ def get_core_version() -> str:
 
 
 def test_version_parity_across_repository():
-    """Valida que la versión sea idéntica en pyproject.toml, __init__.py, README y USER_MANUAL."""
+    """Valida que la versión sea idéntica en pyproject.toml, __init__.py, README, USER_MANUAL y CHANGELOG."""
     version = get_core_version()
 
     # 1. pyproject.toml
@@ -48,13 +48,24 @@ def test_version_parity_across_repository():
 
     assert pyproject_version == version, f"Desfase en pyproject.toml: {pyproject_version} != {version}"
 
-    # 2. README.md
+    # 2. README.md (version, PyPI-safe absolute links, valid anchors, zero raw LaTeX)
     readme_text = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     assert f"v{version}" in readme_text or f"ctxfw-{version}" in readme_text, f"README.md no menciona la versión v{version}"
+    for m in re.finditer(r'!?\[[^\]]*\]\(([^)]+)\)|<img[^>]+src=["\']([^"\']+)["\']', readme_text):
+        tgt = (m.group(1) or m.group(2) or "").strip()
+        assert tgt.startswith(("https://", "mailto:", "#")), f"Enlace relativo roto en PyPI (README.md): {tgt}"
+    headings = {h.strip().lower().translate(str.maketrans({" ": "-", "`": "", "*": "", "_": "", "~": "", "&": "", ":": "", ",": "", ".": "", "(": "", ")": "", "/": ""})) for h in re.findall(r"^#{1,6}\s+(.+)$", readme_text, flags=re.M)}
+    for anc in re.findall(r"\]\(#([^)]+)\)", readme_text):
+        assert anc in headings, f"Ancla rota en README.md: #{anc}"
 
-    # 3. USER_MANUAL.md
+    # 3. USER_MANUAL.md + governance docs parity (Google OSS packaging standard)
     manual_text = (REPO_ROOT / "USER_MANUAL.md").read_text(encoding="utf-8")
     assert version in manual_text, f"USER_MANUAL.md no menciona la versión {version}"
+    for txt in (readme_text, manual_text):
+        assert not re.search(r"\\(?:ge|le|text)\b", txt), "Raw LaTeX encontrado en README.md o USER_MANUAL.md"
+    for gov_name in ("CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "docs/README.md"):
+        assert (REPO_ROOT / gov_name).is_file(), f"Falta archivo estándar de gobernanza OSS: {gov_name}"
+    assert version in (REPO_ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), f"CHANGELOG.md no documenta {version}"
 
 
 def test_llms_txt_contains_canonical_references():
@@ -69,6 +80,12 @@ def test_llms_txt_contains_canonical_references():
         if not link.startswith("http"):
             target_path = REPO_ROOT / link
             assert target_path.is_file(), f"Enlace roto en llms.txt: {link} no existe en disco"
+
+    # Ningún archivo en docs/ debe contener rutas locales file:/// ni CRLF
+    for doc_md in (REPO_ROOT / "docs").rglob("*.md"):
+        raw = doc_md.read_bytes()
+        assert b"\r" not in raw, f"CRLF detectado en {doc_md}"
+        assert "file:///" not in raw.decode("utf-8"), f"Ruta local file:/// detectada en {doc_md}"
 
 
 

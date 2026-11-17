@@ -1,71 +1,78 @@
-# Context & Token Optimization Engine — Canonical Operating Manual & Runbook (v3.0)
-### Target System: `ord-2026-4f003b` | Heuristico LAB Sovereign Core
+# CTXFW Operating Manual & Architecture Runbook (`v4.2.1`)
 
-[![Security Review](https://img.shields.io/badge/Security-Air--Gapped%20Certified-00ff66?style=flat-square)]()
-[![Spec Version](https://img.shields.io/badge/Version-4.2.1-blue?style=flat-square)]()
-[![Compliance](https://img.shields.io/badge/Compliance-NDA%20%26%20IP%20Shield-purple?style=flat-square)]()
+[![PyPI Version](https://img.shields.io/pypi/v/ctxfw?style=flat-square&label=PyPI)](https://pypi.org/project/ctxfw/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/ctxfw?style=flat-square)](https://pypi.org/project/ctxfw/)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-black?style=flat-square)](LICENSE)
 
-> **Release Notes (`v4.2.1`):** [`docs/RELEASE_NOTES_v4.2.1.md`](docs/RELEASE_NOTES_v4.2.1.md) · **Suite Status:** `667/667` tests passing · **Standalone EXE:** `14.18 MB` (`19` embedded SQL/JSON assets)
-
----
-
-## 1. Executive Security Blueprint: Data Plane vs. Control Plane (HU-15)
-
-The Context Firewall architecture establishes strict sovereign isolation between the **Data Plane** (source code, ASTs, and file structures) and the **Control Plane** (telemetry, token counts, and upstream LLMs).
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        SOVEREIGN DATA PLANE (Strictly Local)                          │
-│                                                                                        │
-│  [Source Tree] ──► [AST/Tree-sitter Pruner] ──► [Local SQLite WAL Cache]               │
-│                            │                                                           │
-│                            ▼                                                           │
-│               [Sanitized Contractual Stubs]                                            │
-│               - Bodies replaced by PEP 484 (...)                                       │
-│               - Precondition raises sanitized: raise ValueError("...")                 │
-│               - Zero internal algorithmic secrets or strings leaked                    │
-└────────────────────────────────────┬───────────────────────────────────────────────────┘
-                                     │
-                                     ▼ (Sanitized Slices Only)
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                         CONTROL PLANE (Upstream / Delivery)                            │
-│                                                                                        │
-│  [Agent Interfaces: MCP / Proxy / CLI] ──► [Upstream LLMs: OpenAI / Anthropic]        │
-│                                        └──► [FinOps Ledger: tests/finops_audit.json]   │
-└────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Inviolable Institutional Guarantees
-1. **Zero Outbound Data Plane Emission (Air-Gapped):** Raw module code, internal algorithm implementations, and private database credentials never leave `localhost`. Only sanitized interfaces and contract stubs are emitted to downstream prompt contexts.
-2. **Secret Neutralization in `raise` Statements:** All dynamic string interpolations and sensitive error tokens inside exception arguments are replaced with generic ellipsis strings (`raise ExceptionType("...")`).
-3. **Local-Only FinOps Accounting:** Financial metrics are computed locally via character-to-token projection models ($max(1, \text{chars} // 4)$) at a standard baseline ($3.00 USD / 1M tokens), with zero third-party tracking calls.
+> **Current Version:** `ctxfw v4.2.1` · **Release Notes:** [`docs/RELEASE_NOTES_v4.2.1.md`](docs/RELEASE_NOTES_v4.2.1.md) · **Suite Status:** `667/667` tests passing · **Standalone Windows Binary:** `14.18 MB` (`19` embedded `.sql`/`.json` assets)
 
 ---
 
-## 2. Multi-Surface MCP & Zero-MCP Proxy Setup (HU-09 // v4.2.1 Industrial Architecture)
+## 1. Security Blueprint: Data Plane vs. Control Plane
 
-The Context Firewall exposes deterministic context compaction capabilities to autonomous coding agents across standard I/O (`sys.stdin` / `sys.stdout`) using JSON-RPC 2.0 (MCP Protocol Version `2024-11-05`), as well as transparent HTTP reverse proxy routing.
+`ctxfw` enforces strict deterministic isolation between the **Sovereign Data Plane** (source code, syntax trees, tool outputs, and local SQLite WAL stores) and the **Upstream Control Plane** (LLM API payloads and FinOps accounting):
 
-### A. Automated Multi-Surface Installation (`ctxfw init` / `ctxfw install`)
+```text
++------------------------------------------------------------------------------+
+| SOVEREIGN DATA PLANE (Local CPU & RAM — Zero Network Egress)                 |
+|                                                                              |
+|  [Source Tree / Tool IO] --> [SARA + LexicalSanitizer] --> [AST Pruner]      |
+|                                       |                        |             |
+|                                       v                        v             |
+|                            [TraceKit SHA-256 WAL]    [Typed D1-D3 Stubs]     |
+|                            - Bodies elided to '...'                          |
+|                            - Exception messages sanitized                    |
++------------------------------------------------------------------+-----------+
+                                                                   |
+                                             Sanitized Context Only v
++------------------------------------------------------------------------------+
+| UPSTREAM DELIVERY PLANE                                                      |
+|                                                                              |
+|  [MCP stdio / Loopback Proxy / Clipboard CLI] --> [OpenAI / Anthropic / Local]|
+|                                               --> [Local FinOps Ledger]      |
++------------------------------------------------------------------------------+
+```
 
-Executing `ctxfw init` (or `ctxfw install`) automatically scans, detects, and configures up to 4 autonomous coding environments without manual JSON editing:
+### Core Data-Plane Guarantees
+1. **Zero Outbound Code Egress:** Raw repository files, private helper implementations, and secret strings never leave `localhost` during pruning, security inspection, or axiom verification.
+2. **Contractual Stub Compaction (`AXIOM-3`):** Only peripheral imported modules (`D1`–`D2`) have executable bodies replaced with `...` and exception payloads sanitized to `raise ExceptionType("...")`. The active focal file (`D0`) is always kept 100% intact.
+3. **Local Token Estimation:** FinOps savings use deterministic character-to-token projection (`max(1, chars // 4)`) stored exclusively in local SQLite WAL databases.
 
-1. **Claude Code CLI**:
-   - Location: `~/.claude.json`
-2. **Claude Desktop** (Dynamic Cross-Platform Resolution):
-   - **macOS (Darwin)**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json` (fallback: `~\AppData\Roaming\Claude\...`)
-   - **Linux / POSIX**: `~/.config/Claude/claude_desktop_config.json`
-3. **Cursor IDE**:
-   - Location: `.cursor/mcp.json` (scoped to current workspace).
-4. **Windsurf IDE**:
-   - Location: `~/.codeium/windsurf/mcp_config.json` (configured when `.codeium` signature exists).
+---
 
-#### Safety & Non-Destructive Invariants:
-- **Timestamped Backup Snapshot (`.bak.<timestamp>`)**: Automatically creates an immutable snapshot of existing configuration files before applying any changes.
-- **100% Third-Party Server Preservation**: Preserves all existing MCP servers, external keys, and top-level settings intact.
-- **Zero-Failure Execution**: Resolves `sys.executable` with `["-m", "ctxfw.mcp"]` (or canonical absolute binary path if running within a PyInstaller standalone executable), eliminating ambient `$PATH` and virtualenv resolution failures.
-- **3x Idempotency**: Multiple consecutive invocations guarantee byte-for-byte convergence without duplicating keys or generating spurious diffs.
+## 2. MCP `stdio` Server & Multi-Surface Provisioning
+
+### A. Automated IDE Setup (`ctxfw init` / `ctxfw install`)
+
+Running `ctxfw init` (or `ctxfw install`) automatically detects and updates MCP configurations across up to four environments:
+
+1. **Claude Code CLI:** `~/.claude.json`
+2. **Claude Desktop:**
+   - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+   - **Linux / POSIX:** `~/.config/Claude/claude_desktop_config.json`
+3. **Cursor IDE:** `.cursor/mcp.json` (workspace scope)
+4. **Windsurf IDE:** `~/.codeium/windsurf/mcp_config.json`
+
+Targeted invocations:
+
+```bash
+# Configure Claude Code CLI & Claude Desktop
+ctxfw init --claude
+
+# Auto-detect all installed IDEs
+ctxfw init --global
+
+# Initialize SPEC.axioms.md and git pre-commit verification hook in a repository
+ctxfw init --repo .
+```
+
+**Safety guarantees:**
+- Creates a timestamped backup `<config>.bak.<timestamp>` before mutating any file.
+- Preserves all third-party `mcpServers` entries verbatim.
+- Binds cleanly to the exact interpreter (`sys.executable -m ctxfw.mcp`) or frozen executable path (`ctxfw.exe mcp`).
+
+Example generated server declaration:
 
 ```json
 {
@@ -78,268 +85,160 @@ Executing `ctxfw init` (or `ctxfw install`) automatically scans, detects, and co
 }
 ```
 
-### B. High-Assurance Diagnostics (`ctxfw doctor`)
-
-Verify environmental attestation, stdio stream isolation, and local cache health across 7 diagnostic sentries:
+### B. Health & Stream Isolation Diagnostics (`ctxfw doctor`)
 
 ```bash
 ctxfw doctor
 ```
 
-The 7 automated health checks comprise:
-1. **Python Package & sys.path**: Validates `ctxfw` package integrity, version attestation (`v4.2.1`), and clean module importability.
-2. **MCP stdio Stream Isolation**: Asserts 100% pure JSON-RPC on stdout and verifies diagnostic logs are strictly isolated to stderr to prevent agent JSON-RPC parsing failures.
-3. **Global CLI Executable (PATH)**: Verifies that the `ctxfw` binary is registered and resolvable in the system PATH.
-4. **Axiomatic Sieve Engine**: Executes formal verification of specifications against negative invariants ($N \ge 5$) and domain bounds, confirming ACI $\ge$ 0.9000.
-5. **SQLite WAL Cache & Concurrency**: Confirms Write-Ahead Logging (`PRAGMA journal_mode=WAL`) and 5000ms busy timeout for safe multi-process concurrent access.
-6. **Polyglot Tree-Sitter Grammars**: Verifies initialization of TypeScript, Go, and Java CST parsers alongside the Python standard library `ast`.
-7. **TraceKit Ledger Audit**: Verifies the cryptographic SHA-256 hash chain (`tracekit.db`) and local anchor integrity (`ctxfw trace verify`).
+Validates `8` core invariants in under 2 seconds:
+1. **Python Package & `sys.path`:** Confirms clean import and canonical `ctxfw` version (`4.2.1`).
+2. **MCP `stdio` Stream Isolation:** Asserts pure JSON-RPC 2.0 frames on `stdout` with diagnostic output isolated to `stderr`.
+3. **Global CLI Executable (`PATH`):** Verifies executable availability in `$PATH`.
+4. **Axiomatic Sieve Engine:** Verifies negative-invariant evaluation and `ACI >= 0.9000`.
+5. **SQLite WAL Cache & Concurrency:** Confirms `PRAGMA journal_mode=WAL` and `busy_timeout = 5000 ms`.
+6. **Polyglot Tree-Sitter Grammars:** Checks Python `ast` plus optional `tree-sitter-typescript`, `tree-sitter-go`, and `tree-sitter-java`.
+7. **TraceKit Ledger Audit:** Verifies append-only SHA-256 hash chain consistency.
+8. **Sovereign Pentad WAL Ledgers:** Summarizes live row counts across `sara.db`, `tokencast.db`, `rules.db`, `swegate.db`, and `mcp_guard`.
 
 ### C. Exposed MCP Tools
-- `prune_file`:
-  - `path` (string, required): Path to source file.
-  - `depth` (string, default `"interface"`): `"full"`, `"interface"`, or `"nominal"`.
-  - `strip_docs` (boolean, default `false`): Purge docstrings.
-  - `language` (string, default `"python"`): `"python"`, `"typescript"`, `"go"`, `"java"`.
-- `resolve_context_bundle`:
-  - `target_file` (string, required): Active editing buffer (Distance 0).
-  - `project_root` (string, optional): Root directory for dependency resolution.
-- `evaluate_spec_axioms`:
-  - `brief_text` (string, required): Architecture or feature specification in markdown.
-  - Validates negative invariants, bounds, state machines, and error taxonomies, returning an ACI score and manifest hash.
-- `evaluate_patch`:
-  - `diff_text` (string, required): Unified diff patch to inspect before merge.
-  - Enforces SWE-Gate architectural constraints (cyclomatic complexity delta ceiling, disallowed module imports, `# type: ignore` suppressions, and functional test gates).
-- `query_audit_ledger`:
-  - `evaluation_id` (string, optional): SWE-Gate evaluation identifier (`EVL-...`) returned by `evaluate_patch`.
-  - `session_id` (string, optional): TraceKit session identifier (`SES-...`) to verify SHA-256 hash chain integrity and inspect sealed audit blocks (`include_blocks`, `max_blocks`).
 
-### D. Zero-MCP Reverse Proxy Gateway (Aider, OpenCode, Continue, CLI)
-
-For AI coding tools and CLI workflows that do not natively support the Model Context Protocol, `ctxfw` provides a local zero-egress reverse proxy:
-
-```bash
-# 1. Start the local reverse proxy daemon
-ctxfw proxy --port 8765
-```
-
-#### Client Configuration:
-- **Aider CLI**:
-  ```bash
-  export ANTHROPIC_BASE_URL="http://localhost:8765/v1"
-  aider --model claude-3-7-sonnet-20250219
-  ```
-- **OpenCode Interpreter / Shell Agents**:
-  ```bash
-  export OPENAI_BASE_URL="http://localhost:8765/v1"
-  ```
-- **Continue.dev (`~/.continue/config.json`)**:
-  ```json
-  {
-    "models": [
-      {
-        "title": "CTXFW Proxied Sonnet",
-        "provider": "anthropic",
-        "model": "claude-3-7-sonnet-20250219",
-        "apiBase": "http://localhost:8765/v1"
-      }
-    ]
-  }
-  ```
+- **`prune_file`**: `path` (required), `depth` (`"full"`, `"interface"`, or `"nominal"`), `strip_docs` (boolean), `language` (`"python"`, `"typescript"`, `"javascript"`, `"go"`, `"java"`).
+- **`resolve_context_bundle`**: `target_file` (required `D0`), `project_root` (optional root for `D1`–`D3` dependency resolution).
+- **`evaluate_spec_axioms`**: `brief_text` (required markdown brief). Validates ≥ 5 negative invariants (`never` / `shall never`), bounded variables, finite-state transitions, and 4-class error taxonomy; returns `ACI` score and SHA-256 `manifest_hash`.
+- **`evaluate_patch`**: `diff_text` (required unified diff). Enforces `max_cyclomatic_delta` (default `10`), banned imports, zero `# type: ignore`, and functional verdict gates (`ALLOW_MERGE` / `REJECT_*`).
+- **`query_audit_ledger`**: `evaluation_id` (`EVL-...`) and/or `session_id` (`SES-...`). Verifies `TraceKit` hash chain integrity and inspects sealed ledger blocks under Gate `0d` confinement.
 
 ---
 
-## 3. Ingress Interface 2: Perimeter Reverse Proxy Gateway (HU-10)
+## 3. Loopback HTTP Reverse Proxy (`ctxfw proxy`)
 
-Transparent reverse proxy intercepting LLM requests, compacting structured markdown code blocks on the fly with $< 5\text{ ms}$ warm cache overhead.
+For coding tools that communicate over HTTP REST instead of MCP `stdio` (Aider, OpenCode Interpreter, Continue.dev), `ctxfw` provides a local loopback reverse proxy:
 
-### Starting the Gateway
 ```bash
-ctxfw proxy --port 8765 --host 127.0.0.1
-# or with custom upstream:
-ctxfw proxy --port 8765 --upstream https://api.openai.com
+# Start proxy on default port 8765
+ctxfw proxy --host 127.0.0.1 --port 8765
+
+# Or forward to a custom upstream endpoint
+ctxfw proxy --port 8765 --upstream https://api.anthropic.com
 ```
 
-### A. Python Client Integration (OpenAI SDK)
-```python
-from openai import OpenAI
+### Client Environment Configuration
 
-client = OpenAI(
-    base_url="http://localhost:8080/v1",
-    api_key="your-api-key-here",  # Passed transparently upstream
-)
-
-response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[
-        {"role": "user", "content": "Analyze this code:\n```python\nclass Service:\n    def run(self):\n        x = 100\n        return x\n```"}
-    ],
-)
-```
-
-### B. Python Client Integration (Anthropic SDK)
-```python
-import os
-from anthropic import Anthropic
-
-client = Anthropic(
-    base_url="http://localhost:8080",
-    api_key="your-anthropic-api-key",
-)
-
-response = client.messages.create(
-    model="claude-3-5-sonnet-20241022",
-    max_tokens=1024,
-    messages=[
-        {"role": "user", "content": "Review:\n```python\ndef logic():\n    secret = 42\n    return secret\n```"}
-    ],
-)
-```
-
-### Audit Response Headers
-Every response includes cryptographic FinOps auditing headers:
-- `X-Tokens-Saved`: Net context tokens eliminated prior to upstream delivery.
-- `X-Firewall-Latency-Ms`: Milliseconds consumed by the firewall inspection loop.
-- `X-Firewall-Status`:
-  - `compacted`: Code blocks compacted and tokens saved.
-  - `pass-through`: Non-code prompt forwarded untouched.
-  - `bypassed`: Header `X-Context-Firewall-Bypass: true` detected.
-  - `fail-open`: Syntax or parsing error triggered graceful passthrough.
-
-### Bypassing Compaction
-To pass code uncompacted without stopping the proxy, supply the header:
 ```bash
-curl -X POST http://localhost:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "X-Context-Firewall-Bypass: true" \
-  -d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "..."}]}'
+# Anthropic SDK / Aider / Claude API clients
+export ANTHROPIC_BASE_URL="http://localhost:8765/v1"
+
+# OpenAI SDK / OpenCode / Continue.dev
+export OPENAI_BASE_URL="http://localhost:8765/v1"
+```
+
+Every proxy response emits local telemetry headers:
+- `X-Tokens-Saved`: Net context tokens eliminated prior to upstream forwarding.
+- `X-Firewall-Latency-Ms`: End-to-end firewall inspection duration in milliseconds.
+- `X-Firewall-Status`: `compacted`, `pass-through`, `bypassed` (when `X-Context-Firewall-Bypass: true` is supplied), or `fail-open`.
+
+### Managing the Background Service (`ctxfw service`)
+
+```bash
+ctxfw service status
+ctxfw service install --user --port 8765
+ctxfw service start
+ctxfw service stop
 ```
 
 ---
 
-## 4. Ingress Interface 3: Developer Terminal CLI (HU-12)
+## 4. Terminal CLI & Clipboard Compactor
 
-Immediate command-line tool for developers using web chat interfaces (ChatGPT, Claude Web). Compacts the topological dependency tree of any target file and atomically deposits the formatted prompt into the OS clipboard.
+Compact a target module and its topological dependency perimeter directly from the command line:
 
-### Usage
 ```bash
-# Compact target and copy directly to OS clipboard
-python firewall_cli.py contracts.py
+# Compact target and copy prompt to OS clipboard
+ctxfw path/to/contracts.py
 
 # Specify explicit project root
-python firewall_cli.py contracts.py C:\sandbox\arch-ord-2026-4f003b
+ctxfw path/to/contracts.py path/to/repo
 
-# Save output to Markdown file instead of clipboard
-python firewall_cli.py contracts.py --no-clip --output prompt.md
-
-# Pipe raw prompt to stdout
-python firewall_cli.py contracts.py --stdout | other-tool
+# Save Markdown prompt to disk or stream to stdout
+ctxfw path/to/contracts.py --no-clip --output prompt.md
+ctxfw path/to/contracts.py --stdout --price 3.00
 ```
 
-### Workspace Self-Seeding (`ctxfw init`)
-Transform any repository or directory into an active sovereign workspace in $< 1\text{ ms}$:
+Benchmark token reduction against an existing repository directory:
 
 ```bash
-# Initialize sovereign perimeter in current project root
-ctxfw init
-
-# Or target an arbitrary folder
-ctxfw init ./my-project
-```
-
-**Atomically Deployed Sovereign Artifacts:**
-1. `.mcp.json` — Universal stdio MCP server manifest (`{"command": "python", "args": ["-m", "ctxfw.mcp"]}`).
-2. `.agent/rules.yaml` — Sovereign architect perimeter directives (`FIREWALL_LAW_01`, `FIREWALL_LAW_02`, `FINOPS_AUDIT_03`).
-3. `.agents/rules/firewall_laws.md` — Topological firewall governance laws.
-4. `.agents/skills/context-firewall/SKILL.md` — Native discoverable agent skill for Antigravity, Cursor, and Claude.
-
-### Terminal Telemetry Output
-```text
-========================================================================
-  CONTEXT FIREWALL -- SOVEREIGN CLIPBOARD & TOKEN OPTIMIZER (v4.2.1)
-========================================================================
-Target Module:  contracts.py
-Project Root:   /workspace/service-core
-
-DIST   | MODULE                           | DEPTH      | ORIG TOK  | PRUNED   | SAVINGS 
-------------------------------------------------------------------------------------
-D0     | contracts.py                     | FULL       | 2,995     | 2,995    | 0.0%    
-D1     | polyglot_pruner.py               | INTERFACE  | 1,739     | 426      | 75.5%   
-------------------------------------------------------------------------------------
-TOTAL  | 2 Modules                        |            | 4,734     | 3,421    | 27.7%   
-
-[*] Net Context Tokens Saved:  1,313 tokens (27.7% reduction)
-[*] Projected FinOps Savings:  $0.0039 USD (@ $3.00/1M tokens)
-[*] Pipeline Latency:          1.85 ms
-[*] Clipboard Status:          COPIED TO SYSTEM CLIPBOARD
-========================================================================
+ctxfw benchmark ./src --model claude-3-5-sonnet --cycles 500 --format json
 ```
 
 ---
 
-## 5. Ingress Interface 4: CI/CD PR Gatekeeper (HU-11)
+## 5. CI/CD Gatekeeping, Axioms & Audit Ledgers
 
-Automated PR impact analyzer for GitHub Actions and Git pre-commit hooks.
+### A. SWE-Gate Pull Request Verifier (`ctxfw gate`)
 
-### Local CLI Execution
 ```bash
-# Analyze changes against main branch
-python ci_gatekeeper.py --base origin/main --head HEAD --output pr_summary.md
+# Inspect a unified patch file
+ctxfw gate --diff pr.patch --github-summary
 
-# Generate .pre-commit-config.yaml
-python ci_gatekeeper.py --generate-pre-commit .pre-commit-config.yaml
+# Inspect staged changes locally or diff against base ref
+ctxfw gate --staged --max-cyclomatic-delta 10
+ctxfw gate --base origin/main --json --tests-passed 120 --tests-failed 0
 ```
 
-### GitHub Actions Workflow (`.github/workflows/context_firewall.yml`)
-```yaml
-name: Context Firewall PR Perimeter Gate
-on: [pull_request]
+### B. Topological PR Impact & FinOps Analyzer (`ctxfw ci`)
 
-jobs:
-  analyze-pr-context:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+```bash
+ctxfw ci --base origin/main --head HEAD --output pr_summary.md
+ctxfw ci --generate-pre-commit .pre-commit-config.yaml
+```
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
+### C. Specification Sieve, Ledger Verification & FinOps Reports
 
-      - name: Install dependencies
-        run: pip install -e .
+```bash
+# Verify formal axioms in SPEC.axioms.md
+ctxfw spec verify SPEC.axioms.md
 
-      - name: Evaluate Topological PR Perimeter
-        run: |
-          python ci_gatekeeper.py --base ${{ github.event.pull_request.base.sha }} --head ${{ github.sha }} --output summary.md
-          cat summary.md >> $GITHUB_STEP_SUMMARY
+# Backward-verify TraceKit SHA-256 hash chain integrity
+ctxfw trace verify
+
+# Audit token savings ledger and emit shareable / team reports
+ctxfw audit --json
+ctxfw report --share
+ctxfw report --export-json ./my-ledger.json
+ctxfw report --team-merge ./team-ledgers/
 ```
 
 ---
 
-## 6. Empirical A/B Benchmarking Harness (HU-07)
+## 6. Empirical Security & Benchmark Suites
 
-Empirical test harness measuring task success rates (`pass@1`) and token reduction across coding tasks.
+Run the bundled offline verification harnesses (`network_egress_calls = 0`):
 
 ```bash
-# Run hermetically in CI using simulated/mock responses
+# 24-vector SARA prompt injection & Trojan-Source suite
+python benchmarks/run_sara_security_benchmark.py --json
+
+# Wave 2 multi-engine suite (mcp_guard, PASAC, TaskAuth, TraceLite, Provenance, Multilingual)
+python benchmarks/run_wave2_v42_benchmark.py --json
+
+# 60-document Spanish regulatory, legal & noisy OCR benchmark (SARA-RegDoc-60)
+python benchmarks/run_regulatory_ocr_benchmark.py --json
+
+# Mocked or live coding-agent evaluation harness
 python scripts/run_evals.py --mock --output tests/eval_report.json
-
-# Run against live OpenAI endpoint
-python scripts/run_evals.py --provider openai --model gpt-4o --output tests/eval_report.json
 ```
 
 ---
 
-## 7. Operational Troubleshooting Matrix (HU-13)
+## 7. Operational Troubleshooting Matrix
 
-| Issue | Symptom | Root Cause | Remediation Protocol |
+| Issue | Symptom | Root Cause | Remediation |
 | :--- | :--- | :--- | :--- |
-| **Database Contention (`SQLITE_BUSY`)** | `sqlite3.OperationalError: database is locked` | Concurrent writer threads colliding during WAL sync | Verify `PRAGMA busy_timeout = 5000;` is active. Run SQLite manual checkpoint: `sqlite3 tokens_cache.db "PRAGMA wal_checkpoint(TRUNCATE);"` |
-| **Selective Cache Invalidation** | Stale code stubs served after refactoring | Source code changed but hash collided or rules version unchanged | Invalidate cache table safely: `sqlite3 heuristic_tokens_cache.db "DELETE FROM tokens_cache WHERE cache_key LIKE '...';"` or delete `.db` file (auto-recreated on launch). |
-| **Syntax Error Fail-Open** | Code blocks passed without token savings | Code contains invalid syntax (`SyntaxError`) | The proxy logs `[fail-open]` to `stderr` and passes payload intact to prevent developer workflow interruption. Correct syntax in source file. |
-| **MCP stdio Protocol Corruption** | Agent reports `JSON-RPC parse error` | Extraneous text or `print()` statements routed to `sys.stdout` | **Inviolable rule:** Never write logs to `stdout`. Direct all diagnostic output to `sys.stderr.write()`. Check `sys.stderr` logs in agent console. |
-| **Port Conflict on Proxy** | `OSError: [Errno 98] Address already in use` | Another service bound to port 8080 | Supply `--port <new_port>` (e.g. `python proxy_gateway.py --port 8081`). |
-| **Tree-sitter Language Not Found** | Warning: `tree-sitter-<lang> grammar unavailable` | Missing grammar package | Run `pip install tree-sitter-typescript tree-sitter-go tree-sitter-java`. Python files fall back automatically to native standard library `ast`. |
+| **SQLite Lock Contention** | `sqlite3.OperationalError: database is locked` | Concurrent writers colliding during WAL sync | Confirm WAL mode (`busy_timeout = 5000`); run `sqlite3 <db_path> "PRAGMA wal_checkpoint(TRUNCATE);"` |
+| **Cache Reset Needed** | Stale dependency stubs after manual file renames | Cached key from prior state | Run snapshot rollback / delete ephemeral cache `.db` in `~/.ctxfw/` (recreated automatically) |
+| **Tree-Sitter Grammar Missing** | `tree-sitter-<lang>` parser skipped | Core install omits optional non-Python grammars | Run `pip install "ctxfw[polyglot]"` (`Python` `ast` works out of the box) |
+| **Proxy Dependencies Missing** | `ctxfw proxy` fails with `ImportError` (`fastapi` / `uvicorn`) | Optional HTTP proxy extras not installed | Run `pip install "ctxfw[proxy]"` |
+| **Port Already Bound** | `OSError` when launching `ctxfw proxy` | Another local process owns port `8765` | Pass `--port <free_port>` (e.g. `ctxfw proxy --port 8766`) |
+| **MCP `stdio` Parse Error** | Client reports invalid JSON-RPC on `stdout` | Unsanitized debug output written to `stdout` | Ensure all non-JSON-RPC logging targets `sys.stderr`; verify with `ctxfw doctor` |
+| **Team License Not Loaded** | `ctxfw gate` reports missing team credentials | License key unset in environment or `~/.ctxfw/license.key` | Export `CTXFW_LICENSE_KEY` or run `ctxfw license activate <key>` |

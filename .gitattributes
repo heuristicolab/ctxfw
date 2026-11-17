@@ -158,4 +158,13 @@ tests/test_sara_v421_regdoc_hardening.py -text
 tests/conftest.py -text
 tests/test_docs_parity.py -text
 tests/test_ci_gatekeeper.py -text
+CHANGELOG.md -text
+SECURITY.md -text
+CONTRIBUTING.md -text
+docs/README.md -text
+docs/benchmarks/D3_EMPIRICAL_BENCHMARK_REPORT.md -text
+docs/benchmarks/SECURITY_VS_CLOUD_WAFS.md -text
+docs/benchmarks/TRILOGY_EMPIRICAL_BENCHMARK.md -text
+docs/benchmarks/ZULIP_MONOLITH_AB.md -text
+logos/ctxfw_v411_live_demo.svg -text
 

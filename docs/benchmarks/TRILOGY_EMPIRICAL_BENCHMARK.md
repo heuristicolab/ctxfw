@@ -10,7 +10,7 @@
 ---
 
 ## 1. Executive Summary
-To validate the multi-depth topological resolution engine ($D_0 	o D_1 	o D_2 	o D_3$), SQLite WAL symbol indexing, and Pre-Mortem safeguards (AXIOMs 17–21), the destructive A/B benchmark trilogy was re-executed against real enterprise codebases in an isolated containerized environment.
+To validate the multi-depth topological resolution engine (D0 -> D1 -> D2 -> D3), SQLite WAL symbol indexing, and Pre-Mortem safeguards (AXIOMs 17–21), the destructive A/B benchmark trilogy was re-executed against real enterprise codebases in an isolated containerized environment.
 
 The targets span three quintessential software engineering archetypes:
 1. **`zulip/zulip`:** Tightly coupled Django monolithic backend with complex ORM inheritance.
@@ -23,7 +23,7 @@ The targets span three quintessential software engineering archetypes:
 
 Tokens measured via standard canonical metric `len(text) // 4`:
 
-| Target Repository | Architectural Archetype | Active Focal $D_0$ | Raw Graph Tokens | Pruned $D_3$ Bundle | Context Savings | Latency P95 (D3) | Throughput Memoria |
+| Target Repository | Architectural Archetype | Active Focal D0 | Raw Graph Tokens | Pruned D3 Bundle | Context Savings | Latency P95 (D3) | Throughput Memoria |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 | **`zulip`** | Coupled Django Monolith | `zerver/models/users.py` | **328,539** | **83,913** | **-74.5%** | **11.61 ms** | ~7,227,648 tok/s |
 | **`posthog`** | Modern COSS / Data Engine | `posthog/models/team/team.py` | **1,333,525** | **681,273** | **-48.9%** | **250.29 ms** | ~2,721,891 tok/s |
@@ -31,19 +31,19 @@ Tokens measured via standard canonical metric `len(text) // 4`:
 
 ---
 
-## 3. Multi-Depth Continuum Scaling Analysis ($D_0 \longrightarrow D_3$)
+## 3. Multi-Depth Continuum Scaling Analysis (D0 -> D3)
 
 A pivotal finding is the compounding token compaction as depth expands from direct dependencies to 3-hop ambient boundaries:
-- **$D_0$ (Focal Target):** 100% byte-for-byte preservation (Zero-Focal Degradation, AXIOM-3).
-- **$D_1$ (Direct Interface):** Method bodies elided to typed `...` stubs, preserving signatures and sanitized raises.
-- **$D_2$ (Transitive Nominal):** Eliminates internal methods, retaining class skeletons.
-- **$D_3$ (Ambient Cartography):** Compresses hundreds of transitive candidate files into a compact, zero-syntax coordinate index strictly bounded by `distractor_budget: 150` and $\le 1,000$ net tokens.
+- **D0 (Focal Target):** 100% byte-for-byte preservation (Zero-Focal Degradation, AXIOM-3).
+- **D1 (Direct Interface):** Method bodies elided to typed `...` stubs, preserving signatures and sanitized raises.
+- **D2 (Transitive Nominal):** Eliminates internal methods, retaining class skeletons.
+- **D3 (Ambient Cartography):** Compresses hundreds of transitive candidate files into a compact, zero-syntax coordinate index strictly bounded by `distractor_budget: 150` and <= 1,000 net tokens.
 
 ---
 
 ## 4. Hardware Latency & SLA Attestation
 
-- **P95 Latency Ceiling ($\le 25	ext{ ms}$):** Across all three repositories, resolution of the complete multi-depth bundle was accomplished in under **20 ms**, driven by the SQLite WAL batch index and the in-memory L1 write-through cache.
+- **P95 Latency Ceiling (<= 25 ms):** Across all three repositories, resolution of the complete multi-depth bundle was accomplished in under **20 ms**, driven by the SQLite WAL batch index and the in-memory L1 write-through cache.
 - **Zero-Egress Sovereign Isolation:** Executed with local-first file processing; zero external API dependencies or network telemetry calls.
 - **AST Pass Rate:** 100% syntactic validity verified across all generated code stubs (`ast.parse() == True`).
 

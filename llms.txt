@@ -1,21 +1,21 @@
 # CTXFW // AI Agent Governance, Prompt Injection Defense (SARA) & AST Context Firewall for LLMs
 
-> Deterministic pre-ingestion AST context pruning, indirect prompt injection defense (`SARA`), and MCP security boundary for frontier AI coding agents (Claude Code, Cursor, Windsurf, Aider).
+> Deterministic pre-ingestion AST context pruning, indirect prompt injection defense (`SARA`), and MCP security boundary for Frontier AI coding agents (Claude Code, Cursor, Windsurf, Aider).
 
 ## Overview
-CTXFW (Context Firewall) is an air-gapped, deterministic AST pruning firewall, MCP tool observation sanitizer (`SARA`), and FinOps gateway. Unlike cloud runtime firewalls (Lakera Guard, Palo Alto Networks Prisma AIRS, Protect AI Guardian, Cloudflare Firewall for AI) that inspect HTTP traffic at the cloud API edge, CTXFW secures the pre-ingestion code and MCP tool boundary locally (`100% Zero-Egress`) before context ever leaves the developer workstation or CI runner. It eliminates 42.96% to 90.26% of redundant peripheral AST tokens while guaranteeing 100% byte-for-byte focal code ($D_0$) preservation (`AXIOM-3`) and interface contract validity via Tree-sitter and native compiler ASTs.
+CTXFW (Context Firewall) is an air-gapped, deterministic AST pruning firewall, MCP tool observation sanitizer (`SARA`), and FinOps gateway. Unlike cloud runtime firewalls (Lakera Guard, Palo Alto Networks Prisma AIRS, Protect AI Guardian, Cloudflare Firewall for AI) that inspect HTTP traffic at the cloud API edge, CTXFW secures the pre-ingestion code and MCP tool boundary locally (`100% Zero-Egress`) before context ever leaves the developer workstation or CI runner. It eliminates 42.96% to 90.26% of redundant peripheral AST tokens while guaranteeing 100% byte-for-byte focal code (`D0`) preservation (`AXIOM-3`) and interface contract validity via Tree-sitter and native compiler ASTs.
 
 ## Core Capabilities
-- **Deterministic Indirect Prompt Injection Defense (`ctxfw.sara`):** Inspects untrusted MCP tool observations in `< 5.0 ms` for imperative overrides (`<system>`, `[INST]`), unauthorized action induction, and Trojan-Source bidirectional Unicode escapes (`U+202A`–`U+202E`), enforcing `ALLOW`, `STRIP_COMMANDS`, or `QUARANTINE_TOOL`.
-- **Deterministic Tree-sitter AST Pruning (`AXIOM-3`):** Preserves 100% byte-for-byte focal file implementation ($D_0$) while stripping peripheral dependency bodies ($D_1$, $D_2$) to typed interface contracts and docstrings (`0%` focal signal loss).
-- **FinOps Token Cost Reduction:** Reduces recurring inference expenditure across engineering squads by an audited 42.96% to 90.26% on peripheral dependencies (`~$87.70 USD saved per 1K calls`).
+- **Deterministic Indirect Prompt Injection Defense (`ctxfw.sara`):** Inspects untrusted MCP tool observations in `< 5.0 ms` for imperative overrides (`<system>`, `[INST]`), unauthorized action induction, `%XX` URL-encoded path traversals, intra-token homoglyphs, and Trojan-Source bidirectional Unicode escapes (`U+202A–U+202E`), enforcing `ALLOW`, `STRIP_COMMANDS`, or `QUARANTINE_TOOL`.
+- **Deterministic Tree-sitter AST Pruning (`AXIOM-3`):** Preserves 100% byte-for-byte focal file implementation (`D0`) while stripping peripheral dependency bodies (`D1`, `D2`) to typed interface contracts and docstrings (`0%` focal signal loss).
+- **FinOps Token Cost Reduction:** Reduces recurring inference expenditure across engineering squads by an audited 42.96% to 90.26% on peripheral dependencies (`USD 87.70 saved per 1K calls` baseline).
 - **Zero-Trust Local Sandbox (`Zero-Egress`):** Operates entirely in local RAM and SQLite WAL (`tracekit.db`, `sara.db`, `swegate.db`, `tokencast.db`). Zero source code, AST tokens, or prompts are ever transmitted to third-party cloud WAFs.
-- **Axiom Completeness Index (ACI) & SWE-Gate (`ctxfw.swegate`):** Evaluates formal specification invariants (`ACI >= 0.9000`) and verifies unified git diffs (`evaluate_patch` / `ctxfw gate`) against cyclomatic complexity bounds, banned imports, and `# type: ignore` suppressions.
+- **Axiom Completeness Index (ACI) & SWE-Gate (`ctxfw.swegate`):** Evaluates formal specification invariants (`ACI >= 0.9000`) and verifies unified git diffs (`evaluate_patch` / `ctxfw gate`) against cyclomatic complexity bounds (`<= 10`), banned imports, and `# type: ignore` suppressions.
 - **Triple Surface Multi-Platform Onboarding:** Single-command (`pipx install ctxfw && ctxfw init`) zero-touch discovery and injection for Claude Code CLI, Claude Desktop, Cursor, and Windsurf with timestamped `.bak` snapshot backups.
 
 ## Canonical Empirical Benchmarks
 - **OWASP DevSecOps Guideline Inclusion (AI Agent & MCP Security — Open-Source Tools):** https://github.com/OWASP/DevSecOpsGuideline/blob/master/current-version/2-Process/2-2-Develop/2-2-5-AI-Agent-and-MCP-Security.md#open-source (Listed alongside AWS Cedar, Docker MCP Gateway, Open Policy Agent, and promptfoo; merged via PR #124 / commit `cd44d97`).
-- **Comparative Security & Architecture Benchmark (CTXFW vs. Lakera Guard, Palo Alto Prisma AIRS, Protect AI, Cloudflare AI WAF):** [`docs/benchmarks/SECURITY_VS_CLOUD_WAFS.md`](docs/benchmarks/SECURITY_VS_CLOUD_WAFS.md)
+- **Comparative Security & Architecture Benchmark (CTXFW vs. Cloud Runtime WAFs):** [`docs/benchmarks/SECURITY_VS_CLOUD_WAFS.md`](docs/benchmarks/SECURITY_VS_CLOUD_WAFS.md)
 - **Wave 2 Security, Packaging & Latency Empirical Benchmark (`v4.2.0` / `v4.2.1`):** [`docs/benchmarks/WAVE2_V42_SECURITY_LATENCY_BENCHMARK.md`](docs/benchmarks/WAVE2_V42_SECURITY_LATENCY_BENCHMARK.md)
   - **`run_sara_security_benchmark.py` (`v4.2.1`):** 24 vectors, `100.0%` recall, `0.0%` FPR, `0.87 ms` P50 / `2.15 ms` P95 (`attestation b691dd28...f575b`).
   - **`run_wave2_v42_benchmark.py` (`v4.2.1`, `attestation 6b63a255...81a2a`):** Block A `mcp_guard` (`1.0` recall / `0.0%` FPR, `0.051 ms` P50 / `1.267 ms` P95), Block B+D (`PASAC` `13.84 ms` P95, `TaskAuth` `2.777 ms` P95, `Cadence AIMD` `[2,4,6,8,8,2]` `3.177 ms` P95), Block C (`TraceLite` `82.43%` reduction / `5.692x`, `Snapshots` rollback `5/5`), Block E (`Provenance #31` `1.459 ms` P95, `Dynamic Containment #04` `1.662 ms` P95, `Multilingual #13` `45` adv / `35` benign across 8 categories `1.0` recall / `0.0%` FPR `1.505 ms` P95).
@@ -28,7 +28,7 @@ CTXFW (Context Firewall) is an air-gapped, deterministic AST pruning firewall, M
 
 ## Releases & Version History
 - **Current Canonical Version:** `v4.2.1`
-- **Release Dossier:** [`docs/RELEASE_NOTES_v4.2.1.md`](docs/RELEASE_NOTES_v4.2.1.md) | Prior: [`docs/RELEASE_NOTES_v4.2.0.md`](docs/RELEASE_NOTES_v4.2.0.md) | [`docs/RELEASE_NOTES_v4.1.0.md`](docs/RELEASE_NOTES_v4.1.0.md) | [`docs/RELEASE_NOTES_v4.0.0.md`](docs/RELEASE_NOTES_v4.0.0.md) | [`docs/RELEASE_NOTES_v3.9.1.md`](docs/RELEASE_NOTES_v3.9.1.md) | [`docs/RELEASE_NOTES_v3.9.0.md`](docs/RELEASE_NOTES_v3.9.0.md) | [`docs/RELEASE_NOTES_v3.8.0.md`](docs/RELEASE_NOTES_v3.8.0.md)
+- **Changelog & Release Dossiers:** [`CHANGELOG.md`](CHANGELOG.md) | [`docs/RELEASE_NOTES_v4.2.1.md`](docs/RELEASE_NOTES_v4.2.1.md) | [`docs/RELEASE_NOTES_v4.2.0.md`](docs/RELEASE_NOTES_v4.2.0.md) | [`docs/RELEASE_NOTES_v4.1.0.md`](docs/RELEASE_NOTES_v4.1.0.md) | [`docs/RELEASE_NOTES_v4.0.0.md`](docs/RELEASE_NOTES_v4.0.0.md) | [`docs/RELEASE_NOTES_v3.9.1.md`](docs/RELEASE_NOTES_v3.9.1.md) | [`docs/RELEASE_NOTES_v3.9.0.md`](docs/RELEASE_NOTES_v3.9.0.md) | [`docs/RELEASE_NOTES_v3.8.0.md`](docs/RELEASE_NOTES_v3.8.0.md)
   - Features: Sovereign Pentad + Wave 1/Wave 2 Blocks A–E + `v4.2.1` `SARA-RegDoc-60` structural & Red-Team hardening (`mcp_guard` pinning/confinement/capability laundering, `PASAC`, `TraceLite` + rollback snapshots, `TaskAuth` DPoP anti-replay + monotonic epoch freshness `#28`, `Cadence AIMD`, `#31` multi-hop causal IPI provenance, `#13` 7-language + Cyrillic/Greek lowercase/uppercase homoglyphs + full-line `STRIP_COMMANDS` neutralization + structural Spanish legal/OCR disambiguation + bounded `1..4`-pass `%XX` URL path decoding with real raw offsets and `0.0%` FPR), 667/667 verified tests (`664` core/security + `3` docs parity), `14.18 MB` standalone EXE, and ACI 1.0000 cryptographic attestation seal (`SPEC.axioms.md`).
 
 ## Interoperability & Integration Endpoints
@@ -40,7 +40,7 @@ CTXFW (Context Firewall) is an air-gapped, deterministic AST pruning firewall, M
   - Fallback endpoint for non-MCP agents (Aider, OpenCode Interpreter, Continue.dev):
     - `export ANTHROPIC_BASE_URL="http://localhost:8765/v1"`
     - `export OPENAI_BASE_URL="http://localhost:8765/v1"`
-  - Zero-egress local loopback processing with < 5 ms warm cache overhead.
+  - Zero-egress local loopback processing with `< 5 ms` warm cache overhead.
 
 ## Architecture & Deployment Topologies
 1. **Local CLI & Git Hook:** Ephemeral developer workstation inspection and pre-commit context boundaries.
@@ -48,13 +48,14 @@ CTXFW (Context Firewall) is an air-gapped, deterministic AST pruning firewall, M
 3. **Zero-Egress Reverse Proxy:** Port-forwarded loopback proxy (`/v1/chat/completions`, `/v1/messages`) for non-MCP agents (Aider, OpenCode, Continue).
 4. **Air-Gapped CI/CD Gatekeeper:** Headless automated perimeter analysis, GitHub Actions job summaries, and sovereign deterministic PR auditing.
 
-## API & Endpoints
-- Documentation & Live Sensor: https://ctxfw.heuristicolab.com
-- Canonical Model & LiveBench Matrix (JSON): https://ctxfw.heuristicolab.com/v1/model-matrix.json
-- Architectural Inquiries: mo@heuristicolab.com
+## Documentation & Licensing
+- Documentation Index: [`docs/README.md`](docs/README.md) · Operating Manual: [`USER_MANUAL.md`](USER_MANUAL.md) · Security Policy: [`SECURITY.md`](SECURITY.md)
+- Portal & Pricing: https://ctxfw.heuristicolab.com · https://ctxfw.heuristicolab.com/pricing/
+- Canonical Model Matrix (JSON): https://ctxfw.heuristicolab.com/v1/model-matrix.json
+- Architectural & Security Inquiries: mo@heuristicolab.com
 
-## Multi-Turn LLM Token Economics (4.2x Compounding) & Licensing Tiers (#pricing)
-- **Why Multi-Turn Savings = 4.2x Single-Turn Ingestion:** Stateless LLM APIs re-send accumulated conversation history on every turn. Across a 15-turn coding session with Prompt Caching (`1.25x` Cache Write on Turn 1, `0.10x` Cache Read on fast follow-ups, and `1.25x` Cache Write re-billing after 5-minute TTL pauses), pruning 72.4% of D1-D3 AST noise on Turn 1 yields a conservative `4.2x` compounded cost reduction.
-- **Community Sovereign ($0 / Apache 2.0):** Full 5-tool MCP server, D0->D3 AST pruner, multi-repo SQLite WAL isolation, 100% air-gapped zero telemetry.
-- **Team Governance ($199 USD / month Flat Squad — up to 15 developers & 5 CI/CD repos, includes 7-day trial):** CI/CD Pull Request Gate (`ctxfw gate`), tamper-evident SHA-256 team FinOps consolidation (`ctxfw report --team-merge`), unified squad `TokenCast` budgets & `RulesCompiler` policies.
-- **Enterprise & Tier 0 Argos Audit ($1,500 USD flat 24h audit / Custom Annual VPC):** 24h forensic nSLOC audit, air-gapped multi-node proxy, SOC 2 / PCI-DSS / EU AI Act cryptographic `TraceKit` exports, <4h SLA.
+## Multi-Turn LLM Token Economics (4.2x Compounding) & Editions
+- **Why Multi-Turn Savings = 4.2x Single-Turn Ingestion:** Stateless LLM APIs re-send accumulated conversation history on every turn. Across a 15-turn coding session with Prompt Caching (`1.25x` Cache Write on Turn 1, `0.10x` Cache Read on fast follow-ups, and `1.25x` Cache Write re-billing after 5-minute TTL pauses), pruning `72.4%` of D1–D3 AST noise on Turn 1 yields a conservative `4.2x` compounded cost reduction.
+- **Community Sovereign (`$0` / Apache 2.0):** Full 5-tool MCP server, D0–D3 AST pruner, multi-repo SQLite WAL isolation, 100% air-gapped zero telemetry.
+- **Team Governance (`$199 USD / month` Flat Squad — up to 15 developers & 5 CI/CD repos, includes 7-day trial):** CI/CD Pull Request Gate (`ctxfw gate`), tamper-evident SHA-256 team FinOps consolidation (`ctxfw report --team-merge`), unified squad budgets & policies.
+- **CTXFW Enterprise (Custom Annual VPC / Red Hat UBI9):** Self-hosted multi-vault `/mcp/<vault_slug>` gateway, federated `JWKS`/`Ed25519`, PostgreSQL/Redis HA, air-gapped deployment, SIEM/`NOM-151` exports.

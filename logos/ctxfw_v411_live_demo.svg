@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 686" width="100%" role="img" aria-label="CTXFW v4.1.1 Live Terminal Demo: SARA Zero-Trust Gate, Polyglot AST Context Pruner, and M2M Sovereign Vault">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 686" width="100%" role="img" aria-label="CTXFW v4.2.1 Live Terminal Demo: Zero-Egress MCP Security (SARA), Polyglot AST Context Pruner, and SWE-Gate">
   <defs>
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#090d16"/>
@@ -31,7 +31,7 @@
   <circle cx="62" cy="21" r="6" fill="#10b981"/>
 
   <!-- Window Title -->
-  <text x="480" y="25" text-anchor="middle" fill="#94a3b8" class="title-font">ctxfw v4.1.1 — SARA Prompt Injection Gate (0.38ms) + AST Pruner (-66.1%) + M2M Vault</text>
+  <text x="480" y="25" text-anchor="middle" fill="#94a3b8" class="title-font">ctxfw v4.2.1 — Zero-Egress MCP Firewall (SARA) · Polyglot AST Context Pruner · SHA-256 Audit Ledger</text>
 
   <!-- Live Badge -->
   <rect x="842" y="11" width="98" height="20" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="0.8"/>
@@ -41,30 +41,30 @@
   <!-- Terminal Output Lines -->
   <g class="term-font">
   <text x="24" y="78" class="L0" xml:space="preserve"><tspan fill="#38bdf8" font-weight="bold">====================================================================================</tspan></text>
-  <text x="24" y="98" class="L1" xml:space="preserve"><tspan fill="#f8fafc" font-weight="bold">  CTXFW v4.1.1 // SOVEREIGN AGENT FIREWALL &amp; M2M VAULT SHOWCASE (90s)</tspan></text>
-  <text x="24" y="118" class="L2" xml:space="preserve"><tspan fill="#cbd5e1">  Official MCP Registry: </tspan><tspan fill="#34d399" font-weight="bold">io.github.heuristicolab/ctxfw</tspan><tspan fill="#cbd5e1"> | Glama: </tspan><tspan fill="#34d399" font-weight="bold">Grade A #1</tspan></text>
+  <text x="24" y="98" class="L1" xml:space="preserve"><tspan fill="#f8fafc" font-weight="bold">  CTXFW v4.2.1 // ZERO-EGRESS MCP SECURITY &amp; POLYGLOT AST CONTEXT FIREWALL</tspan></text>
+  <text x="24" y="118" class="L2" xml:space="preserve"><tspan fill="#cbd5e1">  MCP Registry: </tspan><tspan fill="#34d399" font-weight="bold">io.github.heuristicolab/ctxfw</tspan><tspan fill="#cbd5e1"> | OWASP DevSecOps | 667/667 Tests</tspan></text>
   <text x="24" y="138" class="L3" xml:space="preserve"><tspan fill="#38bdf8" font-weight="bold">====================================================================================</tspan></text>
-  <text x="24" y="178" class="L5" xml:space="preserve"><tspan fill="#fbbf24" font-weight="bold">[ACT 1 // 00:00-00:30] SARA ZERO-TRUST RUNTIME ACTION GATE (SIG-0d2acf53b92882b0)</tspan></text>
-  <text x="24" y="198" class="L6" xml:space="preserve"><tspan fill="#cbd5e1">$ ctxfw sara-audit --tool stripe_webhook_reader --policy POL-read-only-01</tspan></text>
-  <text x="24" y="218" class="L7" xml:space="preserve"><tspan fill="#cbd5e1">  Payload SHA-256 : 111a7fa1ddebf7ebc9000b4b38585a9012005d22164d060e83ca9994bf5e356f</tspan></text>
+  <text x="24" y="178" class="L5" xml:space="preserve"><tspan fill="#fbbf24" font-weight="bold">[ACT 1] SARA PRE-INGESTION IPI, %XX TRAVERSAL &amp; HOMOGLYPH FIREWALL</tspan></text>
+  <text x="24" y="198" class="L6" xml:space="preserve"><tspan fill="#cbd5e1">$ python benchmarks/run_sara_security_benchmark.py --json</tspan></text>
+  <text x="24" y="218" class="L7" xml:space="preserve"><tspan fill="#cbd5e1">  Corpus Checks   : 24/24 vectors + 60/60 RegDoc ES/OCR + 80/80 Wave 2 multilingual</tspan></text>
   <text x="24" y="238" class="L8" xml:space="preserve"><tspan fill="#cbd5e1">  FSM Transition  : </tspan><tspan fill="#c084fc" font-weight="bold">INGRESSED -&gt; SANITIZED -&gt; PARSED -&gt; QUARANTINED</tspan></text>
-  <text x="24" y="258" class="L9" xml:space="preserve"><tspan fill="#cbd5e1">  Risk Score      : </tspan><tspan fill="#f87171" font-weight="bold">1.0000 (CRITICAL INDUCTION DETECTED)</tspan></text>
-  <text x="24" y="278" class="L10" xml:space="preserve"><tspan fill="#cbd5e1">  SARA Verdict    : </tspan><tspan fill="#fda4af" font-weight="bold"> QUARANTINE_TOOL </tspan><tspan fill="#cbd5e1"> in </tspan><tspan fill="#34d399" font-weight="bold">0.384 ms</tspan><tspan fill="#cbd5e1"> ($0.00 LLM Cost)</tspan></text>
-  <text x="24" y="298" class="L11" xml:space="preserve"><tspan fill="#cbd5e1">  Reason          : Tool quarantined due to critical induction risk:</tspan></text>
-  <text x="24" y="318" class="L12" xml:space="preserve"><tspan fill="#cbd5e1">                    </tspan><tspan fill="#f87171" font-weight="bold">FILE_PATH_ACCESS, ROLE_OVERRIDE, SHELL_COMMAND (risk=1.0000)</tspan></text>
-  <text x="24" y="358" class="L14" xml:space="preserve"><tspan fill="#fbbf24" font-weight="bold">[ACT 2 // 00:30-01:00] POLYGLOT AST CONTEXT PRUNER &amp; SQLITE WAL CACHE</tspan></text>
-  <text x="24" y="378" class="L15" xml:space="preserve"><tspan fill="#cbd5e1">$ ctxfw bundle --entry src/ctxfw/mcp.py --depth 2</tspan></text>
-  <text x="24" y="398" class="L16" xml:space="preserve"><tspan fill="#cbd5e1">  Original Tokens : 161,184 tokens (D0 + D1/D2 peripheral dependencies)</tspan></text>
-  <text x="24" y="418" class="L17" xml:space="preserve"><tspan fill="#cbd5e1">  Pruned Tokens   : </tspan><tspan fill="#34d399" font-weight="bold">54,584 tokens</tspan><tspan fill="#cbd5e1"> (</tspan><tspan fill="#34d399" font-weight="bold">-66.1% reduction</tspan><tspan fill="#cbd5e1"> | 106,600 saved)</tspan></text>
-  <text x="24" y="438" class="L18" xml:space="preserve"><tspan fill="#cbd5e1">  Cold AST Parse  : 548.85 ms | Warm SQLite WAL Cache: </tspan><tspan fill="#34d399" font-weight="bold">211.99 ms</tspan></text>
-  <text x="24" y="478" class="L20" xml:space="preserve"><tspan fill="#fbbf24" font-weight="bold">[ACT 3 // 01:00-01:30] M2M SOVEREIGN VAULT &amp; OFFICIAL ANTHROPIC MCP REGISTRY</tspan></text>
-  <text x="24" y="498" class="L21" xml:space="preserve"><tspan fill="#cbd5e1">$ curl -sSL -H &#x27;Accept: text/markdown&#x27; \</tspan></text>
-  <text x="24" y="518" class="L22" xml:space="preserve"><tspan fill="#cbd5e1">    https://heuristicolab.com/vault/sara-action-induction-runtime-auth/llms.txt</tspan></text>
-  <text x="24" y="538" class="L23" xml:space="preserve"><tspan fill="#cbd5e1">  </tspan><tspan fill="#6ee7b7"># SARA-01 // ZERO-TRUST RUNTIME AUTHORIZATION GATE FOR TOOL AGENTS</tspan></text>
-  <text x="24" y="558" class="L24" xml:space="preserve"><tspan fill="#cbd5e1">  </tspan><tspan fill="#6ee7b7"># item_id: SIG-0d2acf53b92882b0 | slug: sara-action-induction-runtime-auth</tspan></text>
-  <text x="24" y="578" class="L25" xml:space="preserve"><tspan fill="#cbd5e1">  </tspan><tspan fill="#6ee7b7"># delivery_tier: CERTIFIED_CAPSULE | price: $290 USD | aci_score: 1.0000</tspan></text>
-  <text x="24" y="618" class="L27" xml:space="preserve"><tspan fill="#cbd5e1">$ curl -sSL &#x27;https://registry.modelcontextprotocol.io/v0/servers?search=ctxfw&#x27;</tspan></text>
-  <text x="24" y="638" class="L28" xml:space="preserve"><tspan fill="#cbd5e1">  </tspan><tspan fill="#34d399" font-weight="bold">&quot;name&quot;: &quot;io.github.heuristicolab/ctxfw&quot;, &quot;version&quot;: &quot;4.1.1&quot;, &quot;status&quot;: &quot;active&quot;</tspan></text>
+  <text x="24" y="258" class="L9" xml:space="preserve"><tspan fill="#cbd5e1">  Security Rate   : </tspan><tspan fill="#34d399" font-weight="bold">100.0% Recall | 0.0% False Positive Rate (Zero Gaming)</tspan></text>
+  <text x="24" y="278" class="L10" xml:space="preserve"><tspan fill="#cbd5e1">  SARA Latency    : </tspan><tspan fill="#34d399" font-weight="bold">0.87 ms P50</tspan><tspan fill="#cbd5e1"> | Network Egress: </tspan><tspan fill="#34d399" font-weight="bold">0 bytes ($0.00 LLM Cost)</tspan></text>
+  <text x="24" y="298" class="L11" xml:space="preserve"><tspan fill="#cbd5e1">  Blocked Classes : Role Override, %XX Traversal, BiDi (U+202E), Confusable Shell</tspan></text>
+  <text x="24" y="318" class="L12" xml:space="preserve"><tspan fill="#cbd5e1">  Provenance Gate : </tspan><tspan fill="#fda4af" font-weight="bold">PROVENANCE_IPI_BLOCKED</tspan><tspan fill="#cbd5e1"> + full-line STRIP_COMMANDS cleanup</tspan></text>
+  <text x="24" y="358" class="L14" xml:space="preserve"><tspan fill="#fbbf24" font-weight="bold">[ACT 2] POLYGLOT AST TOPOLOGICAL COMPACTOR (D0-&gt;D3) &amp; SQLITE WAL CACHE</tspan></text>
+  <text x="24" y="378" class="L15" xml:space="preserve"><tspan fill="#cbd5e1">$ ctxfw src/ctxfw/mcp.py --no-clip  |  ctxfw benchmark ./src --format json</tspan></text>
+  <text x="24" y="398" class="L16" xml:space="preserve"><tspan fill="#cbd5e1">  Focal Target D0 : 100% Byte-for-Byte Preserved (AXIOM-3: Zero Focal Signal Loss)</tspan></text>
+  <text x="24" y="418" class="L17" xml:space="preserve"><tspan fill="#cbd5e1">  AST Perimeter   : </tspan><tspan fill="#34d399" font-weight="bold">-70.4% tokens pruned</tspan><tspan fill="#cbd5e1"> (airflow D1: -66.9% | TraceLite: -82.4%)</tspan></text>
+  <text x="24" y="438" class="L18" xml:space="preserve"><tspan fill="#cbd5e1">  Warm Cache Hit  : </tspan><tspan fill="#34d399" font-weight="bold">&lt; 0.8 ms</tspan><tspan fill="#cbd5e1"> SQLite WAL | 100% Pure JSON-RPC stdout</tspan></text>
+  <text x="24" y="478" class="L20" xml:space="preserve"><tspan fill="#fbbf24" font-weight="bold">[ACT 3] SWE-GATE ARCHITECTURAL VERIFIER &amp; ANTHROPIC MCP REGISTRY</tspan></text>
+  <text x="24" y="498" class="L21" xml:space="preserve"><tspan fill="#cbd5e1">$ ctxfw gate --diff pr.patch &amp;&amp; ctxfw doctor</tspan></text>
+  <text x="24" y="518" class="L22" xml:space="preserve"><tspan fill="#6ee7b7">  [PASS] SWE-Gate Verdict  : ALLOW_MERGE (cyclomatic_delta &lt;= 10, 0 type: ignore)</tspan></text>
+  <text x="24" y="538" class="L23" xml:space="preserve"><tspan fill="#6ee7b7">  [PASS] Axiomatic Sieve   : VERIFIED (ACI 1.0000, >= 5 negative invariants)</tspan></text>
+  <text x="24" y="558" class="L24" xml:space="preserve"><tspan fill="#6ee7b7">  [PASS] TraceKit Ledger   : INTACT SHA-256 chain (SQLite WAL | 13/13 DDL passed)</tspan></text>
+  <text x="24" y="578" class="L25" xml:space="preserve"><tspan fill="#6ee7b7">  [PASS] Health &amp; Suites   : [HEALTHY] [ATTESTED] | 667/667 Pytest Passing</tspan></text>
+  <text x="24" y="618" class="L27" xml:space="preserve"><tspan fill="#cbd5e1">$ curl -sSL 'https://registry.modelcontextprotocol.io/v0/servers?search=ctxfw'</tspan></text>
+  <text x="24" y="638" class="L28" xml:space="preserve"><tspan fill="#cbd5e1">  </tspan><tspan fill="#34d399" font-weight="bold">&quot;name&quot;: &quot;io.github.heuristicolab/ctxfw&quot;, &quot;version&quot;: &quot;4.2.1&quot;, &quot;status&quot;: &quot;active&quot;</tspan></text>
   <text x="24" y="658" class="L29" xml:space="preserve"><tspan fill="#38bdf8" font-weight="bold">====================================================================================</tspan></text>
   </g>
 </svg>
