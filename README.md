@@ -10,6 +10,7 @@
 [![Test Suite](https://img.shields.io/badge/tests-667%2F667%20passing-00C853?style=flat-square)](https://github.com/heuristicolab/ctxfw/actions/workflows/ci.yaml)
 [![OWASP DevSecOps Guideline](https://img.shields.io/badge/OWASP%20DevSecOps-AI%20Agent%20%26%20MCP%20Security-003366?style=flat-square)](https://github.com/OWASP/DevSecOpsGuideline/blob/master/current-version/2-Process/2-2-Develop/2-2-5-AI-Agent-and-MCP-Security.md#open-source)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-black?style=flat-square)](https://github.com/heuristicolab/ctxfw/blob/main/LICENSE)
+[![heuristicolab/ctxfw MCP server](https://glama.ai/mcp/servers/heuristicolab/ctxfw/badges/score.svg)](https://glama.ai/mcp/servers/heuristicolab/ctxfw)
 
 [Quickstart](#quickstart) • [How It Works](#how-it-works) • [Empirical Benchmarks](#empirical-benchmarks) • [MCP & CLI Reference](#mcp-tools-and-cli-reference) • [Architecture](#architecture) • [Editions](#editions-and-enterprise) • [Docs Index](https://github.com/heuristicolab/ctxfw/blob/main/docs/README.md) • [Changelog](https://github.com/heuristicolab/ctxfw/blob/main/CHANGELOG.md)
 
