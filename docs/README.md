@@ -16,7 +16,7 @@ Structured index following engineering documentation separation (Quickstart / Ho
 
 ## Formal Specifications & RFCs
 
-- **[Formal Axiom Specification (`SPEC.axioms.md`)](../SPEC.axioms.md)** — Appendices A–K covering domain bounds, deterministic FSMs, 4-class error taxonomies, and non-negotiable negative invariants (`ACI = 1.0000`).
+- **[Formal Axiom Specification (`SPEC.axioms.md`)](../SPEC.axioms.md)** — Appendices A–L covering domain bounds, deterministic FSMs, 4-class error taxonomies, MCP burst guard limits, and non-negotiable negative invariants (`ACI = 1.0000`).
 - **[Context Depth Configurator Spec](spec/CONTEXT_DEPTH_CONFIGURATOR.md)** — `D0`–`D3` pruning depth semantics and budget clamping.
 - **[`D3` Ambient Manifest RFC](rfcs/RFC_D3_AMBIENT_MANIFEST_v40.md)** — Zero-syntax symbol cartography design.
 - **[Architecture DAG Diagram](architecture/1_mermaid_dag.md)** — Dependency resolution flow diagram.
@@ -33,6 +33,13 @@ Structured index following engineering documentation separation (Quickstart / Ho
 
 ---
 
+## Production Case Studies
+
+- **[Autonomous Red-Team MCP Defense & Deterministic Burst Hardening (2026-11-25, EN)](case-studies/redteam-mcp-defense-2026-11-25.md)** — Live production forensic breakdown of `571` HTTP requests (`568` WAL-audited) from an automated MCP fuzzer (`38` live `SARA` interventions + `252` gateway/schema blocks, `$0.0000 USD` LLM spend, `0` leaked secrets) and dual native hardening (`ctxfw v4.2.2` + `ctxfw-enterprise v1.0.2`).
+- **[Defensa Autónoma contra Red-Team MCP y Rate Limiting Determinista (2026-11-25, ES)](case-studies/redteam-mcp-defense-2026-11-25.es.md)** — Edición en español del caso forense en producción y remediación multicapa.
+
+---
+
 ## Detailed Release Notes
 
-- [`v4.2.1`](RELEASE_NOTES_v4.2.1.md) · [`v4.2.0`](RELEASE_NOTES_v4.2.0.md) · [`v4.1.0`](RELEASE_NOTES_v4.1.0.md) · [`v4.0.0`](RELEASE_NOTES_v4.0.0.md) · [`v3.9.1`](RELEASE_NOTES_v3.9.1.md) · [`v3.9.0`](RELEASE_NOTES_v3.9.0.md) · [`v3.8.0`](RELEASE_NOTES_v3.8.0.md) · [`v3.7.1`](RELEASE_NOTES_v3.7.1.md) · [`v3.6.0`](RELEASE_NOTES_v3.6.0.md)
+- [`v4.2.2`](RELEASE_NOTES_v4.2.2.md) · [`v4.2.1`](RELEASE_NOTES_v4.2.1.md) · [`v4.2.0`](RELEASE_NOTES_v4.2.0.md) · [`v4.1.0`](RELEASE_NOTES_v4.1.0.md) · [`v4.0.0`](RELEASE_NOTES_v4.0.0.md) · [`v3.9.1`](RELEASE_NOTES_v3.9.1.md) · [`v3.9.0`](RELEASE_NOTES_v3.9.0.md) · [`v3.8.0`](RELEASE_NOTES_v3.8.0.md) · [`v3.7.1`](RELEASE_NOTES_v3.7.1.md) · [`v3.6.0`](RELEASE_NOTES_v3.6.0.md)

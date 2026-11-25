@@ -2,6 +2,7 @@
 # manifest_hash_wave2d1: ece9d70e52f09f3e80d8cadfd432c4b07a094ca40618ff12aa72a6f1cc92052a
 # manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
 # manifest_hash_v42: 57eb4cce57a5e01d7fcb3a8b23360658fea49d6025e0b22e9f9196731c1f7c84
+# manifest_hash_v422_burst_guard: f1329ba99a93db6abeaa6f185ce40327ce2260c53f29ef770477ff1bf22a2546
 """
 ctxfw.mcp_guard.contracts — Axiomatic Contracts, FSM & Deterministic Security Engines
 =======================================================================================
@@ -200,6 +201,66 @@ class ErrorClass(str, Enum):
     DETERMINISTIC = "DETERMINISTIC"
     BUSINESS = "BUSINESS"
     SECURITY = "SECURITY"
+
+
+CLIENT_KEY_HASH_PATTERN: str = r"^[a-f0-9]{64}$"
+ERR_RATE_LIMIT_EXCEEDED: str = "ERR_RATE_LIMIT_EXCEEDED"
+RATE_LIMIT_SCALE: int = 60_000
+MAX_RETRY_AFTER_MS: int = 3_600_000
+_RATE_LIMIT_BOOL_MAP: Dict[str, bool] = {
+    "1": True,
+    "true": True,
+    "yes": True,
+    "0": False,
+    "false": False,
+    "no": False,
+    "": False,
+}
+_STRICT_UINT_RE = re.compile(r"^\d+$")
+_INT_ENV_KEYS: Tuple[Tuple[str, str], ...] = (
+    ("requests_per_minute", "CTXFW_MCP_RATE_LIMIT_RPM"),
+    ("burst_capacity", "CTXFW_MCP_RATE_LIMIT_BURST"),
+    ("cost_per_call", "CTXFW_MCP_RATE_LIMIT_COST"),
+    ("max_tracked_clients", "CTXFW_MCP_RATE_LIMIT_MAX_CLIENTS"),
+)
+
+
+def _require_rate_limit_invariant(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
+
+
+def _populate_int_env_fields(source: Dict[str, str], kwargs: Dict[str, Any]) -> None:
+    for field_name, env_key in _INT_ENV_KEYS:
+        raw_num = str(source.get(env_key, "")).strip()
+        if raw_num:
+            _require_rate_limit_invariant(
+                bool(_STRICT_UINT_RE.fullmatch(raw_num)),
+                f"{env_key} must be a non-negative integer, got {raw_num!r}",
+            )
+            kwargs[field_name] = int(raw_num)
+
+
+class RateLimitState(str, Enum):
+    """Deterministic finite-state machine states for MCP burst rate limiting."""
+
+    DISABLED = "DISABLED"
+    READY = "READY"
+    ALLOWED = "ALLOWED"
+    THROTTLED = "THROTTLED"
+    INPUT_REJECTED = "INPUT_REJECTED"
+
+
+class RateLimitEvent(str, Enum):
+    """FSM input events for deterministic MCP burst rate limiting."""
+
+    EVALUATE_CALL = "EVALUATE_CALL"
+    INVALID_INPUT_OR_CLOCK = "INVALID_INPUT_OR_CLOCK"
+    TOKENS_SUFFICIENT = "TOKENS_SUFFICIENT"
+    TOKENS_EXHAUSTED = "TOKENS_EXHAUSTED"
+    CLOCK_REGRESSION_TOKENS_SUFFICIENT = "CLOCK_REGRESSION_TOKENS_SUFFICIENT"
+    CLOCK_REGRESSION_TOKENS_EXHAUSTED = "CLOCK_REGRESSION_TOKENS_EXHAUSTED"
+    RESET_CYCLE = "RESET_CYCLE"
 
 
 def utc_now_iso() -> str:
@@ -1243,12 +1304,105 @@ def scan_mcp_config_perimeter(config_obj: Dict[str, Any]) -> Tuple[PoisonScanFin
     return tuple(findings)
 
 
+class McpRateLimitPolicyDTO(BaseModel):
+    """Bounded immutable configuration for deterministic MCP client burst limiting."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    enabled: bool = False
+    requests_per_minute: int = Field(default=120, ge=1, le=60000)
+    burst_capacity: int = Field(default=30, ge=1, le=10000)
+    cost_per_call: int = Field(default=1, ge=1, le=100)
+    max_tracked_clients: int = Field(default=1024, ge=16, le=4096)
+
+    @field_validator("enabled", mode="before")
+    @classmethod
+    def _validate_enabled_bool(cls, v: Any) -> bool:
+        _require_rate_limit_invariant(type(v) is bool, "enabled must be strictly a boolean (bool)")
+        return v
+
+    @field_validator(
+        "requests_per_minute",
+        "burst_capacity",
+        "cost_per_call",
+        "max_tracked_clients",
+        mode="before",
+    )
+    @classmethod
+    def _validate_strict_int(cls, v: Any) -> int:
+        _require_rate_limit_invariant(
+            type(v) is int,
+            f"Rate-limit policy parameter must be strict int, got {type(v).__name__}",
+        )
+        return v
+
+    @model_validator(mode="after")
+    def _validate_cost_within_burst(self) -> "McpRateLimitPolicyDTO":
+        _require_rate_limit_invariant(
+            self.cost_per_call <= self.burst_capacity,
+            "cost_per_call must be <= burst_capacity",
+        )
+        return self
+
+    @classmethod
+    def from_env(cls, env: Optional[Dict[str, str]] = None) -> "McpRateLimitPolicyDTO":
+        """Parse and validate MCP rate-limit policy fail-closed from environment mapping."""
+        source = {False: os.environ, True: env}[env is not None]
+        raw_enabled = str(source.get("CTXFW_MCP_RATE_LIMIT_ENABLED", "")).strip().lower()
+        _require_rate_limit_invariant(
+            raw_enabled in _RATE_LIMIT_BOOL_MAP,
+            f"Invalid CTXFW_MCP_RATE_LIMIT_ENABLED value: {raw_enabled!r}",
+        )
+        kwargs: Dict[str, Any] = {"enabled": _RATE_LIMIT_BOOL_MAP[raw_enabled]}
+        _populate_int_env_fields(dict(source), kwargs)
+        return cls(**kwargs)
+
+
+class RateLimitDecisionDTO(BaseModel):
+    """Immutable deterministic evaluation output for an MCP client burst check."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    allowed: bool
+    state: RateLimitState
+    client_key_hash: str = Field(..., pattern=CLIENT_KEY_HASH_PATTERN)
+    tool_name: str = Field(..., pattern=TOOL_NAME_PATTERN)
+    remaining_tokens_q4: str = Field(..., pattern=r"^\d+\.\d{4}$")
+    retry_after_ms: int = Field(..., ge=0, le=MAX_RETRY_AFTER_MS)
+    error_class: Optional[ErrorClass] = None
+    error_code: Optional[str] = None
+    clock_regression_clamped: bool = False
+    reason: str = Field(..., min_length=1, max_length=512)
+    evaluated_at_ms: int = Field(..., ge=0)
+
+    @model_validator(mode="after")
+    def _validate_decision_consistency(self) -> "RateLimitDecisionDTO":
+        if self.allowed:
+            _require_rate_limit_invariant(
+                (self.retry_after_ms, self.error_code) == (0, None),
+                "Allowed decision must have retry_after_ms=0 and error_code=None",
+            )
+            return self
+        _require_rate_limit_invariant(
+            (self.state, self.error_class, self.error_code)
+            == (RateLimitState.THROTTLED, ErrorClass.BUSINESS, ERR_RATE_LIMIT_EXCEEDED),
+            "Blocked decision must use THROTTLED, ErrorClass.BUSINESS, ERR_RATE_LIMIT_EXCEEDED",
+        )
+        _require_rate_limit_invariant(
+            self.retry_after_ms >= 1,
+            "Blocked decision must have retry_after_ms >= 1",
+        )
+        return self
+
+
 __all__ = [
+    "CLIENT_KEY_HASH_PATTERN",
     "CapabilityLaunderingCheckResult",
     "ChannelSurface",
     "ConfinementCheckResult",
     "DEFAULT_MAX_DECODE_ROUNDS",
     "DetectionLayer",
+    "ERR_RATE_LIMIT_EXCEEDED",
     "ErrorClass",
     "FirewallDecisionDTO",
     "FirewallEvent",
@@ -1258,7 +1412,9 @@ __all__ = [
     "MAX_AUTHORIZED_ROOTS",
     "MAX_DECODE_ROUNDS",
     "MAX_DESCRIPTION_CHARS",
+    "MAX_RETRY_AFTER_MS",
     "MUTATING_CAPABILITY_KEYWORDS",
+    "McpRateLimitPolicyDTO",
     "McpToolContractSpec",
     "OracleVerdict",
     "PIN_SHA256_PATTERN",
@@ -1267,6 +1423,10 @@ __all__ = [
     "ParameterBindingGuard",
     "PoisonScanFinding",
     "QUARANTINE_RISK_THRESHOLD",
+    "RATE_LIMIT_SCALE",
+    "RateLimitDecisionDTO",
+    "RateLimitEvent",
+    "RateLimitState",
     "SERVER_ID_PATTERN",
     "SarifBypassFinding",
     "SarifRuleId",

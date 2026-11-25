@@ -6,12 +6,12 @@
     "url": "https://github.com/heuristicolab/ctxfw",
     "source": "github"
   },
-  "version": "4.2.1",
+  "version": "4.2.2",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "ctxfw",
-      "version": "4.2.1",
+      "version": "4.2.2",
       "transport": {
         "type": "stdio"
       },

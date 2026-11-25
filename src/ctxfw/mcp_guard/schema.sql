@@ -264,3 +264,34 @@ BEFORE DELETE ON capability_laundering_audits
 BEGIN
     SELECT RAISE(ABORT, 'MCG_INV_09: capability_laundering_audits cannot be deleted');
 END;
+
+CREATE TABLE IF NOT EXISTS rate_limit_audit_logs (
+    audit_id            TEXT PRIMARY KEY,
+    server_id           TEXT NOT NULL CHECK (length(server_id) BETWEEN 1 AND 128),
+    client_key_hash     TEXT NOT NULL CHECK (length(client_key_hash) = 64),
+    tool_name           TEXT NOT NULL CHECK (length(tool_name) BETWEEN 1 AND 128),
+    state               TEXT NOT NULL CHECK (state IN ('THROTTLED')),
+    error_class         TEXT NOT NULL CHECK (error_class IN ('BUSINESS')),
+    error_code          TEXT NOT NULL CHECK (error_code IN ('ERR_RATE_LIMIT_EXCEEDED')),
+    remaining_tokens_q4 TEXT NOT NULL,
+    retry_after_ms      INTEGER NOT NULL CHECK (retry_after_ms >= 0 AND retry_after_ms <= 3600000),
+    clock_regressed     INTEGER NOT NULL CHECK (clock_regressed IN (0, 1)),
+    reason              TEXT NOT NULL,
+    evaluated_at_ms     INTEGER NOT NULL CHECK (evaluated_at_ms >= 0),
+    audited_at_utc      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_rate_limit_audits_client
+    ON rate_limit_audit_logs (client_key_hash, evaluated_at_ms);
+
+CREATE TRIGGER IF NOT EXISTS trg_rate_limit_audits_immutable_update
+BEFORE UPDATE ON rate_limit_audit_logs
+BEGIN
+    SELECT RAISE(ABORT, 'MCG_INV_10: rate_limit_audit_logs is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_rate_limit_audits_immutable_delete
+BEFORE DELETE ON rate_limit_audit_logs
+BEGIN
+    SELECT RAISE(ABORT, 'MCG_INV_10: rate_limit_audit_logs cannot be deleted');
+END;

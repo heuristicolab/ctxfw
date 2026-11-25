@@ -2,6 +2,20 @@
 
 All notable changes to `ctxfw` are documented in this file. The project adheres to semantic versioning (`MAJOR.MINOR.PATCH`).
 
+## [4.2.2] - 2026-11-25
+
+Full release notes: [`docs/RELEASE_NOTES_v4.2.2.md`](docs/RELEASE_NOTES_v4.2.2.md) · Case study: [`docs/case-studies/redteam-mcp-defense-2026-11-25.md`](docs/case-studies/redteam-mcp-defense-2026-11-25.md)
+
+### Security (`ctxfw.mcp_guard` & `MCPServer`)
+- Added opt-in deterministic token-bucket burst protection (`ctxfw_mcp_burst_guard_v1`, `manifest_hash: f1329ba99a93db6abeaa6f185ce40327ce2260c53f29ef770477ff1bf22a2546`): `McpRateLimitPolicyDTO` (bounded fields + fail-closed `from_env()`), `McpBurstRateLimiter` (exact scaled integer math + `Decimal("0.0001")`, injectable `Clock` with fail-closed regression clamp, bounded LRU client map `[16, 4096]`), and Zero-Knowledge SHA-256 `client_key_hash` enforcement (`derive_client_key_hash`).
+- Added append-only SQLite WAL audit table `rate_limit_audit_logs` protected by `MCG_INV_10` immutability triggers (`record_rate_limit_rejection`, `list_rate_limit_audits`) recording Class 3 `ErrorClass.BUSINESS` / `ERR_RATE_LIMIT_EXCEEDED` blocks and sealed `TraceKit` events with zero raw IP persistence.
+- Integrated optional `rate_limit_policy` and `rate_limit_clock` kwargs cleanly into `MCPServer.__init__` and pre-execution gating in `handle_tools_call`, preserving `100%` backward compatibility with `v4.2.1` and `ctxfw-enterprise v1.0.1+`.
+
+### Documentation, Specs & Verification
+- Added `SPEC.axioms.md` Appendix L (`78` negative invariants, `ACI: 1.0000`) and `specs/mcp_burst_guard.spec.md`.
+- Published verified bilingual live production red-team case study (`docs/case-studies/redteam-mcp-defense-2026-11-25.md` & `.es.md`) documenting `571` live requests (`$0.0000` LLM spend, `38` `SARA` interventions) and coordinated `ctxfw v4.2.2` + `ctxfw-enterprise v1.0.2` hardening.
+- Expanded verified suite to `673/673` tests (`tests/test_mcp_burst_guard.py`) with `ALLOW_MERGE` across all modified modules.
+
 ## [4.2.1] - 2026-11-17
 
 Full release notes: [`docs/RELEASE_NOTES_v4.2.1.md`](docs/RELEASE_NOTES_v4.2.1.md)

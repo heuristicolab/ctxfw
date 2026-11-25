@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ctxfw"
-version = "4.2.1"
+version = "4.2.2"
 description = "AI Agent Governance, Prompt Injection Firewall (SARA) & Deterministic AST Context Compactor for MCP Coding Agents"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -112,7 +112,14 @@ exclude = [
     "/logos",
     "/scripts",
     "/tests",
-    "*.db"
+    "*.db",
+    "*.db-wal",
+    "*.db-shm",
+    "*.sqlite*",
+    "*.env",
+    "*.bak",
+    "*.tmp",
+    ".DS_Store"
 ]
 
 [tool.pytest.ini_options]

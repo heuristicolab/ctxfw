@@ -12,6 +12,7 @@ manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db
 manifest_hash_wave2e2: bc6e604a3faf8a75b3d6402b523047e481f35c0d62afca3056114337021196e0
 manifest_hash_v42: 57eb4cce57a5e01d7fcb3a8b23360658fea49d6025e0b22e9f9196731c1f7c84
 manifest_hash_v42_r2: cf0e30f7ed19bc43c700dc8f7d845c5f23011472fcd46d614602865b6be043d1
+manifest_hash_v422_burst_guard: f1329ba99a93db6abeaa6f185ce40327ce2260c53f29ef770477ff1bf22a2546
 Exposes deterministic context pruning, topological bundle resolution,
 axiomatic spec evaluation, SWE-Gate patch verification, and audit ledger querying
 to AI agents (Cursor, Claude Code, Windsurf) using JSON-RPC 2.0.
@@ -109,6 +110,8 @@ class MCPServer:
         provenance_max_depth: int = 32,
         capability_profiles: Optional[Dict[str, Any]] = None,
         sensitive_sink_tools: Optional[tuple[str, ...]] = None,
+        rate_limit_policy: Optional[Any] = None,
+        rate_limit_clock: Optional[Any] = None,
     ):
         if allow_unsandboxed_fallback:
             raise ValueError("allow_unsandboxed_fallback shall never be True (PT-005)")
@@ -179,6 +182,104 @@ class MCPServer:
         self._param_binding_guards: Dict[str, Any] = self._build_builtin_param_guards()
         self.session_id = session_id or os.environ.get("CTXFW_SESSION_ID")
         self._enforce_seq = 0
+        self._rate_limiter = self._build_rate_limiter(rate_limit_policy, rate_limit_clock)
+
+    _RATE_LIMIT_ENV_KEYS = frozenset(
+        {
+            "CTXFW_MCP_RATE_LIMIT_ENABLED",
+            "CTXFW_MCP_RATE_LIMIT_RPM",
+            "CTXFW_MCP_RATE_LIMIT_BURST",
+            "CTXFW_MCP_RATE_LIMIT_COST",
+            "CTXFW_MCP_RATE_LIMIT_MAX_CLIENTS",
+        }
+    )
+    _META_CLIENT_KEYS = ("client_key_hash", "client_key", "client_id", "cf_connecting_ip")
+
+    @staticmethod
+    def _build_rate_limiter(rate_limit_policy: Optional[Any], rate_limit_clock: Optional[Any]) -> Optional[Any]:
+        """Resolve optional deterministic MCP burst rate limiter without overhead when unconfigured."""
+        has_env = not os.environ.keys().isdisjoint(MCPServer._RATE_LIMIT_ENV_KEYS)
+        if rate_limit_policy is None:
+            if has_env:
+                from ctxfw.mcp_guard.contracts import McpRateLimitPolicyDTO
+                from ctxfw.mcp_guard.rate_limiter import McpBurstRateLimiter
+
+                return McpBurstRateLimiter(McpRateLimitPolicyDTO.from_env(dict(os.environ)), clock=rate_limit_clock)
+            return None
+        from ctxfw.mcp_guard.rate_limiter import McpBurstRateLimiter
+
+        return McpBurstRateLimiter(rate_limit_policy, clock=rate_limit_clock)
+
+    @staticmethod
+    def _extract_client_key_hash(params: Dict[str, Any], session_id: str) -> str:
+        """Normalize caller identity into a Zero-Knowledge 64-hex SHA-256 digest."""
+        from ctxfw.mcp_guard.rate_limiter import derive_client_key_hash
+
+        meta = params.get("_meta")
+        raw_candidate: Optional[Any] = None
+        if isinstance(meta, dict):
+            raw_candidate = next(filter(None, map(meta.get, MCPServer._META_CLIENT_KEYS)), None)
+        if raw_candidate is None:
+            raw_candidate = params.get("client_key_hash")
+        key_str = {False: session_id, True: str(raw_candidate)}[bool(raw_candidate)]
+        return derive_client_key_hash(key_str)
+
+    def _evaluate_rate_limit_pre_execution(
+        self,
+        *,
+        tool_name: str,
+        params: Dict[str, Any],
+        session_id: str,
+        user_prompt: str,
+        guard_store: Any,
+        guard_server_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Enforce deterministic pre-call token-bucket ceiling and emit Class 3 BUSINESS block."""
+        if self._rate_limiter is None:
+            return None
+        cleaned_tool = re.sub(r"[^a-zA-Z0-9_.:-]", "_", str(tool_name))[:128]
+        safe_tool = {False: "unknown", True: cleaned_tool}[bool(cleaned_tool)]
+        client_hash = self._extract_client_key_hash(params, session_id)
+        decision = self._rate_limiter.evaluate(client_hash, safe_tool)
+        if decision.allowed:
+            return None
+
+        audit_id: Optional[str] = None
+        if guard_store is not None:
+            try:
+                audit_id = guard_store.record_rate_limit_rejection(guard_server_id, decision)
+            except Exception:
+                audit_id = None
+
+        self._record_security_trace(
+            session_id=session_id,
+            user_prompt=user_prompt,
+            plan_summary=f"MCP Guard burst rate limit block on {safe_tool}",
+            tool_or_file="mcp_guard.rate_limit",
+            payload=(
+                f"{decision.error_code} [{decision.state.value}]: client={decision.client_key_hash[:16]} "
+                f"retry_after_ms={decision.retry_after_ms} remaining={decision.remaining_tokens_q4}"
+            ),
+        )
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"{decision.error_code} [{decision.state.value}]: {decision.reason}",
+                }
+            ],
+            "isError": True,
+            "policyViolation": True,
+            "mcpGuardBlocked": True,
+            "rateLimited": True,
+            "errorClass": "BUSINESS",
+            "errorCode": decision.error_code,
+            "guardState": decision.state.value,
+            "retryAfterMs": decision.retry_after_ms,
+            "remainingTokens": decision.remaining_tokens_q4,
+            "clientKeyHash": decision.client_key_hash,
+            "auditId": audit_id,
+        }
 
     def _get_guard_server_id(self) -> str:
         """Return bounded deterministic server_id for MCP Guard pin ledger."""
@@ -2618,6 +2719,17 @@ class MCPServer:
             guard_store = self._get_mcp_guard_store()
         except Exception:
             guard_store = None
+
+        rate_limit_block = self._evaluate_rate_limit_pre_execution(
+            tool_name={False: "", True: str(tool_name)}[bool(tool_name)],
+            params=params,
+            session_id=session_id,
+            user_prompt=user_prompt,
+            guard_store=guard_store,
+            guard_server_id=guard_server_id,
+        )
+        if rate_limit_block is not None:
+            return ToolResult(rate_limit_block)
 
         if isinstance(tool_name, str) and tool_name in self._param_binding_guards:
             tools_meta_map = {

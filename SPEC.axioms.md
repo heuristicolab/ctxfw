@@ -409,3 +409,51 @@ Lifecycle states and transition map $\delta(S, E)$ governing deterministic AIMD 
 ### K.5 Formal Proof & Cryptographic Attestation
 - Inductive invariance over finite-width windows (`[-128:start]`, `[end:end+180]`, `<= 240` char 2-line lookahead, `<= 4` convergent unquote rounds) guarantees $O(N)$ execution time, exact `1:1` homoglyph index projection, and complete payload neutralization without corpus-literal overfitting.
 - Cryptographic manifest seal: `0d461122028fae32834105661bd6ef929a773e98766e8ebac9a97bc674c786fa`.
+
+## Appendix L — Deterministic MCP Burst Rate Limiter (`ctxfw_mcp_burst_guard_v1`, v4.2.2)
+- **Status**: `VERIFIED` | **ACI**: `1.0000`
+- **manifest_hash**: `f1329ba99a93db6abeaa6f185ce40327ce2260c53f29ef770477ff1bf22a2546`
+
+### L.1 Domain Bounds
+- `enabled`: boolean (`bool`, opt-in default `False`, rejects non-boolean inputs).
+- `requests_per_minute`: integer bounded `>= 1` and `<= 60000` (default `120`; strictly rejects `bool` and `float`).
+- `burst_capacity`: integer bounded `>= 1` and `<= 10000` (default `30`; strictly rejects `bool` and `float`).
+- `cost_per_call`: integer bounded `>= 1` and `<= 100` and `<= burst_capacity` (default `1`; strictly rejects `bool` and `float`).
+- `max_tracked_clients`: integer bounded `>= 16` and `<= 4096` (default `1024`; strictly rejects `bool` and `float`).
+- `client_key_hash`: canonical lowercase hexadecimal SHA-256 string matching `^[a-f0-9]{64}$` (exact length `64`).
+- `now_ms`: non-negative integer timestamp in milliseconds bounded `>= 0` and `<= 9223372036854775807` (strictly `int`).
+- `remaining_tokens_q4`: quantized decimal string matching `^\d+\.\d{4}$` bounded `>= Decimal("0.0000")` and `<= Decimal(burst_capacity)`.
+- `retry_after_ms`: non-negative integer delay bounded `>= 0` and `<= 3600000`.
+- `tool_name`: bounded identifier matching `^[a-zA-Z0-9_.:-]{1,128}$` (length `1..128`).
+
+### L.2 Finite-State Machine
+- States: `DISABLED`, `READY`, `ALLOWED`, `THROTTLED`, `INPUT_REJECTED`.
+- Transitions `delta(S, E)`:
+  - `delta(DISABLED, EVALUATE_CALL) = DISABLED`
+  - `delta(READY, INVALID_INPUT_OR_CLOCK) = INPUT_REJECTED`
+  - `delta(READY, TOKENS_SUFFICIENT) = ALLOWED`
+  - `delta(READY, TOKENS_EXHAUSTED) = THROTTLED`
+  - `delta(READY, CLOCK_REGRESSION_TOKENS_SUFFICIENT) = ALLOWED`
+  - `delta(READY, CLOCK_REGRESSION_TOKENS_EXHAUSTED) = THROTTLED`
+  - `delta(ALLOWED, RESET_CYCLE) = READY`
+  - `delta(THROTTLED, RESET_CYCLE) = READY`
+
+### L.3 Error Taxonomy
+- Class 1 (`TRANSIENT`): `SQLITE_BUSY` / WAL lock contention persisting `rate_limit_audit_logs` -> Bounded exponential retry (`<= 5` attempts); throttled decision still fails closed prior to tool execution.
+- Class 2 (`DETERMINISTIC`): Out-of-bounds policy DTO, `float`/`bool` parameter injection, `cost_per_call > burst_capacity`, malformed `CTXFW_MCP_RATE_LIMIT_*` env vars, invalid `client_key_hash`, or invalid `Clock` output -> Synchronous `ValueError` / `ValidationError` rejection.
+- Class 3 (`BUSINESS`): Exhausted client burst token bucket -> Deterministic rejection with `ERR_RATE_LIMIT_EXCEEDED`, `ErrorClass.BUSINESS`, exact integer `retry_after_ms`, append-only audit row, and sealed `TraceKit` block.
+- Class 4 (`SECURITY`): Attempted `UPDATE`/`DELETE` on `rate_limit_audit_logs` or unhashed raw IP/key storage attempt -> Terminal SQLite `RAISE(ABORT, 'MCG_INV_10: ...')` or synchronous `ValueError`.
+
+### L.4 Negative Invariants (Floor of 5 Required)
+1. `McpBurstRateLimiter` shall never use IEEE-754 floating-point arithmetic (`float`) for token accrual, deduction, clamping, or `retry_after_ms` calculation; all arithmetic uses exact scaled integers (`SCALE = 60_000`) and quantized `Decimal("0.0001")`.
+2. `McpBurstRateLimiter`, `McpGuardStore`, and `MCPServer` shall never store, log, or emit raw IP addresses, raw API keys, or unhashed client secrets in `mcp_guard.db`, `TraceKit`, or MCP error payloads; only canonical SHA-256 `client_key_hash` digests (`^[a-f0-9]{64}$`) shall be persisted.
+3. `McpBurstRateLimiter` shall never mint positive tokens or overflow `burst_capacity` on backward `Clock` regression (`now_ms < last_refill_ms`); clock regressions clamp `elapsed_ms = 0` fail-closed.
+4. `McpBurstRateLimiter` shall never grow unbounded in RAM under high-cardinality `client_key_hash` floods (`len(buckets) <= max_tracked_clients <= 4096` via deterministic LRU eviction).
+5. `MCPServer` shall never break backward compatibility when disabled (`enabled=False` opt-in default) and shall never emit non-JSON-RPC bytes to `stdout` on throttling.
+6. `src/ctxfw/mcp_guard/` and `src/ctxfw/mcp.py` shall never embed Plane-1 multi-tenant `VaultRegistry`, LRU multi-tenant vault pools, or `.sont` licensing logic.
+7. `rate_limit_audit_logs` in `mcp_guard.db` shall never allow `UPDATE` or `DELETE` mutations (`MCG_INV_10`).
+8. `ctxfw.mcp_guard.__init__` shall never eagerly import `sqlite3`, `contracts`, `store`, or `rate_limiter` at package import time.
+
+### L.5 Formal Proof & Cryptographic Attestation
+- Inductive conservation over `T in [0, burst_capacity * 60_000]` guarantees exact millisecond `retry_after_ms = ceil((K - T) / rpm)` with zero floating-point drift, bounded `<= max_tracked_clients` RAM occupancy, and strictly append-only WAL auditing.
+- Cryptographic manifest seal: `f1329ba99a93db6abeaa6f185ce40327ce2260c53f29ef770477ff1bf22a2546`.

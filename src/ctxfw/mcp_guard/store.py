@@ -1,5 +1,6 @@
 # manifest_hash: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 # manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
+# manifest_hash_v422_burst_guard: f1329ba99a93db6abeaa6f185ce40327ce2260c53f29ef770477ff1bf22a2546
 """
 ctxfw.mcp_guard.store — SQLite WAL Security Persistence & Immutable Ledgers
 ============================================================================
@@ -14,16 +15,20 @@ import itertools
 import json
 import os
 from pathlib import Path
+import re
 import sqlite3
 import threading
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
 
 from ctxfw.mcp_guard.contracts import (
+    CLIENT_KEY_HASH_PATTERN,
+    ERR_RATE_LIMIT_EXCEEDED,
     MAX_DESCRIPTION_CHARS,
     CapabilityLaunderingCheckResult,
     ChannelSurface,
     ConfinementCheckResult,
+    ErrorClass,
     FirewallDecisionDTO,
     FirewallEvent,
     FirewallState,
@@ -33,6 +38,8 @@ from ctxfw.mcp_guard.contracts import (
     PairedDynamicValidation,
     ParameterBindingGuard,
     PoisonScanFinding,
+    RateLimitDecisionDTO,
+    RateLimitState,
     ToolCapabilityProfile,
     ToolRegistrationPin,
     ValidationVerdict,
@@ -42,6 +49,8 @@ from ctxfw.mcp_guard.contracts import (
     transition_firewall_state,
     utc_now_iso,
 )
+
+_CLIENT_KEY_HASH_RE = re.compile(CLIENT_KEY_HASH_PATTERN)
 
 _T = TypeVar("_T")
 _SCHEMA_PATH = Path(__file__).resolve().with_name("schema.sql")
@@ -704,6 +713,89 @@ class McpGuardStore:
                     "SELECT * FROM capability_laundering_audits ORDER BY audited_at_utc"
                 ).fetchall()
             ]
+
+    def record_rate_limit_rejection(
+        self,
+        server_id: str,
+        decision: RateLimitDecisionDTO,
+    ) -> str:
+        """Persist an immutable Class 3 BUSINESS rate-limit rejection in SQLite WAL."""
+        if not isinstance(server_id, str):
+            raise ValueError("server_id must be a string")
+        if not (1 <= len(server_id) <= 128):
+            raise ValueError("server_id must be a non-empty string (<= 128 chars)")
+        if not isinstance(decision, RateLimitDecisionDTO):
+            raise ValueError("record_rate_limit_rejection requires a RateLimitDecisionDTO")
+        expected_tuple = (
+            False,
+            RateLimitState.THROTTLED,
+            ErrorClass.BUSINESS,
+            ERR_RATE_LIMIT_EXCEEDED,
+        )
+        actual_tuple = (
+            decision.allowed,
+            decision.state,
+            decision.error_class,
+            decision.error_code,
+        )
+        if actual_tuple != expected_tuple:
+            raise ValueError("Rate-limit audit row violates Class 3 BUSINESS throttled contract")
+        if not _CLIENT_KEY_HASH_RE.fullmatch(decision.client_key_hash):
+            raise ValueError("Rate-limit audit row violates Zero-Knowledge SHA-256 hash contract")
+
+        def _tx(conn: sqlite3.Connection) -> str:
+            now = utc_now_iso()
+            seq = self._next_unique_seed()
+            audit_id = _new_id(
+                "RLM",
+                f"{seq}:{server_id}:{decision.client_key_hash}:{decision.tool_name}:{decision.evaluated_at_ms}",
+            )
+            conn.execute(
+                """
+                INSERT INTO rate_limit_audit_logs (
+                    audit_id, server_id, client_key_hash, tool_name,
+                    state, error_class, error_code, remaining_tokens_q4,
+                    retry_after_ms, clock_regressed, reason, evaluated_at_ms, audited_at_utc
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    audit_id,
+                    server_id,
+                    decision.client_key_hash,
+                    decision.tool_name,
+                    decision.state.value,
+                    decision.error_class.value,
+                    decision.error_code,
+                    decision.remaining_tokens_q4,
+                    decision.retry_after_ms,
+                    int(decision.clock_regression_clamped),
+                    decision.reason[:512],
+                    decision.evaluated_at_ms,
+                    now,
+                ),
+            )
+            return audit_id
+
+        return self._atomic(_tx)
+
+    def list_rate_limit_audits(
+        self,
+        *,
+        client_key_hash: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Query persisted Zero-Knowledge rate-limit rejection records."""
+        bounded_limit = max(1, min(1000, int(limit)))
+        if client_key_hash is not None:
+            if not _CLIENT_KEY_HASH_RE.fullmatch(client_key_hash):
+                raise ValueError("client_key_hash filter must match ^[a-f0-9]{64}$")
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM rate_limit_audit_logs WHERE (? IS NULL OR client_key_hash = ?) "
+                "ORDER BY rowid DESC LIMIT ?",
+                (client_key_hash, client_key_hash, bounded_limit),
+            ).fetchall()
+            return [dict(r) for r in rows]
 
     def close(self) -> None:
         """Close the SQLite WAL database connection cleanly."""

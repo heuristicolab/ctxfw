@@ -1,15 +1,15 @@
 # manifest_hash: 990875d35d51a816507954d5e1a61506dcd2b5ec7d40d515a65c4ee5ac325f5f
 # =====================================================================
-# CTXFW CANONICAL EXCLUSION MANIFEST (ZERO-POLLUTION SHIELD)
+# CTXFW CANONICAL EXCLUSION MANIFEST
 # =====================================================================
 
-# 1. Entornos Virtuales y Dependencias
+# Virtual environments & local dependencies
 .venv/
 venv/
 env/
 __pypackages__/
 
-# 2. Caché de Intérprete y Compiladores C (Tree-Sitter)
+# Python bytecode, C extensions & test caches
 __pycache__/
 *.py[cod]
 *$py.class
@@ -21,8 +21,7 @@ __pycache__/
 htmlcov/
 .cache/
 
-# 3. Base de Datos Local y Ledgers Transaccionales (AXIOM-Zero-Egress)
-# NUNCA versionar la telemetría viva local ni SQLite WAL
+# Local SQLite WAL ledgers & runtime telemetry
 *.db
 *.db-wal
 *.db-shm
@@ -43,13 +42,13 @@ sara.db*
 swegate.db*
 .tracekit.anchor
 
-# 4. Artefactos de Empaquetado y Distribución
+# Packaging & distribution artifacts
 build/
 dist/
 *.egg-info/
 .eggs/
 
-# 5. Desechos de Sistema Operativo y Editores
+# OS & editor temporary files
 .DS_Store
 .DS_Store?
 ._*
@@ -66,13 +65,13 @@ desktop.ini
 !.vscode/tasks.json
 .cursor/scratchpad*
 
-# 6. Reportes y Snapshots Efímeros de Evaluación
+# Ephemeral evaluation reports & snapshots
 tests/eval_report.json
 tests/test_report.json
 eval_run_*.json
 pr_summary.md
 
-# 7. Secretos, Scratchpads y Especificaciones Locales
+# Environment secrets, local scratchpads & build artifacts
 .env
 *.env
 .env.*
@@ -90,9 +89,7 @@ specs/**
 *.xml
 *.log
 
-# =====================================================================
-# INTERNAL ASSETS & BUSINESS STRATEGY (PROPRIETARY - ZERO PUBLIC ACCESS)
-# =====================================================================
+# Local private docs, draft assets & untracked workspace paths
 docs/reports/
 docs/internal/
 docs/biz/
@@ -105,15 +102,11 @@ bizdev/
 internal/
 scripts/*biz*.py
 scripts/*sales*.py
-
-# Cartuchos ontológicos propietarios (.sont) — prohibido versionar en Plano 0
 *.sont
 *.sont.json
 *.sont.enc
 
-# =====================================================================
-# LOCAL WORKSPACE & INTERNAL TOOLING
-# =====================================================================
+# Local tooling & workspace manifests
 *.cmd
 .gitea/
 .mypy_cache/
@@ -131,5 +124,3 @@ scripts/*monitor*
 scripts/*sprint*
 scripts/*checkpoint*
 docs/directives/
-
-

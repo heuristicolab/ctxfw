@@ -1,10 +1,10 @@
-# CTXFW Operating Manual & Architecture Runbook (`v4.2.1`)
+# CTXFW Operating Manual & Architecture Runbook (`v4.2.2`)
 
 [![PyPI Version](https://img.shields.io/pypi/v/ctxfw?style=flat-square&label=PyPI)](https://pypi.org/project/ctxfw/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/ctxfw?style=flat-square)](https://pypi.org/project/ctxfw/)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-black?style=flat-square)](LICENSE)
 
-> **Current Version:** `ctxfw v4.2.1` · **Release Notes:** [`docs/RELEASE_NOTES_v4.2.1.md`](docs/RELEASE_NOTES_v4.2.1.md) · **Suite Status:** `667/667` tests passing · **Standalone Windows Binary:** `14.18 MB` (`19` embedded `.sql`/`.json` assets)
+> **Current Version:** `ctxfw v4.2.2` · **Release Notes:** [`docs/RELEASE_NOTES_v4.2.2.md`](docs/RELEASE_NOTES_v4.2.2.md) · **Suite Status:** `673/673` tests passing · **Standalone Windows Binary:** `14.18 MB` (`19` embedded `.sql`/`.json` assets)
 
 ---
 

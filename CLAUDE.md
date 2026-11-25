@@ -1,9 +1,9 @@
 # CLAUDE.md — Sovereign Agentic Interface for Core Optimizer Engine
 
 > **Project**: `ctxfw` (`Context Firewall`)  
-> **Canonical Version**: `v4.2.1`  
+> **Canonical Version**: `v4.2.2`  
 > **Domain**: AST Slicing, Multi-Surface MCP, & Zero-Egress Proxy Gateway  
-> **Verification Status**: **667 / 667 Tests Passing (100% Green)** | **ACI 1.0000**  
+> **Verification Status**: **673 / 673 Tests Passing (100% Green)** | **ACI 1.0000**  
 > **Target Stack**: Python 3.10+ | Native AST / Tree-sitter | Pydantic v2 | SQLite WAL | Pytest  
 
 ---
@@ -11,7 +11,7 @@
 ## 🛠️ Verification & Build Commands
 
 ```bash
-# Execute canonical test suite (667 tests, 100% green)
+# Execute canonical test suite (673 tests, 100% green)
 pytest tests/ -v --tb=short
 
 # Run high-assurance health & stdio isolation diagnostics (8 checks)

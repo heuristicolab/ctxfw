@@ -7,7 +7,7 @@
 
 [![PyPI Version](https://img.shields.io/pypi/v/ctxfw?style=flat-square&label=PyPI&color=007ec6)](https://pypi.org/project/ctxfw/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/ctxfw?style=flat-square)](https://pypi.org/project/ctxfw/)
-[![Test Suite](https://img.shields.io/badge/tests-667%2F667%20passing-00C853?style=flat-square)](https://github.com/heuristicolab/ctxfw/actions/workflows/ci.yaml)
+[![Test Suite](https://img.shields.io/badge/tests-673%2F673%20passing-00C853?style=flat-square)](https://github.com/heuristicolab/ctxfw/actions/workflows/ci.yaml)
 [![OWASP DevSecOps Guideline](https://img.shields.io/badge/OWASP%20DevSecOps-AI%20Agent%20%26%20MCP%20Security-003366?style=flat-square)](https://github.com/OWASP/DevSecOpsGuideline/blob/master/current-version/2-Process/2-2-Develop/2-2-5-AI-Agent-and-MCP-Security.md#open-source)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-black?style=flat-square)](https://github.com/heuristicolab/ctxfw/blob/main/LICENSE)
 [![heuristicolab/ctxfw MCP server](https://glama.ai/mcp/servers/heuristicolab/ctxfw/badges/score.svg)](https://glama.ai/mcp/servers/heuristicolab/ctxfw)
@@ -15,7 +15,7 @@
 [Quickstart](#quickstart) • [How It Works](#how-it-works) • [Empirical Benchmarks](#empirical-benchmarks) • [MCP & CLI Reference](#mcp-tools-and-cli-reference) • [Architecture](#architecture) • [Editions](#editions-and-enterprise) • [Docs Index](https://github.com/heuristicolab/ctxfw/blob/main/docs/README.md) • [Changelog](https://github.com/heuristicolab/ctxfw/blob/main/CHANGELOG.md)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/heuristicolab/ctxfw/main/logos/ctxfw_v411_live_demo.svg" alt="CTXFW v4.2.1 Live Terminal Demo — SARA Prompt Injection Gate, Polyglot AST Context Pruner & SWE-Gate" width="100%">
+  <img src="https://raw.githubusercontent.com/heuristicolab/ctxfw/main/logos/ctxfw_v411_live_demo.svg" alt="CTXFW v4.2.2 Live Terminal Demo — SARA Prompt Injection Gate, Polyglot AST Context Pruner & SWE-Gate" width="100%">
 </p>
 
 </div>
@@ -24,7 +24,7 @@
 
 ## Quickstart
 
-Install `ctxfw` (`v4.2.1`, Python `3.10–3.13`) with zero cloud accounts or outbound telemetry:
+Install `ctxfw` (`v4.2.2`, Python `3.10–3.13`) with zero cloud accounts or outbound telemetry:
 
 ```bash
 # Core MCP server, SARA firewall, CLI & TraceKit SQLite WAL ledger
@@ -75,7 +75,7 @@ Autonomous coding agents suffer from three failure modes when reading unfiltered
 
 All security, OCR, and AST compaction suites are deterministically reproducible offline (`network_egress_calls = 0`).
 
-### 1. Security, Wave 2 & Spanish Regulatory/OCR Suites (`ctxfw v4.2.1`)
+### 1. Security, Wave 2 & Spanish Regulatory/OCR Suites (`ctxfw v4.2.2`)
 
 | Suite / Engine | Measured Scope | Recall / Reduction | False Positive Rate | P50 / P95 Latency | Dossier |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -84,6 +84,7 @@ All security, OCR, and AST compaction suites are deterministically reproducible 
 | **`run_wave2_v42_benchmark.py` (Blocks B+C+D)** | `PASAC` (`5/5`), `TaskAuth` (`5/5`), `Cadence AIMD`, `TraceLite` (`5.692x`), `Snapshots` | **`82.43%` trace cut** | `0.0%` | `2.30–13.84 ms` | [Wave 2 Dossier](https://github.com/heuristicolab/ctxfw/blob/main/docs/benchmarks/WAVE2_V42_SECURITY_LATENCY_BENCHMARK.md) |
 | **`run_wave2_v42_benchmark.py` (Block E)** | Causal `Provenance` `#31`, `Containment` `#04`, 7-lang + homoglyphs (`45` adv / `35` ben) | **`100.0%`** | **`0.0%`** | `0.426 ms` / `1.505 ms` | [Wave 2 Dossier](https://github.com/heuristicolab/ctxfw/blob/main/docs/benchmarks/WAVE2_V42_SECURITY_LATENCY_BENCHMARK.md) |
 | **`run_regulatory_ocr_benchmark.py` (`SARA-RegDoc-60`)** | 60 Spanish regulatory/financial noisy OCR docs (`30` adv / `30` benign controls) | **`100.0%`** (`-62.52%` OCR noise) | **`0.0%`** (`0/30`, down from `16.67%` in `v4.2.0`) | `6.10 ms` / `8.71 ms` | [RegDoc-60 Report](https://github.com/heuristicolab/ctxfw/blob/main/docs/benchmarks/REGULATORY_LEGAL_OCR_BENCHMARK.md) |
+| **Production Red-Team Defense (`2026-11-25`, Live)** | `571` live HTTP `POST /api/mcp/invoke` fuzzer calls (`CMNET`, `FREE_TRIAL`) | **`$0.0000` LLM spend** · `38` `SARA` + `252` guards | **`0` secret / tenant leaks** | Sub-ms + `v4.2.2` burst guard | [Red-Team Case Study](https://github.com/heuristicolab/ctxfw/blob/main/docs/case-studies/redteam-mcp-defense-2026-11-25.md) ([ES](https://github.com/heuristicolab/ctxfw/blob/main/docs/case-studies/redteam-mcp-defense-2026-11-25.es.md)) |
 
 Reproduce offline from a repository checkout:
 
@@ -108,7 +109,7 @@ Measured offline (`0 bytes` stdout JSON-RPC leak, `100% PASS` via `ast.parse()`)
 
 ### 3. Pre-Ingestion Local Boundary vs. Cloud Runtime WAFs
 
-| Dimension | CTXFW (`v4.2.1`, Pre-Ingestion Local) | Cloud Runtime WAFs (`Lakera`, `Prisma AIRS`, `Protect AI`, `Cloudflare AI`) |
+| Dimension | CTXFW (`v4.2.2`, Pre-Ingestion Local) | Cloud Runtime WAFs (`Lakera`, `Prisma AIRS`, `Protect AI`, `Cloudflare AI`) |
 | :--- | :--- | :--- |
 | **Enforcement Point** | Local AST, CLI, Git Hook, MCP `stdio`, loopback proxy | Cloud HTTP edge after payload assembly |
 | **Data Sovereignty** | `100% Zero-Egress` (RAM + local SQLite WAL) | Outbound code/context transmission to third-party API |
@@ -208,7 +209,7 @@ The entire single-developer CLI, 5-tool MCP server, `SARA` firewall, `SWE-Gate`,
 
 - [Documentation Index (`docs/README.md`)](https://github.com/heuristicolab/ctxfw/blob/main/docs/README.md)
 - [Operating Manual (`USER_MANUAL.md`)](https://github.com/heuristicolab/ctxfw/blob/main/USER_MANUAL.md)
-- [Changelog (`CHANGELOG.md`)](https://github.com/heuristicolab/ctxfw/blob/main/CHANGELOG.md) · [v4.2.1 Release Notes](https://github.com/heuristicolab/ctxfw/blob/main/docs/RELEASE_NOTES_v4.2.1.md) · [v4.2.0 Release Notes](https://github.com/heuristicolab/ctxfw/blob/main/docs/RELEASE_NOTES_v4.2.0.md)
+- [Changelog (`CHANGELOG.md`)](https://github.com/heuristicolab/ctxfw/blob/main/CHANGELOG.md) · [v4.2.2 Release Notes](https://github.com/heuristicolab/ctxfw/blob/main/docs/RELEASE_NOTES_v4.2.2.md) · [v4.2.1 Release Notes](https://github.com/heuristicolab/ctxfw/blob/main/docs/RELEASE_NOTES_v4.2.1.md) · [v4.2.0 Release Notes](https://github.com/heuristicolab/ctxfw/blob/main/docs/RELEASE_NOTES_v4.2.0.md)
 - [Security Policy (`SECURITY.md`)](https://github.com/heuristicolab/ctxfw/blob/main/SECURITY.md)
 - [Contributing Guide (`CONTRIBUTING.md`)](https://github.com/heuristicolab/ctxfw/blob/main/CONTRIBUTING.md)
 - [Apache 2.0 License (`LICENSE`)](https://github.com/heuristicolab/ctxfw/blob/main/LICENSE)

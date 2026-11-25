@@ -1,5 +1,6 @@
 # manifest_hash: 4b3c6d65f2aeffd4fcfd8ecf166c4983ef94b046d3c9b7fd5e391811d32a5d82
 # manifest_hash_wave2e1: b77d4295c196c37e848903d930d8d1a358fc9178b4dca90ba40fd28db264f37a
+# manifest_hash_v422_burst_guard: f1329ba99a93db6abeaa6f185ce40327ce2260c53f29ef770477ff1bf22a2546
 """
 ctxfw.mcp_guard — MCP Tool Poisoning Firewall & Capability Laundering Guard
 ===========================================================================
@@ -22,13 +23,16 @@ def load_schema_sql() -> str:
     return SCHEMA_PATH.read_text(encoding="utf-8")
 
 
-_LAZY_SUBMODULES = ("contracts", "store")
+_LAZY_SUBMODULES = ("contracts", "rate_limiter", "store")
 _LAZY_SYMBOLS: Dict[str, Tuple[str, str]] = {
+    "CLIENT_KEY_HASH_PATTERN": ("ctxfw.mcp_guard.contracts", "CLIENT_KEY_HASH_PATTERN"),
     "CapabilityLaunderingCheckResult": ("ctxfw.mcp_guard.contracts", "CapabilityLaunderingCheckResult"),
     "ChannelSurface": ("ctxfw.mcp_guard.contracts", "ChannelSurface"),
+    "Clock": ("ctxfw.mcp_guard.rate_limiter", "Clock"),
     "ConfinementCheckResult": ("ctxfw.mcp_guard.contracts", "ConfinementCheckResult"),
     "DEFAULT_MAX_DECODE_ROUNDS": ("ctxfw.mcp_guard.contracts", "DEFAULT_MAX_DECODE_ROUNDS"),
     "DetectionLayer": ("ctxfw.mcp_guard.contracts", "DetectionLayer"),
+    "ERR_RATE_LIMIT_EXCEEDED": ("ctxfw.mcp_guard.contracts", "ERR_RATE_LIMIT_EXCEEDED"),
     "ErrorClass": ("ctxfw.mcp_guard.contracts", "ErrorClass"),
     "FirewallDecisionDTO": ("ctxfw.mcp_guard.contracts", "FirewallDecisionDTO"),
     "FirewallEvent": ("ctxfw.mcp_guard.contracts", "FirewallEvent"),
@@ -37,8 +41,11 @@ _LAZY_SYMBOLS: Dict[str, Tuple[str, str]] = {
     "MAX_AUTHORIZED_ROOTS": ("ctxfw.mcp_guard.contracts", "MAX_AUTHORIZED_ROOTS"),
     "MAX_DECODE_ROUNDS": ("ctxfw.mcp_guard.contracts", "MAX_DECODE_ROUNDS"),
     "MAX_DESCRIPTION_CHARS": ("ctxfw.mcp_guard.contracts", "MAX_DESCRIPTION_CHARS"),
+    "MAX_RETRY_AFTER_MS": ("ctxfw.mcp_guard.contracts", "MAX_RETRY_AFTER_MS"),
     "MUTATING_CAPABILITY_KEYWORDS": ("ctxfw.mcp_guard.contracts", "MUTATING_CAPABILITY_KEYWORDS"),
+    "McpBurstRateLimiter": ("ctxfw.mcp_guard.rate_limiter", "McpBurstRateLimiter"),
     "McpGuardStore": ("ctxfw.mcp_guard.store", "McpGuardStore"),
+    "McpRateLimitPolicyDTO": ("ctxfw.mcp_guard.contracts", "McpRateLimitPolicyDTO"),
     "McpToolContractSpec": ("ctxfw.mcp_guard.contracts", "McpToolContractSpec"),
     "OracleVerdict": ("ctxfw.mcp_guard.contracts", "OracleVerdict"),
     "PairedContainmentVerdict": ("ctxfw.mcp_guard.contracts", "PairedContainmentVerdict"),
@@ -46,6 +53,10 @@ _LAZY_SYMBOLS: Dict[str, Tuple[str, str]] = {
     "ParameterBindingGuard": ("ctxfw.mcp_guard.contracts", "ParameterBindingGuard"),
     "PoisonScanFinding": ("ctxfw.mcp_guard.contracts", "PoisonScanFinding"),
     "QUARANTINE_RISK_THRESHOLD": ("ctxfw.mcp_guard.contracts", "QUARANTINE_RISK_THRESHOLD"),
+    "RATE_LIMIT_SCALE": ("ctxfw.mcp_guard.contracts", "RATE_LIMIT_SCALE"),
+    "RateLimitDecisionDTO": ("ctxfw.mcp_guard.contracts", "RateLimitDecisionDTO"),
+    "RateLimitEvent": ("ctxfw.mcp_guard.contracts", "RateLimitEvent"),
+    "RateLimitState": ("ctxfw.mcp_guard.contracts", "RateLimitState"),
     "SarifBypassFinding": ("ctxfw.mcp_guard.contracts", "SarifBypassFinding"),
     "SarifRuleId": ("ctxfw.mcp_guard.contracts", "SarifRuleId"),
     "TERMINAL_FAILURE_STATES": ("ctxfw.mcp_guard.contracts", "TERMINAL_FAILURE_STATES"),
@@ -54,6 +65,8 @@ _LAZY_SYMBOLS: Dict[str, Tuple[str, str]] = {
     "ValidationVerdict": ("ctxfw.mcp_guard.contracts", "ValidationVerdict"),
     "canonicalize_mcp_path": ("ctxfw.mcp_guard.contracts", "canonicalize_mcp_path"),
     "compute_tool_pin_hash": ("ctxfw.mcp_guard.contracts", "compute_tool_pin_hash"),
+    "default_monotonic_ms_clock": ("ctxfw.mcp_guard.rate_limiter", "default_monotonic_ms_clock"),
+    "derive_client_key_hash": ("ctxfw.mcp_guard.rate_limiter", "derive_client_key_hash"),
     "evaluate_capability_laundering": ("ctxfw.mcp_guard.contracts", "evaluate_capability_laundering"),
     "evaluate_paired_containment": ("ctxfw.mcp_guard.contracts", "evaluate_paired_containment"),
     "has_invisible_or_bidi_unicode": ("ctxfw.mcp_guard.contracts", "has_invisible_or_bidi_unicode"),
@@ -61,6 +74,7 @@ _LAZY_SYMBOLS: Dict[str, Tuple[str, str]] = {
     "scan_description_risk": ("ctxfw.mcp_guard.contracts", "scan_description_risk"),
     "scan_mcp_config_perimeter": ("ctxfw.mcp_guard.contracts", "scan_mcp_config_perimeter"),
     "transition_firewall_state": ("ctxfw.mcp_guard.contracts", "transition_firewall_state"),
+    "transition_rate_limit_state": ("ctxfw.mcp_guard.rate_limiter", "transition_rate_limit_state"),
 }
 
 
